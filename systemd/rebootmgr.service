@@ -1,0 +1,13 @@
+[Unit]
+Description=Reboot Manager
+Documentation=man:rebootmgrd(8) man:rebootmgrctl(1)
+
+[Service]
+Type=dbus
+BusName=org.opensuse.rebootmgr
+ExecStart=/usr/sbin/rebootmgrd
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
