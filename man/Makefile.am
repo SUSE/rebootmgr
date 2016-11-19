@@ -4,12 +4,11 @@
 # Author: Thorsten Kukuk <kukuk@suse.de>
 #
 
-CLEANFILES = transactional-update.8 transactional-update.timer.8 \
-	transactional-update.service.8
+CLEANFILES = $(MANS)
 
 EXTRA_DIST = $(MANS) $(XMLS)
 
-man_MANS = rebootmgrd.8
+man_MANS = rebootmgrd.8 rebootmgr-dbus.conf.8 rebootmgr.service.8
 XMLS = rebootmgrd.8.xml
 
 if ENABLE_REGENERATE_MAN
