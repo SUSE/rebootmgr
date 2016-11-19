@@ -18,8 +18,12 @@
 #include "config.h"
 #endif
 
+#include <stdio.h>
+#include <errno.h>
 #include <string.h>
+#include <unistd.h>
 #include <libintl.h>
+#include <getopt.h>
 
 #include <glib.h>
 #include <dbus/dbus.h>
@@ -28,10 +32,140 @@
 
 #include "log_msg.h"
 #include "rebootmgr.h"
+#include "calendarspec.h"
 
 #ifndef _
 #define _(String) gettext (String)
 #endif
+
+static RM_RebootStrategy reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORD;
+static int reboot_running = 0;
+static CalendarSpec *maint_window_start = NULL;
+/* static uint64_t maint_window_duration = 1; */
+
+static void
+print_help (void)
+{
+  fputs (_("rebootmgrd - reboot following a specified strategy\n\n"), stdout);
+
+  fputs (_("  -d,--debug   Log debug output\n"),
+         stdout);
+  fputs (_("  -?, --help     Give this help list\n"), stdout);
+  fputs (_("      --version  Print program version\n"), stdout);
+}
+
+static void
+print_error (void)
+{
+  const char *program = "rebootmgrd";
+  fprintf (stderr,
+           _("Try `%s --help' for more information.\n"),
+           program);
+}
+
+static void
+reboot_now (void)
+{
+  if (reboot_running == 1)
+    {
+      log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
+
+#if 0
+      if (execl ("/usr/sbin/sytemctl", "systemctl", "reboot", NULL) == -1)
+	log_msg (LOG_ERR, "Calling /usr/sbin/systemctl failed: %s\n",
+		 strerror (errno));
+#else
+      log_msg (LOG_DEBUG, "systemctl reboot called!");
+#endif
+      reboot_running = 0;
+    }
+}
+
+/* Called by g_timeout_add when maintenance window starts */
+static gboolean
+reboot_timer (gpointer user_data __attribute__((unused)))
+{
+  reboot_now ();
+  return FALSE;
+}
+
+static void
+initialize_timer (void)
+{
+  int r;
+  usec_t curr = now(CLOCK_REALTIME);
+  usec_t next;
+
+  r = calendar_spec_next_usec (maint_window_start, curr, &next);
+  if (r < 0)
+    {
+      log_msg (LOG_ERR, "Internal error converting the timer: %s",
+	       strerror (-r));
+      return;
+    }
+
+  if (debug_flag)
+    {
+      char buf[FORMAT_TIMESTAMP_MAX];
+      int64_t in_secs = (next - curr) / USEC_PER_SEC;
+
+      log_msg (LOG_DEBUG,
+	       "Reboot in %i seconds at %s", in_secs,
+	       format_timestamp(buf, sizeof(buf), next));
+    }
+  g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, NULL);
+}
+
+static int
+is_etcd_running (void)
+{
+  /* XXX */
+  return 0;
+}
+
+static void
+do_reboot (RM_RebootOrder order)
+{
+  reboot_running = 1;
+
+  if (order == RM_REBOOTORDER_FORCED)
+    reboot_now ();
+
+  switch (reboot_strategy)
+    {
+    case RM_REBOOTSTRATEGY_BEST_EFFORD:
+      if (is_etcd_running ())
+	{ /* XXX reboot with locks */ }
+      else if (maint_window_start != NULL)
+	initialize_timer ();
+      else
+	reboot_now ();
+      break;
+    case RM_REBOOTSTRATEGY_INSTANTLY:
+      reboot_now ();
+      break;
+    case RM_REBOOTSTRATEGY_MAINT_WINDOW:
+      if (order == RM_REBOOTORDER_FAST ||
+	  maint_window_start == NULL)
+	reboot_now ();
+      initialize_timer ();
+      break;
+    case RM_REBOOTSTRATEGY_ETCD_LOCK:
+      if (order == RM_REBOOTORDER_FAST)
+	{ /* ignore maintenance window */ };
+      /* XXX */
+      break;
+    case RM_REBOOTSTRATEGY_OFF:
+      reboot_running = 0;
+      /* Do nothing */
+      break;
+    default:
+      reboot_running = 0;
+      log_msg (LOG_ERR, "ERROR: unknown reboot strategy %i", reboot_strategy);
+      break;
+    }
+}
+
 
 static gboolean
 dbus_reconnect (gpointer user_data __attribute__((unused)))
@@ -61,14 +195,14 @@ dbus_filter (DBusConnection *connection,
       log_msg (LOG_INFO, "Lost connection to D-Bus\n");
       dbus_connection_unref (connection);
       connection = NULL;
-      //g_timeout_add (1000, dbus_reconnect, NULL);
+      /* g_timeout_add (1000, dbus_reconnect, NULL); */
       g_timeout_add_seconds (1, dbus_reconnect, NULL);
       handled = DBUS_HANDLER_RESULT_HANDLED;
     }
   else if (dbus_message_is_signal (message, RM_DBUS_INTERFACE,
                                    RM_DBUS_SIGNAL_REBOOT))
     {
-      RMRebootOrder order = RM_REBOOTORDER_UNKNOWN;
+      RM_RebootOrder order = RM_REBOOTORDER_UNKNOWN;
 
       if (dbus_message_get_args (message, NULL, DBUS_TYPE_UINT32,
                                  &order, DBUS_TYPE_INVALID))
@@ -83,6 +217,7 @@ dbus_filter (DBusConnection *connection,
 	    if (debug_flag)
 	      log_msg (LOG_DEBUG, "Reboot now");
 	  }
+	  do_reboot (order);
 	  handled = DBUS_HANDLER_RESULT_HANDLED;
 	}
     }
@@ -91,7 +226,28 @@ dbus_filter (DBusConnection *connection,
     {
       if (debug_flag)
 	log_msg (LOG_DEBUG, "Cancel reboot");
+      reboot_running = 0;
       handled = DBUS_HANDLER_RESULT_HANDLED;
+    }
+  else if (dbus_message_is_signal (message, RM_DBUS_INTERFACE,
+                                   RM_DBUS_SIGNAL_SET_STRATEGY))
+    {
+      RM_RebootStrategy strategy = RM_REBOOTSTRATEGY_UNKNOWN;
+
+      if (dbus_message_get_args (message, NULL, DBUS_TYPE_UINT32,
+                                 &strategy, DBUS_TYPE_INVALID))
+        {
+	  if (debug_flag)
+	    log_msg (LOG_DEBUG, "set-strategy called");
+          if (strategy != RM_REBOOTSTRATEGY_UNKNOWN &&
+	      reboot_strategy != strategy)
+	    {
+	      if (debug_flag)
+		log_msg (LOG_DEBUG, "reboot_strategy changed");
+	      reboot_strategy = strategy;
+	    }
+	  handled = DBUS_HANDLER_RESULT_HANDLED;
+	}
     }
   else if (dbus_message_is_signal (message, RM_DBUS_INTERFACE,
 				   RM_DBUS_SIGNAL_STATUS))
@@ -122,7 +278,51 @@ main (int argc __attribute__((unused)),
   DBusError error;
   GMainLoop *loop;
 
-  debug_flag=1;
+  while (1)
+    {
+      int c;
+      int option_index = 0;
+      static struct option long_options[] =
+	{
+	  {"debug", no_argument, NULL, 'd'},
+	  {"version", no_argument, NULL, 'v'},
+	  {"usage", no_argument, NULL, '?'},
+	  {"help", no_argument, NULL, 'h'},
+	  {NULL, 0, NULL, '\0'}
+	};
+
+
+      c = getopt_long (argc, argv, "dvh?", long_options, &option_index);
+      if (c == (-1))
+        break;
+      switch (c)
+        {
+        case 'd':
+	  debug_flag = 1;
+	  break;
+	case '?':
+	case 'h':
+          print_help ();
+          return 0;
+	case 'v':
+	  fprintf (stdout, "rebootmgrd (%s) %s\n", PACKAGE, VERSION);
+          return 0;
+        default:
+          print_help ();
+          return 1;
+        }
+    }
+
+  argc -= optind;
+  argv += optind;
+
+  if (argc > 1)
+    {
+      print_error ();
+      return 1;
+    }
+
+  calendar_spec_from_string("hourly", &maint_window_start);
 
   loop = g_main_loop_new (NULL, FALSE);
 

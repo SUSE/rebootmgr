@@ -79,5 +79,5 @@ AH_VERBATIM([__ZZENABLE_NLS],
 #define N_(msgid) msgid
 #endif /* ENABLE_NLS */])
 
-AC_OUTPUT([Makefile src/Makefile man/Makefile dbus/Makefile \
+AC_OUTPUT([Makefile lib/Makefile src/Makefile man/Makefile dbus/Makefile \
 	systemd/Makefile])

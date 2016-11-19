@@ -18,21 +18,31 @@
 #ifndef _REBOOTMGR_H_
 #define _REBOOTMGR_H_
 
-#define RM_DBUS_INTERFACE "org.opensuse.rebootmgr"
-#define RM_DBUS_SERVICE   "org.opensuse.rebootmgr"
-#define RM_DBUS_PATH      "/org/opensuse/rebootmgr"
-#define RM_DBUS_SIGNAL_REBOOT "Reboot"
-#define RM_DBUS_SIGNAL_STATUS "Status"
-#define RM_DBUS_SIGNAL_CANCEL "Cancel"
+#define RM_DBUS_INTERFACE 	"org.opensuse.rebootmgr"
+#define RM_DBUS_SERVICE   	"org.opensuse.rebootmgr"
+#define RM_DBUS_PATH      	"/org/opensuse/rebootmgr"
+#define RM_DBUS_SIGNAL_REBOOT 		"Reboot"
+#define RM_DBUS_SIGNAL_STATUS 		"Status"
+#define RM_DBUS_SIGNAL_CANCEL 		"Cancel"
+#define RM_DBUS_SIGNAL_SET_STRATEGY	"Set-Strategy"
 
-typedef enum RMRebootOrder {
+typedef enum RM_RebootOrder {
   RM_REBOOTORDER_UNKNOWN = 0,
-  RM_REBOOTORDER_STANDARD,               /* Reboot at next possible time */
-  RM_REBOOTORDER_FAST,                       /* Reboot as fast as possible, but
-						                  get locks first */
-  RM_REBOOTORDER_FORCED                    /* Reboot immeaditly, without
-                                                                  waiting for maintenance window */
-} RMRebootOrder;
+  RM_REBOOTORDER_STANDARD, /* Follow normal reboot strategy */
+  RM_REBOOTORDER_FAST,     /* Ignore maintenance window, but
+			      get locks first */
+  RM_REBOOTORDER_FORCED    /* Reboot immeaditly, without
+                              waiting for maintenance window */
+} RM_RebootOrder;
 
+typedef enum RM_RebootStrategy {
+  RM_REBOOTSTRATEGY_UNKNOWN = 0,
+  RM_REBOOTSTRATEGY_BEST_EFFORD, /* etcd-lock if available, else 
+			            maintenance window, else instantly */
+  RM_REBOOTSTRATEGY_INSTANTLY,	 /* reboot instantly */
+  RM_REBOOTSTRATEGY_MAINT_WINDOW,/* reboot only during maintenance window */
+  RM_REBOOTSTRATEGY_ETCD_LOCK,   /* acquire etcd lock before reboot */
+  RM_REBOOTSTRATEGY_OFF          /* don't reboot */
+} RM_RebootStrategy;
 
 #endif /* _REBOOTMGR_H_ */

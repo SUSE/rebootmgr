@@ -5,7 +5,7 @@
 #
 AUTOMAKE_OPTIONS = 1.6 foreign check-news dist-bzip2
 #
-SUBDIRS = src man dbus systemd
+SUBDIRS = lib src man dbus systemd
 
 CLEANFILES = *~
 

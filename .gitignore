@@ -30,6 +30,12 @@ libtool
 po/POTFILES
 po/stamp-po
 po/remove-potcdate.sed
+lib/test-calendarspec
+man/rebootmgr-dbus.conf.8
+man/rebootmgr.service.8
+man/rebootmgrd.8
+src/rebootmgrctl
+src/rebootmgrd
 
 # tar archive
 rebootmgr-*.tar.*
