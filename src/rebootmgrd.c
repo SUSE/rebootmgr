@@ -68,23 +68,43 @@ reboot_now (void)
 {
   if (reboot_running == 1)
     {
-      log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
+      if (!debug_flag)
+	{
+	  log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
+	  if (execl ("/usr/sbin/sytemctl", "systemctl", "reboot", NULL) == -1)
+	    log_msg (LOG_ERR, "Calling /usr/sbin/systemctl failed: %s\n",
+		     strerror (errno));
+	}
+      else
+	log_msg (LOG_DEBUG, "systemctl reboot called!");
 
-#if 0
-      if (execl ("/usr/sbin/sytemctl", "systemctl", "reboot", NULL) == -1)
-	log_msg (LOG_ERR, "Calling /usr/sbin/systemctl failed: %s\n",
-		 strerror (errno));
-#else
-      log_msg (LOG_DEBUG, "systemctl reboot called!");
-#endif
       reboot_running = 0;
     }
+}
+
+/*
+  check if etcd is running.
+  return values:
+  0: not running
+  1: running
+*/
+static int
+etcd_is_running (void)
+{
+  /* XXX */
+  return 0;
 }
 
 /* Called by g_timeout_add when maintenance window starts */
 static gboolean
 reboot_timer (gpointer user_data __attribute__((unused)))
 {
+  if ((reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORD ||
+       reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK) &&
+      etcd_is_running ())
+    {
+      /* get etcd lock */;
+    }
   reboot_now ();
   return FALSE;
 }
@@ -116,13 +136,6 @@ initialize_timer (void)
   reboot_timer_id = g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, NULL);
 }
 
-static int
-is_etcd_running (void)
-{
-  /* XXX */
-  return 0;
-}
-
 static void
 do_reboot (RM_RebootOrder order)
 {
@@ -134,11 +147,11 @@ do_reboot (RM_RebootOrder order)
   switch (reboot_strategy)
     {
     case RM_REBOOTSTRATEGY_BEST_EFFORD:
-      if (is_etcd_running ())
-	{ /* XXX reboot with locks */ }
-      else if (maint_window_start != NULL &&
-	       order != RM_REBOOTORDER_FAST)
+      if (maint_window_start != NULL &&
+	  order != RM_REBOOTORDER_FAST)
 	initialize_timer ();
+      else if (etcd_is_running ())
+	{ /* XXX reboot with locks */ }
       else
 	reboot_now ();
       break;
@@ -167,11 +180,11 @@ do_reboot (RM_RebootOrder order)
     }
 }
 
+static int dbus_init (void);
 
 static gboolean
 dbus_reconnect (gpointer user_data __attribute__((unused)))
 {
-#if 0 /* XXX */
   gboolean status;
 
   status = dbus_init ();
@@ -179,8 +192,6 @@ dbus_reconnect (gpointer user_data __attribute__((unused)))
     log_msg (LOG_DEBUG, "Reconnect %s",
 	     status ? "successful" : "failed");
   return !status;
-#endif
-  return FALSE;
 }
 
 static DBusHandlerResult
@@ -295,62 +306,17 @@ dbus_filter (DBusConnection *connection, DBusMessage *message,
   return handled;
 }
 
-
-int
-main (int argc __attribute__((unused)),
-      char **argv __attribute__ ((unused)))
+/*
+  init dbus
+   return value:
+   1: success
+   0: error
+*/
+static int
+dbus_init (void)
 {
   DBusConnection *connection = NULL;
   DBusError error;
-  GMainLoop *loop;
-
-  while (1)
-    {
-      int c;
-      int option_index = 0;
-      static struct option long_options[] =
-	{
-	  {"debug", no_argument, NULL, 'd'},
-	  {"version", no_argument, NULL, 'v'},
-	  {"usage", no_argument, NULL, '?'},
-	  {"help", no_argument, NULL, 'h'},
-	  {NULL, 0, NULL, '\0'}
-	};
-
-
-      c = getopt_long (argc, argv, "dvh?", long_options, &option_index);
-      if (c == (-1))
-        break;
-      switch (c)
-        {
-        case 'd':
-	  debug_flag = 1;
-	  break;
-	case '?':
-	case 'h':
-          print_help ();
-          return 0;
-	case 'v':
-	  fprintf (stdout, "rebootmgrd (%s) %s\n", PACKAGE, VERSION);
-          return 0;
-        default:
-          print_help ();
-          return 1;
-        }
-    }
-
-  argc -= optind;
-  argv += optind;
-
-  if (argc > 1)
-    {
-      print_error ();
-      return 1;
-    }
-
-  calendar_spec_from_string("hourly", &maint_window_start);
-
-  loop = g_main_loop_new (NULL, FALSE);
 
   dbus_error_init (&error);
 
@@ -445,29 +411,88 @@ main (int argc __attribute__((unused)),
     }
 
   dbus_connection_set_exit_on_disconnect (connection, FALSE);
-  if (!dbus_connection_add_filter (connection, dbus_filter, loop, NULL))
+
+  if (!dbus_connection_add_filter (connection, dbus_filter, NULL, NULL))
     goto out;
 
   dbus_connection_setup_with_g_main (connection, NULL);
 
-  g_main_loop_run (loop);
-
-  return 0;
+  return 1;
 
  out:
   if (connection)
     {
-      return 1;
-#if 0 /* XXX */
-      dbus_bus_release_name (connection, RM_DBUS_SERVICE, &error);
+      dbus_bus_release_name (connection, RM_DBUS_NAME, &error);
       dbus_connection_unref (connection);
       return 0;
-#endif
     }
   else
     {
       if (debug_flag)
-	log_msg (LOG_DEBUG, "No connection possible, assume online mode");
+	log_msg (LOG_DEBUG, "No connection possible");
       return 0;
     }
+}
+
+
+int
+main (int argc __attribute__((unused)),
+      char **argv __attribute__ ((unused)))
+{
+  GMainLoop *loop;
+
+  while (1)
+    {
+      int c;
+      int option_index = 0;
+      static struct option long_options[] =
+	{
+	  {"debug", no_argument, NULL, 'd'},
+	  {"version", no_argument, NULL, 'v'},
+	  {"usage", no_argument, NULL, '?'},
+	  {"help", no_argument, NULL, 'h'},
+	  {NULL, 0, NULL, '\0'}
+	};
+
+
+      c = getopt_long (argc, argv, "dvh?", long_options, &option_index);
+      if (c == (-1))
+        break;
+      switch (c)
+        {
+        case 'd':
+	  debug_flag = 1;
+	  break;
+	case '?':
+	case 'h':
+          print_help ();
+          return 0;
+	case 'v':
+	  fprintf (stdout, "rebootmgrd (%s) %s\n", PACKAGE, VERSION);
+          return 0;
+        default:
+          print_help ();
+          return 1;
+        }
+    }
+
+  argc -= optind;
+  argv += optind;
+
+  if (argc > 1)
+    {
+      print_error ();
+      return 1;
+    }
+
+  calendar_spec_from_string("hourly", &maint_window_start);
+
+  loop = g_main_loop_new (NULL, FALSE);
+
+  if (dbus_init() != 1)
+    return 1;
+
+  g_main_loop_run (loop);
+
+  return 0;
 }
