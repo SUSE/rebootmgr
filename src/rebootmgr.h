@@ -18,13 +18,16 @@
 #ifndef _REBOOTMGR_H_
 #define _REBOOTMGR_H_
 
-#define RM_DBUS_INTERFACE 	"org.opensuse.rebootmgr"
-#define RM_DBUS_SERVICE   	"org.opensuse.rebootmgr"
+#define RM_DBUS_NAME		 "org.opensuse.rebootmgr"
+#define RM_DBUS_INTERFACE	 "org.opensuse.rebootmgr"
+#define RM_DBUS_INTERFACE_SERVER "org.opensuse.rebootmgr.Server"
+#define RM_DBUS_PATH_SERVER	 "/"
 #define RM_DBUS_PATH      	"/org/opensuse/rebootmgr"
 #define RM_DBUS_SIGNAL_REBOOT 		"Reboot"
 #define RM_DBUS_SIGNAL_STATUS 		"Status"
 #define RM_DBUS_SIGNAL_CANCEL 		"Cancel"
-#define RM_DBUS_SIGNAL_SET_STRATEGY	"Set-Strategy"
+#define RM_DBUS_SIGNAL_SET_STRATEGY	"SetStrategy"
+#define RM_DBUS_SIGNAL_GET_STRATEGY	"GetStrategy"
 
 typedef enum RM_RebootOrder {
   RM_REBOOTORDER_UNKNOWN = 0,

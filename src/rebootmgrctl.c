@@ -59,7 +59,7 @@ usage (int exit_code)
 static int
 rebootmgr_is_running (DBusConnection *connection)
 {
-  return dbus_bus_name_has_owner (connection, RM_DBUS_SERVICE, NULL);
+  return dbus_bus_name_has_owner (connection, RM_DBUS_NAME, NULL);
 }
 
 
@@ -70,7 +70,8 @@ send_message_with_arg (DBusConnection *connection, const char *signal,
   DBusMessage *message;
   int retval = 0;
 
-  message = dbus_message_new_signal (RM_DBUS_PATH, RM_DBUS_INTERFACE,
+  message = dbus_message_new_signal (RM_DBUS_PATH,
+				     RM_DBUS_INTERFACE,
 				     signal);
   if (message == NULL)
     {
@@ -112,7 +113,8 @@ cancel_reboot (DBusConnection *connection)
   DBusMessage *message;
   int retval = 0;
 
-  message = dbus_message_new_signal (RM_DBUS_PATH, RM_DBUS_INTERFACE,
+  message = dbus_message_new_signal (RM_DBUS_PATH,
+				     RM_DBUS_INTERFACE,
 				     RM_DBUS_SIGNAL_CANCEL);
   if (message == NULL)
     {
@@ -128,6 +130,66 @@ cancel_reboot (DBusConnection *connection)
   dbus_message_unref (message);
 
   return retval;
+}
+
+static int
+get_strategy (DBusConnection *connection)
+{
+  DBusError error;
+  DBusMessage *message;
+  RM_RebootStrategy strategy = RM_REBOOTSTRATEGY_UNKNOWN;
+
+  message = dbus_message_new_method_call (RM_DBUS_NAME,
+					  RM_DBUS_PATH,
+					  RM_DBUS_INTERFACE,
+					  RM_DBUS_SIGNAL_GET_STRATEGY);
+  if (message == NULL)
+    {
+      fprintf (stderr, _("Out of memory!\n"));
+      return 1;
+    }
+
+  dbus_error_init (&error);
+  /* send message and get a handle for a reply */
+  if (!dbus_connection_send_with_reply_and_block (connection, message,
+						  -1, &error))
+    {
+      if (dbus_error_is_set (&error))
+	{
+	  fprintf (stderr, _("Error: %s\n"), error.message);
+	  dbus_error_free (&error);
+	}
+      else
+	fprintf (stderr, _("Out of memory!\n"));
+      return 1;
+    }
+
+  /* free message */
+  dbus_message_unref (message);
+
+  /* read the parameters */
+  dbus_error_init (&error);
+  if (dbus_message_get_args (message, &error, DBUS_TYPE_UINT32,
+			     &strategy, DBUS_TYPE_INVALID))
+    {
+      printf ("Got answer: %i\n", strategy);
+    }
+  else
+    {
+      if (dbus_error_is_set (&error))
+	{
+	  fprintf (stderr, _("Error reading arguments: %s\n"),
+		   error.message);
+	  dbus_error_free (&error);
+	}
+      else
+	fprintf (stderr, _("Unknown error reading arguments\n"));
+    }
+
+  /* free reply and close connection */
+  dbus_message_unref (message);
+
+  return 0;
 }
 
 int
@@ -216,12 +278,14 @@ main (int argc, char **argv)
 	    strategy = RM_REBOOTSTRATEGY_INSTANTLY;
 	  else if (strcasecmp ("off", argv[2]) == 0)
 	    strategy = RM_REBOOTSTRATEGY_OFF;
-
 	  else
 	    usage (1);
 	}
       retval = set_strategy (connection, strategy);
     }
+  else if (strcasecmp ("get-strategy", argv[1]) == 0 ||
+	   strcasecmp ("get_strategy", argv[1]) == 0)
+    retval = get_strategy (connection);
   else if (strcasecmp ("cancel", argv[1]) == 0)
     retval = cancel_reboot (connection);
   else

@@ -1,5 +1,5 @@
 /* Copyright (c) 2016 Thorsten Kukuk
-   Author: Thorsten Kukuk <kukuk@suse.de>
+   Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -11,8 +11,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License along
-   with this program; if not, write to the Free Software Foundation, Inc.,
-   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA. */
+   with this program; if not, see <http://www.gnu.org/licenses/>. */
 
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
@@ -40,6 +39,7 @@
 
 static RM_RebootStrategy reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORD;
 static int reboot_running = 0;
+static guint reboot_timer_id = 0;
 static CalendarSpec *maint_window_start = NULL;
 /* static uint64_t maint_window_duration = 1; */
 
@@ -113,7 +113,7 @@ initialize_timer (void)
 	       "Reboot in %i seconds at %s", in_secs,
 	       format_timestamp(buf, sizeof(buf), next));
     }
-  g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, NULL);
+  reboot_timer_id = g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, NULL);
 }
 
 static int
@@ -136,7 +136,8 @@ do_reboot (RM_RebootOrder order)
     case RM_REBOOTSTRATEGY_BEST_EFFORD:
       if (is_etcd_running ())
 	{ /* XXX reboot with locks */ }
-      else if (maint_window_start != NULL)
+      else if (maint_window_start != NULL &&
+	       order != RM_REBOOTORDER_FAST)
 	initialize_timer ();
       else
 	reboot_now ();
@@ -183,8 +184,8 @@ dbus_reconnect (gpointer user_data __attribute__((unused)))
 }
 
 static DBusHandlerResult
-dbus_filter (DBusConnection *connection,
-	     DBusMessage *message, void *user_data  __attribute__((unused)))
+dbus_filter (DBusConnection *connection, DBusMessage *message,
+	     void *user_data  __attribute__((unused)))
 {
   DBusHandlerResult handled = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
@@ -217,16 +218,19 @@ dbus_filter (DBusConnection *connection,
 	    if (debug_flag)
 	      log_msg (LOG_DEBUG, "Reboot now");
 	  }
-	  do_reboot (order);
-	  handled = DBUS_HANDLER_RESULT_HANDLED;
 	}
+      do_reboot (order);
+      handled = DBUS_HANDLER_RESULT_HANDLED;
     }
   else if (dbus_message_is_signal (message, RM_DBUS_INTERFACE,
 				   RM_DBUS_SIGNAL_CANCEL))
     {
       if (debug_flag)
 	log_msg (LOG_DEBUG, "Cancel reboot");
+      if (reboot_running > 0 && reboot_timer_id > 0)
+	g_source_remove (reboot_timer_id);
       reboot_running = 0;
+      reboot_timer_id = 0;
       handled = DBUS_HANDLER_RESULT_HANDLED;
     }
   else if (dbus_message_is_signal (message, RM_DBUS_INTERFACE,
@@ -248,6 +252,28 @@ dbus_filter (DBusConnection *connection,
 	    }
 	  handled = DBUS_HANDLER_RESULT_HANDLED;
 	}
+    }
+  else if (dbus_message_is_signal (message, RM_DBUS_INTERFACE,
+				   RM_DBUS_SIGNAL_GET_STRATEGY))
+    {
+      DBusMessage* reply;
+
+      if (debug_flag)
+	log_msg (LOG_DEBUG, "get-strategy called");
+
+      /* create a reply from the message */
+      reply = dbus_message_new_method_return (message);
+      dbus_message_append_args (reply, DBUS_TYPE_UINT32, &reboot_strategy,
+				DBUS_TYPE_INVALID);
+      /* send the reply && flush the connection */
+      if (!dbus_connection_send (connection, reply, NULL))
+	{
+	  log_msg (LOG_ERR, "Out of memory!");
+	  return handled;
+	}
+      /* free the reply */
+      dbus_message_unref (reply);
+      handled = DBUS_HANDLER_RESULT_HANDLED;
     }
   else if (dbus_message_is_signal (message, RM_DBUS_INTERFACE,
 				   RM_DBUS_SIGNAL_STATUS))
@@ -338,7 +364,8 @@ main (int argc __attribute__((unused)),
       goto out;
     }
 
-  dbus_bool_t ret = dbus_bus_name_has_owner (connection, RM_DBUS_SERVICE, &error);
+  dbus_bool_t ret = dbus_bus_name_has_owner (connection,
+					     RM_DBUS_NAME, &error);
   if (dbus_error_is_set (&error))
     {
       log_msg (LOG_ERR, "DBus Error: %s", error.message);
@@ -349,11 +376,12 @@ main (int argc __attribute__((unused)),
   if (ret == FALSE)
     {
       if (debug_flag)
-	log_msg (LOG_INFO, "Bus name %s doesn't have an owner, reserving it...", RM_DBUS_SERVICE);
+	log_msg (LOG_INFO, "Bus name %s doesn't have an owner, reserving it...",
+		 RM_DBUS_NAME);
 
       int request_name_reply =
-	dbus_bus_request_name (connection, RM_DBUS_SERVICE, DBUS_NAME_FLAG_DO_NOT_QUEUE,
-			       &error);
+	dbus_bus_request_name (connection, RM_DBUS_NAME,
+			       DBUS_NAME_FLAG_DO_NOT_QUEUE, &error);
       if (dbus_error_is_set (&error))
 	{
 	  log_msg (LOG_ERR, "Error requesting a bus name: %s", error.message);
@@ -363,11 +391,12 @@ main (int argc __attribute__((unused)),
       if ( request_name_reply == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER )
 	{
 	  if (debug_flag)
-	    log_msg (LOG_DEBUG, "Bus name %s successfully reserved!", RM_DBUS_SERVICE);
+	    log_msg (LOG_DEBUG, "Bus name %s successfully reserved!",
+		     RM_DBUS_NAME);
 	}
       else
 	{
-	  log_msg (LOG_ERR, "Failed to reserve name %s", RM_DBUS_SERVICE);
+	  log_msg (LOG_ERR, "Failed to reserve name %s", RM_DBUS_NAME);
 	  return 0;
 	}
     }
@@ -379,7 +408,7 @@ main (int argc __attribute__((unused)),
 	unless somebody stole this name from you, so better to choose a correct bus
 	name
       */
-      log_msg (LOG_ERR, "%s is already reserved", RM_DBUS_SERVICE);
+      log_msg (LOG_ERR, "%s is already reserved", RM_DBUS_NAME);
       return 1;
     }
 
