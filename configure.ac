@@ -80,4 +80,4 @@ AH_VERBATIM([__ZZENABLE_NLS],
 #endif /* ENABLE_NLS */])
 
 AC_OUTPUT([Makefile lib/Makefile src/Makefile man/Makefile dbus/Makefile \
-	systemd/Makefile])
+	systemd/Makefile etc/Makefile])

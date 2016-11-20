@@ -116,6 +116,8 @@ initialize_timer (void)
   usec_t curr = now(CLOCK_REALTIME);
   usec_t next;
 
+  /* XXX check, if we are inside the maintenance window. If yes, reboot now */
+
   r = calendar_spec_next_usec (maint_window_start, curr, &next);
   if (r < 0)
     {
@@ -434,6 +436,54 @@ dbus_init (void)
     }
 }
 
+static void
+load_config (void)
+{
+  GKeyFile *key_file;
+  GError *error;
+  gchar *str_start = NULL, *str_duration = NULL, *str_strategy = NULL;
+  int ret;
+
+  key_file = g_key_file_new ();
+  error = NULL;
+
+  if (!g_key_file_load_from_file (key_file, "/etc/rebootmgr.conf",
+				  G_KEY_FILE_KEEP_COMMENTS |
+				  G_KEY_FILE_KEEP_TRANSLATIONS,
+				  &error))
+    {
+      log_msg (LOG_ERR, "Cannot load '/etc/rebootmgr.conf': %s", error->message);
+    }
+  else
+    {
+      str_start = g_key_file_get_string (key_file, "rebootmgr", "window_start", NULL);
+      str_duration = g_key_file_get_string (key_file, "rebootmgr", "duration", NULL);
+      str_strategy = g_key_file_get_string(key_file, "rebootmgr", "strategy", NULL);
+    }
+  if (str_start == NULL)
+    str_start = "03:30";
+  if (str_duration == NULL)
+    str_duration = "1h";
+  if (str_strategy == NULL)
+    str_strategy = "best-efford";
+
+  if ((ret = calendar_spec_from_string (str_start, &maint_window_start)) < 0)
+    log_msg (LOG_ERR, "ERROR: cannot parse window_start (%s): %s",
+	     str_start, strerror (-ret));
+  if (strcasecmp (str_strategy, "best-efford") == 0)
+    reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORD;
+  else if (strcasecmp (str_strategy, "instantly") == 0)
+    reboot_strategy = RM_REBOOTSTRATEGY_INSTANTLY;
+  else if (strcasecmp (str_strategy, "maint_window") == 0 ||
+	   strcasecmp (str_strategy, "maint-window") == 0)
+    reboot_strategy = RM_REBOOTSTRATEGY_MAINT_WINDOW;
+  else if (strcasecmp (str_strategy, "etcd-lock") == 0)
+    reboot_strategy = RM_REBOOTSTRATEGY_ETCD_LOCK;
+  else if (strcasecmp (str_strategy, "off") == 0)
+    reboot_strategy = RM_REBOOTSTRATEGY_OFF;
+  else
+    log_msg (LOG_ERR, "ERROR: cannot parse strategy '%s'", str_strategy);
+}
 
 int
 main (int argc __attribute__((unused)),
@@ -485,7 +535,7 @@ main (int argc __attribute__((unused)),
       return 1;
     }
 
-  calendar_spec_from_string("hourly", &maint_window_start);
+  load_config ();
 
   loop = g_main_loop_new (NULL, FALSE);
 
