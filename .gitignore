@@ -27,6 +27,7 @@ core
 config.log
 config.status
 libtool
+test-driver
 po/POTFILES
 po/stamp-po
 po/remove-potcdate.sed
