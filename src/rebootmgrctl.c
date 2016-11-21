@@ -231,15 +231,24 @@ main (int argc, char **argv)
   if (strcasecmp ("is-active", argv[1]) == 0 ||
       strcasecmp ("is_active", argv[1]) == 0)
     {
+      int quiet = 0;
+
+      if (argc > 2)
+	if (strcasecmp ("-q", argv[2]) == 0 ||
+	    strcasecmp ("--quiet", argv[2]) == 0)
+	  quiet = 1;
+
       if (rebootmgr_is_running (connection))
 	{
-	  printf ("RebootMgr is active\n");
-	  retval = 0;
+	  if (!quiet)
+	    printf ("RebootMgr is active\n");
 	}
       else
 	{
-	  printf ("RebootMgr is dead\n");
-	  retval = 1;
+	  if (quiet)
+	    retval = 1;
+	  else
+	    printf ("RebootMgr is dead\n");
 	}
     }
   else if (strcasecmp ("reboot", argv[1]) == 0)
