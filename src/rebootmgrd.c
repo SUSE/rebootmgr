@@ -115,9 +115,24 @@ initialize_timer (void)
   int r;
   usec_t curr = now(CLOCK_REALTIME);
   usec_t next;
+  usec_t duration = maint_window_duration * USEC_PER_SEC;
 
-  /* XXX check, if we are inside the maintenance window. If yes, reboot now */
+  /* Check, if we are inside the maintenance window. If yes, reboot now */
+  r = calendar_spec_next_usec (maint_window_start, curr - duration, &next);
+  if (r < 0)
+    {
+      log_msg (LOG_ERR, "Internal error converting the timer: %s",
+	       strerror (-r));
+      return;
+    }
+  if (curr > next && curr < next + duration)
+    {
+      /* we are inside the maintenance window, reboot */
+      reboot_timer (NULL);
+      return;
+    }
 
+  /* we are not inside a maintenance window, set timer for next one */
   r = calendar_spec_next_usec (maint_window_start, curr, &next);
   if (r < 0)
     {
