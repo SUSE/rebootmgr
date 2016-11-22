@@ -18,7 +18,6 @@
 
 #define RM_DBUS_NAME		 "org.opensuse.rebootmgr"
 #define RM_DBUS_INTERFACE	 "org.opensuse.rebootmgr"
-#define RM_DBUS_INTERFACE_SERVER "org.opensuse.rebootmgr.Server"
 #define RM_DBUS_PATH_SERVER	 "/"
 #define RM_DBUS_PATH      	"/org/opensuse/rebootmgr"
 #define RM_DBUS_SIGNAL_REBOOT 		"Reboot"

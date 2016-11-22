@@ -281,8 +281,8 @@ dbus_filter (DBusConnection *connection, DBusMessage *message,
 	  handled = DBUS_HANDLER_RESULT_HANDLED;
 	}
     }
-  else if (dbus_message_is_signal (message, RM_DBUS_INTERFACE,
-				   RM_DBUS_SIGNAL_GET_STRATEGY))
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_SIGNAL_GET_STRATEGY))
     {
       DBusMessage* reply;
 

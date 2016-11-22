@@ -135,11 +135,11 @@ static int
 get_strategy (DBusConnection *connection)
 {
   DBusError error;
-  DBusMessage *message;
+  DBusMessage *message, *reply;
   RM_RebootStrategy strategy = RM_REBOOTSTRATEGY_UNKNOWN;
 
   message = dbus_message_new_method_call (RM_DBUS_NAME,
-					  RM_DBUS_PATH,
+					  RM_DBUS_PATH_SERVER,
 					  RM_DBUS_INTERFACE,
 					  RM_DBUS_SIGNAL_GET_STRATEGY);
   if (message == NULL)
@@ -150,8 +150,8 @@ get_strategy (DBusConnection *connection)
 
   dbus_error_init (&error);
   /* send message and get a handle for a reply */
-  if (!dbus_connection_send_with_reply_and_block (connection, message,
-						  -1, &error))
+  if ((reply = dbus_connection_send_with_reply_and_block (connection, message,
+							  -1, &error)) == NULL)
     {
       if (dbus_error_is_set (&error))
 	{
@@ -160,15 +160,16 @@ get_strategy (DBusConnection *connection)
 	}
       else
 	fprintf (stderr, _("Out of memory!\n"));
+
+      dbus_message_unref (message);
+
       return 1;
     }
 
-  /* free message */
-  dbus_message_unref (message);
 
   /* read the parameters */
   dbus_error_init (&error);
-  if (dbus_message_get_args (message, &error, DBUS_TYPE_UINT32,
+  if (dbus_message_get_args (reply, &error, DBUS_TYPE_UINT32,
 			     &strategy, DBUS_TYPE_INVALID))
     {
       printf ("Got answer: %i\n", strategy);
@@ -186,7 +187,7 @@ get_strategy (DBusConnection *connection)
     }
 
   /* free reply and close connection */
-  dbus_message_unref (message);
+  dbus_message_unref (reply);
 
   return 0;
 }
