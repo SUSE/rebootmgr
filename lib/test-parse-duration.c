@@ -21,11 +21,11 @@
 int
 main (int argc, char* argv[])
 {
-  assert (parse_time ("1h30s") == 3630);
-  assert (parse_time ("1:00") == 3600);
-  assert (parse_time (" 1: 0") == 3600);
-  assert (parse_time ("  1:0  ") == 3600);
-  assert (parse_time ("01:0:30") == 3630);
+  assert (parse_duration ("1h30s") == 3630);
+  assert (parse_duration ("1:00") == 3600);
+  assert (parse_duration (" 1: 0") == 3600);
+  assert (parse_duration ("  1:0  ") == 3600);
+  assert (parse_duration ("01:0:30") == 3630);
 
   return 0;
 }

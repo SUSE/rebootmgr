@@ -190,9 +190,9 @@ parse_HMS (const char *pz)
   return res;
 }
 
-/* Parses a time (hours, minutes, seconds).  */
+/* Parses duration (hours, minutes, seconds).  */
 time_t
-parse_time (const char *pz)
+parse_duration (const char *pz)
 {
   const char *ps;
   time_t  res = BAD_TIME;

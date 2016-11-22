@@ -27,11 +27,11 @@
 #include <glib.h>
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib-lowlevel.h>
-#include <dbus/dbus-glib.h>
 
 #include "log_msg.h"
 #include "rebootmgr.h"
 #include "calendarspec.h"
+#include "parse-duration.h"
 
 #ifndef _
 #define _(String) gettext (String)
@@ -41,7 +41,7 @@ static RM_RebootStrategy reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORD;
 static int reboot_running = 0;
 static guint reboot_timer_id = 0;
 static CalendarSpec *maint_window_start = NULL;
-/* static uint64_t maint_window_duration = 1; */
+static time_t maint_window_duration = 3600;
 
 static void
 print_help (void)
@@ -456,8 +456,9 @@ load_config (void)
     }
   else
     {
-      str_start = g_key_file_get_string (key_file, "rebootmgr", "window_start", NULL);
-      str_duration = g_key_file_get_string (key_file, "rebootmgr", "duration", NULL);
+      str_start = g_key_file_get_string (key_file, "rebootmgr", "window-start", NULL);
+      str_duration = g_key_file_get_string (key_file, "rebootmgr",
+					    "window-duration", NULL);
       str_strategy = g_key_file_get_string(key_file, "rebootmgr", "strategy", NULL);
     }
   if (str_start == NULL)
@@ -468,8 +469,11 @@ load_config (void)
     str_strategy = "best-efford";
 
   if ((ret = calendar_spec_from_string (str_start, &maint_window_start)) < 0)
-    log_msg (LOG_ERR, "ERROR: cannot parse window_start (%s): %s",
+    log_msg (LOG_ERR, "ERROR: cannot parse window-start (%s): %s",
 	     str_start, strerror (-ret));
+  if ((maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
+    log_msg (LOG_ERR, "ERROR: cannot parse window-duration '%s'",
+	     str_duration);
   if (strcasecmp (str_strategy, "best-efford") == 0)
     reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORD;
   else if (strcasecmp (str_strategy, "instantly") == 0)

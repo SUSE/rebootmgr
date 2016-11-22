@@ -30,6 +30,6 @@
 /* Return value when a duration cannot be parsed. */
 #define BAD_TIME	((time_t)~0)
 
-time_t parse_time (const char *);
+time_t parse_duration (const char *);
 
 #endif /* _PARSE_DURATION_H */
