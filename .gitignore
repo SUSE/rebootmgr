@@ -32,6 +32,7 @@ po/POTFILES
 po/stamp-po
 po/remove-potcdate.sed
 lib/test-calendarspec
+lib/test-parse-duration
 man/rebootmgr-dbus.conf.8
 man/rebootmgr.service.8
 man/rebootmgrd.8
