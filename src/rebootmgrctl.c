@@ -172,7 +172,28 @@ get_strategy (DBusConnection *connection)
   if (dbus_message_get_args (reply, &error, DBUS_TYPE_UINT32,
 			     &strategy, DBUS_TYPE_INVALID))
     {
-      printf ("Got answer: %i\n", strategy);
+      printf (_("Reboot strategy: "));
+      switch (strategy)
+	{
+	case RM_REBOOTSTRATEGY_BEST_EFFORD:
+	  printf ("best-efford\n");
+	  break;
+	case RM_REBOOTSTRATEGY_INSTANTLY:
+	  printf ("instantly\n");
+	  break;
+	case RM_REBOOTSTRATEGY_MAINT_WINDOW:
+	  printf ("maint-window\n");
+	  break;
+	case RM_REBOOTSTRATEGY_ETCD_LOCK:
+	  printf ("etcd-lock\n");
+	  break;
+	case RM_REBOOTSTRATEGY_OFF:
+	  printf ("off\n");
+	  break;
+	default:
+	  printf ("unknown (%i)\n", strategy);
+	  break;
+	}
     }
   else
     {
