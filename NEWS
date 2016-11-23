@@ -4,6 +4,7 @@ Copyright (C) 2016 Thorsten Kukuk
 
 Version 0.2
 * Implement maintenance window for reboot
+* Implement get-strategy for rebootmgrctl
 
 Version 0.1
 * Initial release
