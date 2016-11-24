@@ -37,7 +37,7 @@ typedef enum RM_RebootOrder {
 
 typedef enum RM_RebootStrategy {
   RM_REBOOTSTRATEGY_UNKNOWN = 0,
-  RM_REBOOTSTRATEGY_BEST_EFFORD, /* etcd-lock if available, else 
+  RM_REBOOTSTRATEGY_BEST_EFFORT, /* etcd-lock if available, else 
 			            maintenance window, else instantly */
   RM_REBOOTSTRATEGY_INSTANTLY,	 /* reboot instantly */
   RM_REBOOTSTRATEGY_MAINT_WINDOW,/* reboot only during maintenance window */

@@ -41,7 +41,7 @@ usage (int exit_code)
   printf (_("\trebootmgrctl reboot [fast|now]\n"));
   printf (_("\trebootmgrctl cancel\n"));
   printf (_("\trebootmgrctl status\n"));
-  printf (_("\trebootmgrctl set-strategy best-efford|etcd-lock|maint-window|\n"));
+  printf (_("\trebootmgrctl set-strategy best-effort|etcd-lock|maint-window|\n"));
   printf (_("\t                   instantly|off\n"));
   printf (_("\trebootmgrctl get-strategy\n"));
   printf (_("\trebootmgrctl set-window <time> <duration>\n"));
@@ -175,8 +175,8 @@ get_strategy (DBusConnection *connection)
       printf (_("Reboot strategy: "));
       switch (strategy)
 	{
-	case RM_REBOOTSTRATEGY_BEST_EFFORD:
-	  printf ("best-efford\n");
+	case RM_REBOOTSTRATEGY_BEST_EFFORT:
+	  printf ("best-effort\n");
 	  break;
 	case RM_REBOOTSTRATEGY_INSTANTLY:
 	  printf ("instantly\n");
@@ -291,13 +291,13 @@ main (int argc, char **argv)
   else if (strcasecmp ("set-strategy", argv[1]) == 0 ||
 	   strcasecmp ("set_strategy", argv[1]) == 0)
     {
-      RM_RebootStrategy strategy = RM_REBOOTSTRATEGY_BEST_EFFORD;
+      RM_RebootStrategy strategy = RM_REBOOTSTRATEGY_BEST_EFFORT;
 
       if (argc > 2)
 	{
-	  if (strcasecmp ("best-efford", argv[2]) == 0 ||
-	      strcasecmp ("best_efford", argv[2]) == 0)
-	    strategy = RM_REBOOTSTRATEGY_BEST_EFFORD;
+	  if (strcasecmp ("best-effort", argv[2]) == 0 ||
+	      strcasecmp ("best_effort", argv[2]) == 0)
+	    strategy = RM_REBOOTSTRATEGY_BEST_EFFORT;
 	  else if (strcasecmp ("etcd-lock", argv[2]) == 0 ||
 		   strcasecmp ("etcd_lock", argv[2]) == 0)
 	    strategy = RM_REBOOTSTRATEGY_ETCD_LOCK;

@@ -37,7 +37,7 @@
 #define _(String) gettext (String)
 #endif
 
-static RM_RebootStrategy reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORD;
+static RM_RebootStrategy reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORT;
 static int reboot_running = 0;
 static guint reboot_timer_id = 0;
 static CalendarSpec *maint_window_start = NULL;
@@ -99,7 +99,7 @@ etcd_is_running (void)
 static gboolean
 reboot_timer (gpointer user_data __attribute__((unused)))
 {
-  if ((reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORD ||
+  if ((reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT ||
        reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK) &&
       etcd_is_running ())
     {
@@ -163,7 +163,7 @@ do_reboot (RM_RebootOrder order)
 
   switch (reboot_strategy)
     {
-    case RM_REBOOTSTRATEGY_BEST_EFFORD:
+    case RM_REBOOTSTRATEGY_BEST_EFFORT:
       if (maint_window_start != NULL &&
 	  order != RM_REBOOTORDER_FAST)
 	initialize_timer ();
@@ -481,7 +481,7 @@ load_config (void)
   if (str_duration == NULL)
     str_duration = "1h";
   if (str_strategy == NULL)
-    str_strategy = "best-efford";
+    str_strategy = "best-effort";
 
   if ((ret = calendar_spec_from_string (str_start, &maint_window_start)) < 0)
     log_msg (LOG_ERR, "ERROR: cannot parse window-start (%s): %s",
@@ -489,8 +489,8 @@ load_config (void)
   if ((maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
     log_msg (LOG_ERR, "ERROR: cannot parse window-duration '%s'",
 	     str_duration);
-  if (strcasecmp (str_strategy, "best-efford") == 0)
-    reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORD;
+  if (strcasecmp (str_strategy, "best-effort") == 0)
+    reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORT;
   else if (strcasecmp (str_strategy, "instantly") == 0)
     reboot_strategy = RM_REBOOTSTRATEGY_INSTANTLY;
   else if (strcasecmp (str_strategy, "maint_window") == 0 ||
