@@ -1,0 +1,59 @@
+<?xml version="1.0" standalone='no'?><!--*-nxml-*-->
+<?xml-stylesheet type="text/xsl" href="introspect.xsl"?>
+<!DOCTYPE node PUBLIC
+  "-//freedesktop//DTD D-Bus Object Introspection 1.0//EN" "introspect.dtd">
+<node>
+
+  <interface name="org.freedesktop.DBus.Introspectable">
+    <method name="Introspect">
+      <arg name="data" type="s" direction="out" />
+    </method>
+  </interface>
+
+  <interface name="org.opensuse.rebootmgr">
+
+    <!-- get window where rebootmgr is allowed to restart.
+         start is in HH:MM, duration is in hours, e.g. "1h".
+      -->
+    <method name="SetMaintenanceWindow">
+      <arg name="start" type="s" direction="in"/>
+      <arg name="duration" type="s" direction="in"/>
+    </method>
+
+    <!-- get window where rebootmgr is allowed to restart -->
+    <method name="GetMaintenanceWindow">
+      <arg name="start" type="s" direction="out"/>
+      <arg name="duration" type="s" direction="out"/>
+    </method>
+
+    <!-- set reboot strategy for next reboot -->
+    <method name="SetStrategy">
+      <arg name="strategy" type="u" direction="in"/>
+    </method>
+
+    <!-- get reboot strategy for next reboot -->
+    <method name="GetStrategy">
+      <arg name="strategy" type="u" direction="out"/>
+    </method>
+
+    <!-- set reboot order for next reboot -->
+    <method name="SetOrder">
+      <arg name="order" type="u" direction="in"/>
+    </method>
+
+    <!-- get reboot order for next reboot -->
+    <method name="GetOrder">
+      <arg name="order" type="u" direction="out"/>
+    </method>
+
+    <!-- triggers a reboot -->
+    <method name="Reboot"/>
+
+    <!-- signal emitted as rebootmgrd initiates a reboot -->
+    <signal name="AboutToReboot">
+      <arg name="strategy" type="u" direction="out"/>
+      <arg name="order" type="u" direction="out"/>
+    </signal>
+
+  </interface>
+</node>

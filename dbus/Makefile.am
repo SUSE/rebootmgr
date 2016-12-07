@@ -2,8 +2,16 @@
 # Copyright (c) 2016 Thorsten Kukuk <kukuk@suse.de>
 #
 
-dbusdir = $(sysconfdir)/dbus-1/system.d
+busconfigdir = $(sysconfdir)/dbus-1/system.d
+introspectiondir = $(datadir)/dbus-1/interfaces
 
-dbus_DATA = rebootmgr-dbus.conf
+busconfig_DATA = rebootmgr-dbus.conf
+introspection_DATA = org.opensuse.rebootmgr.xml
 
-EXTRA_DIST = $(DATA)
+xmllint:
+	for F in $(introspection_DATA) $(busconfig_DATA) ; do \
+	  xmllint --noout --valid $$F ; \
+	done
+
+EXTRA_DIST = $(DATA) introspect.dtd introspect.xsl busconfig.dtd
+
