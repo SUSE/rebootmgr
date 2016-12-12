@@ -16,15 +16,21 @@
 #ifndef _REBOOTMGR_H_
 #define _REBOOTMGR_H_
 
-#define RM_DBUS_NAME		 "org.opensuse.rebootmgr"
-#define RM_DBUS_INTERFACE	 "org.opensuse.rebootmgr"
+#define RM_DBUS_NAME		 "org.opensuse.RebootMgr"
+#define RM_DBUS_INTERFACE	 "org.opensuse.RebootMgr"
 #define RM_DBUS_PATH_SERVER	 "/"
-#define RM_DBUS_PATH      	"/org/opensuse/rebootmgr"
-#define RM_DBUS_SIGNAL_REBOOT 		"Reboot"
-#define RM_DBUS_SIGNAL_STATUS 		"Status"
-#define RM_DBUS_SIGNAL_CANCEL 		"Cancel"
-#define RM_DBUS_SIGNAL_SET_STRATEGY	"SetStrategy"
-#define RM_DBUS_SIGNAL_GET_STRATEGY	"GetStrategy"
+#define RM_DBUS_PATH      	"/org/opensuse/RebootMgr"
+#define RM_DBUS_METHOD_REBOOT     "Reboot"
+#define RM_DBUS_METHOD_STATUS 		"Status"
+#define RM_DBUS_METHOD_CANCEL 		"Cancel"
+#define RM_DBUS_METHOD_SET_STRATEGY	"SetStrategy"
+#define RM_DBUS_METHOD_GET_STRATEGY	"GetStrategy"
+#define RM_DBUS_METHOD_SET_MAINTWINDOW "SetMaintenanceWindow"
+#define RM_DBUS_METHOD_GET_MAINTWINDOW "GetMaintenanceWindow"
+
+#ifndef _
+#define _(String) gettext (String)
+#endif
 
 typedef enum RM_RebootOrder {
   RM_REBOOTORDER_UNKNOWN = 0,

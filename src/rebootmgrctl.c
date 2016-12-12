@@ -26,10 +26,6 @@
 
 #include "rebootmgr.h"
 
-#ifndef _
-#define _(String) gettext (String)
-#endif
-
 int debug_flag=1;
 
 static void
@@ -96,14 +92,14 @@ static int
 set_strategy (DBusConnection *connection, RM_RebootStrategy strategy)
 {
   return send_message_with_arg (connection,
-				RM_DBUS_SIGNAL_SET_STRATEGY, strategy);
+				RM_DBUS_METHOD_SET_STRATEGY, strategy);
  }
 
 static int
 trigger_reboot (DBusConnection *connection, RM_RebootOrder order)
 {
   return send_message_with_arg (connection,
-				RM_DBUS_SIGNAL_REBOOT, order);
+				RM_DBUS_METHOD_REBOOT, order);
 }
 
 static int
@@ -114,7 +110,7 @@ cancel_reboot (DBusConnection *connection)
 
   message = dbus_message_new_signal (RM_DBUS_PATH,
 				     RM_DBUS_INTERFACE,
-				     RM_DBUS_SIGNAL_CANCEL);
+             RM_DBUS_METHOD_CANCEL);
   if (message == NULL)
     {
       fprintf (stderr, _("Out of memory!\n"));
@@ -141,7 +137,7 @@ get_strategy (DBusConnection *connection)
   message = dbus_message_new_method_call (RM_DBUS_NAME,
 					  RM_DBUS_PATH_SERVER,
 					  RM_DBUS_INTERFACE,
-					  RM_DBUS_SIGNAL_GET_STRATEGY);
+					  RM_DBUS_METHOD_GET_STRATEGY);
   if (message == NULL)
     {
       fprintf (stderr, _("Out of memory!\n"));

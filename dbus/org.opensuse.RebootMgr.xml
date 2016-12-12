@@ -10,9 +10,9 @@
     </method>
   </interface>
 
-  <interface name="org.opensuse.rebootmgr">
+  <interface name="org.opensuse.RebootMgr">
 
-    <!-- get window where rebootmgr is allowed to restart.
+    <!-- get window where RebootMgr is allowed to restart.
          start is in HH:MM, duration is in hours, e.g. "1h".
       -->
     <method name="SetMaintenanceWindow">
@@ -20,7 +20,7 @@
       <arg name="duration" type="s" direction="in"/>
     </method>
 
-    <!-- get window where rebootmgr is allowed to restart -->
+    <!-- get window where RebootMgr is allowed to restart -->
     <method name="GetMaintenanceWindow">
       <arg name="start" type="s" direction="out"/>
       <arg name="duration" type="s" direction="out"/>
@@ -36,20 +36,15 @@
       <arg name="strategy" type="u" direction="out"/>
     </method>
 
-    <!-- set reboot order for next reboot -->
-    <method name="SetOrder">
+    <!-- triggers a reboot -->
+    <method name="Reboot">
       <arg name="order" type="u" direction="in"/>
     </method>
 
-    <!-- get reboot order for next reboot -->
-    <method name="GetOrder">
-      <arg name="order" type="u" direction="out"/>
-    </method>
+    <!-- cancels a reboot -->
+    <method name="Cancel"/>
 
-    <!-- triggers a reboot -->
-    <method name="Reboot"/>
-
-    <!-- signal emitted as rebootmgrd initiates a reboot -->
+    <!-- signal emitted as RebootMgrd initiates a reboot -->
     <signal name="AboutToReboot">
       <arg name="strategy" type="u" direction="out"/>
       <arg name="order" type="u" direction="out"/>

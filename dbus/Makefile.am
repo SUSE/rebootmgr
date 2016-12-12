@@ -5,8 +5,8 @@
 busconfigdir = $(sysconfdir)/dbus-1/system.d
 introspectiondir = $(datadir)/dbus-1/interfaces
 
-busconfig_DATA = rebootmgr-dbus.conf
-introspection_DATA = org.opensuse.rebootmgr.xml
+busconfig_DATA = org.opensuse.RebootMgr.conf
+introspection_DATA = org.opensuse.RebootMgr.xml
 
 xmllint:
 	for F in $(introspection_DATA) $(busconfig_DATA) ; do \
