@@ -77,7 +77,7 @@ reboot_now (void)
       if (!debug_flag)
 	{
 	  log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
-	  if (execl ("/usr/bin/sytemctl", "systemctl", "reboot", NULL) == -1)
+    if (execl ("/usr/bin/systemctl", "systemctl", "reboot", NULL) == -1)
 	    log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %s\n",
 		     strerror (errno));
 	}
