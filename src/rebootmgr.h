@@ -32,6 +32,8 @@
 #define _(String) gettext (String)
 #endif
 
+#define RM_UNUSED(x) UNUSED_ ## x __attribute__((unused))
+
 typedef enum RM_RebootOrder {
   RM_REBOOTORDER_UNKNOWN = 0,
   RM_REBOOTORDER_STANDARD, /* Follow normal reboot strategy */

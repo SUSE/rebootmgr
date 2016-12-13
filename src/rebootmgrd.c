@@ -90,7 +90,7 @@ reboot_now (void)
 
 /* Called by g_timeout_add when maintenance window starts */
 static gboolean
-reboot_timer (gpointer user_data __attribute__((unused)))
+reboot_timer (gpointer RM_UNUSED(user_data))
 {
   if ((reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT ||
        reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK) &&
@@ -193,7 +193,7 @@ do_reboot (RM_RebootOrder order)
 static int dbus_init (void);
 
 static gboolean
-dbus_reconnect (gpointer user_data __attribute__((unused)))
+dbus_reconnect (gpointer RM_UNUSED(user_data))
 {
   gboolean status;
 
@@ -406,10 +406,8 @@ handle_properties_iface(DBusMessage *msg)
 
 /* vtable implementation: handles messages and calls respective C functions */
 static DBusHandlerResult
-handle_message(DBusConnection *connection, DBusMessage *message, void *user)
+handle_message(DBusConnection *connection, DBusMessage * message, void *RM_UNUSED(user))
 {
-    (void) user; /* unused */
-    (void) connection; /* unused */
     DBusMessage *reply = 0;
     const char* iface = dbus_message_get_interface(message);
 
@@ -438,7 +436,7 @@ handle_message(DBusConnection *connection, DBusMessage *message, void *user)
 
 static DBusHandlerResult
 dbus_filter (DBusConnection *connection, DBusMessage *message,
-	     void *user_data  __attribute__((unused)))
+         void *RM_UNUSED(user_data))
 {
   DBusHandlerResult handled = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
@@ -665,8 +663,7 @@ load_config (void)
 }
 
 int
-main (int argc __attribute__((unused)),
-      char **argv __attribute__ ((unused)))
+main (int argc, char **argv)
 {
   GMainLoop *loop;
 
