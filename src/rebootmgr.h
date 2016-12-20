@@ -34,6 +34,9 @@
 
 #define RM_UNUSED(x) UNUSED_ ## x __attribute__((unused))
 
+#include <glib.h>
+#include "calendarspec.h"
+
 typedef enum RM_RebootOrder {
   RM_REBOOTORDER_UNKNOWN = 0,
   RM_REBOOTORDER_STANDARD, /* Follow normal reboot strategy */
@@ -52,5 +55,13 @@ typedef enum RM_RebootStrategy {
   RM_REBOOTSTRATEGY_ETCD_LOCK,   /* acquire etcd lock before reboot */
   RM_REBOOTSTRATEGY_OFF          /* don't reboot */
 } RM_RebootStrategy;
+
+typedef struct {
+    RM_RebootStrategy reboot_strategy;
+    int reboot_running;
+    guint reboot_timer_id;
+    CalendarSpec *maint_window_start;
+    time_t maint_window_duration;
+} RM_CTX;
 
 #endif /* _REBOOTMGR_H_ */

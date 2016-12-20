@@ -13,9 +13,9 @@ AM_CFLAGS = -D_REENTRANT=1 $(EXTRA_CFLAGS) -DLOCALEDIR=\"$(localedir)\" \
 
 CLEANFILES = *~
 
-noinst_HEADERS = rebootmgr.h log_msg.h etcd_handler.h
+noinst_HEADERS = rebootmgr.h log_msg.h etcd_handler.h config_file.h
 sbin_PROGRAMS = rebootmgrd rebootmgrctl
 
-rebootmgrd_SOURCES = rebootmgrd.c log_msg.c etcd_handler.c
+rebootmgrd_SOURCES = rebootmgrd.c log_msg.c etcd_handler.c config_file.c
 rebootmgrd_LDADD = -L../lib -lcalendarspec @DBUS_LIBS@ @GLIB_LIBS@
 rebootmgrctl_LDADD = @DBUS_LIBS@ @GLIB_LIBS@

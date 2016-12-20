@@ -18,7 +18,6 @@
 #endif
 
 #include <errno.h>
-#include <fcntl.h>
 #include <getopt.h>
 #include <libintl.h>
 #include <stdio.h>
@@ -26,28 +25,43 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #include <glib.h>
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib-lowlevel.h>
 
+#include "config_file.h"
 #include "etcd_handler.h"
 #include "log_msg.h"
 #include "rebootmgr.h"
-#include "calendarspec.h"
 #include "parse-duration.h"
 
 #define PROPERTIES_METHOD_GETALL "GetAll"
 #define PROPERTIES_METHOD_GET    "Get"
 #define PROPERTIES_METHOD_SET    "Set"
 
-static RM_RebootStrategy reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORT;
-static int reboot_running = 0;
-static guint reboot_timer_id = 0;
-static CalendarSpec *maint_window_start = NULL;
-static time_t maint_window_duration = 3600;
+static int
+create_context(RM_CTX **ctx)
+{
+  if ((*ctx = calloc(1, sizeof(RM_CTX))) == NULL) {
+    return 0;
+  }
+
+  **ctx = (RM_CTX) { RM_REBOOTSTRATEGY_BEST_EFFORT, 0,  0, NULL, 3600 };
+
+  return 1;
+}
+
+static int
+destroy_context(RM_CTX *ctx)
+{
+  if (ctx == NULL) {
+    errno = EBADF;
+    return 0;
+  }
+
+  free(ctx);
+  return 1;
+}
 
 static void
 print_help (void)
@@ -70,9 +84,9 @@ print_error (void)
 }
 
 static void
-reboot_now (void)
+reboot_now (RM_CTX *ctx)
 {
-  if (reboot_running == 1)
+  if (ctx->reboot_running == 1)
     {
       if (!debug_flag)
 	{
@@ -84,34 +98,35 @@ reboot_now (void)
       else
 	log_msg (LOG_DEBUG, "systemctl reboot called!");
 
-      reboot_running = 0;
+      ctx->reboot_running = 0;
     }
 }
 
 /* Called by g_timeout_add when maintenance window starts */
 static gboolean
-reboot_timer (gpointer RM_UNUSED(user_data))
+reboot_timer (gpointer user_data)
 {
-  if ((reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT ||
-       reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK) &&
+  RM_CTX *ctx = user_data;
+  if ((ctx->reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT ||
+       ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK) &&
        etcd_is_running())
     {
       /* get etcd lock */;
     }
-  reboot_now ();
+  reboot_now (ctx);
   return FALSE;
 }
 
 static void
-initialize_timer (void)
+initialize_timer (RM_CTX *ctx)
 {
   int r;
   usec_t curr = now(CLOCK_REALTIME);
   usec_t next;
-  usec_t duration = maint_window_duration * USEC_PER_SEC;
+  usec_t duration = ctx->maint_window_duration * USEC_PER_SEC;
 
   /* Check, if we are inside the maintenance window. If yes, reboot now */
-  r = calendar_spec_next_usec (maint_window_start, curr - duration, &next);
+  r = calendar_spec_next_usec (ctx->maint_window_start, curr - duration, &next);
   if (r < 0)
     {
       log_msg (LOG_ERR, "Internal error converting the timer: %s",
@@ -121,12 +136,12 @@ initialize_timer (void)
   if (curr > next && curr < next + duration)
     {
       /* we are inside the maintenance window, reboot */
-      reboot_timer (NULL);
+      reboot_timer (ctx);
       return;
     }
 
   /* we are not inside a maintenance window, set timer for next one */
-  r = calendar_spec_next_usec (maint_window_start, curr, &next);
+  r = calendar_spec_next_usec (ctx->maint_window_start, curr, &next);
   if (r < 0)
     {
       log_msg (LOG_ERR, "Internal error converting the timer: %s",
@@ -143,36 +158,36 @@ initialize_timer (void)
 	       "Reboot in %i seconds at %s", in_secs,
 	       format_timestamp(buf, sizeof(buf), next));
     }
-  reboot_timer_id = g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, NULL);
+  ctx->reboot_timer_id = g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, ctx);
 }
 
 static void
-do_reboot (RM_RebootOrder order)
+do_reboot (RM_CTX *ctx, RM_RebootOrder order)
 {
-  reboot_running = 1;
+  ctx->reboot_running = 1;
 
   if (order == RM_REBOOTORDER_FORCED)
-    reboot_now ();
+    reboot_now (ctx);
 
-  switch (reboot_strategy)
+  switch (ctx->reboot_strategy)
     {
     case RM_REBOOTSTRATEGY_BEST_EFFORT:
-      if (maint_window_start != NULL &&
+      if (ctx->maint_window_start != NULL &&
 	  order != RM_REBOOTORDER_FAST)
-	initialize_timer ();
+  initialize_timer(ctx);
       else if (etcd_is_running())
 	{ /* XXX reboot with locks */ }
       else
-	reboot_now ();
+  reboot_now (ctx);
       break;
     case RM_REBOOTSTRATEGY_INSTANTLY:
-      reboot_now ();
+      reboot_now (ctx);
       break;
     case RM_REBOOTSTRATEGY_MAINT_WINDOW:
       if (order == RM_REBOOTORDER_FAST ||
-	  maint_window_start == NULL)
-	reboot_now ();
-      initialize_timer ();
+    ctx->maint_window_start == NULL)
+  reboot_now(ctx);
+      initialize_timer(ctx);
       break;
     case RM_REBOOTSTRATEGY_ETCD_LOCK:
       if (order == RM_REBOOTORDER_FAST)
@@ -180,77 +195,18 @@ do_reboot (RM_RebootOrder order)
       /* XXX */
       break;
     case RM_REBOOTSTRATEGY_OFF:
-      reboot_running = 0;
+      ctx->reboot_running = 0;
       /* Do nothing */
       break;
     default:
-      reboot_running = 0;
-      log_msg (LOG_ERR, "ERROR: unknown reboot strategy %i", reboot_strategy);
+      ctx->reboot_running = 0;
+      log_msg (LOG_ERR, "ERROR: unknown reboot strategy %i", ctx->reboot_strategy);
       break;
     }
 }
 
-static int dbus_init (void);
-
-static gboolean
-dbus_reconnect (gpointer RM_UNUSED(user_data))
-{
-  gboolean status;
-
-  status = dbus_init ();
-  if (debug_flag)
-    log_msg (LOG_DEBUG, "Reconnect %s",
-        status ? "successful" : "failed");
-  return !status;
-}
-
-static char *
-get_file_content(const char *fname)
-{
-  struct stat st;
-  ssize_t size;
-  char *buf = NULL;
-  int fd = open(fname, O_RDONLY);
-
-  if (fd < 0) {
-    log_msg( LOG_INFO, "Failed to open %s: %s\n", fname, strerror(errno));
-    goto fail;
-  }
-
-  if (fstat(fd, &st) < 0) {
-    log_msg( LOG_INFO, "stat(%s) failed: %s\n", fname, strerror(errno));
-    goto fail;
-  }
-
-  if (!(S_ISREG(st.st_mode))) {
-    log_msg( LOG_INFO, "Invalid file %s\n", fname);
-    goto fail;
-  }
-
-  buf = (char*)malloc(sizeof(char)*(size_t)st.st_size+1);
-
-  if ((size = read(fd, buf, (size_t)st.st_size)) < 0) {
-    log_msg( LOG_INFO, "read() failed: %s\n", strerror(errno));
-    goto fail;
-  }
-
-  buf[size] = 0;
-  close(fd);
-  return buf;
-
-fail:
-  if (fd >= 0) {
-    close(fd);
-  }
-
-  free(buf);
-
-  return NULL;
-
-}
-
 static DBusMessage *
-handle_native_iface(DBusMessage *message)
+handle_native_iface(RM_CTX *ctx, DBusMessage *message)
 {
   DBusError err;
   DBusMessage *reply = 0;
@@ -276,16 +232,16 @@ handle_native_iface(DBusMessage *message)
           log_msg (LOG_DEBUG, "Reboot now");
       }
     }
-    do_reboot (order);
+    do_reboot (ctx, order);
   }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_CANCEL))
   {
     if (debug_flag)
       log_msg (LOG_DEBUG, "Cancel reboot");
-    if (reboot_running > 0 && reboot_timer_id > 0)
-      g_source_remove (reboot_timer_id);
-    reboot_running = 0;
-    reboot_timer_id = 0;
+    if (ctx->reboot_running > 0 && ctx->reboot_timer_id > 0)
+      g_source_remove (ctx->reboot_timer_id);
+    ctx->reboot_running = 0;
+    ctx->reboot_timer_id = 0;
   }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_SET_STRATEGY))
   {
@@ -297,11 +253,11 @@ handle_native_iface(DBusMessage *message)
       if (debug_flag)
         log_msg (LOG_DEBUG, "set-strategy called");
       if (strategy != RM_REBOOTSTRATEGY_UNKNOWN &&
-          reboot_strategy != strategy)
+          ctx->reboot_strategy != strategy)
       {
         if (debug_flag)
           log_msg (LOG_DEBUG, "reboot_strategy changed");
-        reboot_strategy = strategy;
+        ctx->reboot_strategy = strategy;
       }
     }
   }
@@ -311,7 +267,7 @@ handle_native_iface(DBusMessage *message)
       log_msg (LOG_DEBUG, "get-strategy called");
 
     /* create a reply from the message */
-    dbus_message_append_args (reply, DBUS_TYPE_UINT32, &reboot_strategy,
+    dbus_message_append_args (reply, DBUS_TYPE_UINT32, &ctx->reboot_strategy,
         DBUS_TYPE_INVALID);
   }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_STATUS))
@@ -321,17 +277,22 @@ handle_native_iface(DBusMessage *message)
   }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_GET_MAINTWINDOW))
   {
-    char *str_start;
+    char *str_start_full, *str_start;
     char *str_duration = (char*) malloc(10);
 
     if (debug_flag)
       log_msg (LOG_DEBUG, "get-maintenancewindow called");
 
-    if (calendar_spec_to_string(maint_window_start, &str_start) > 0) {
+    if (calendar_spec_to_string(ctx->maint_window_start, &str_start_full) > 0) {
       return reply;
     }
-    if (strftime(str_duration, 10, "%Hh%Mm", gmtime(&maint_window_duration)) == 0) {
-      free (str_start);
+    str_start = str_start_full;
+    /* strip '*-*-* ' prefix */
+    if (strlen(str_start_full) > 6)
+        str_start = str_start_full + 6;
+
+    if (strftime(str_duration, 10, "%Hh%Mm", gmtime(&ctx->maint_window_duration)) == 0) {
+      free (str_start_full);
       return reply;
     }
     log_msg(LOG_DEBUG, "str_start: '%s' str_duration: '%s'", str_start, str_duration);
@@ -340,7 +301,7 @@ handle_native_iface(DBusMessage *message)
                                      DBUS_TYPE_STRING, &str_duration,
                                      DBUS_TYPE_INVALID);
 
-    free (str_start);
+    free (str_start_full);
     free (str_duration);
   }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_SET_MAINTWINDOW))
@@ -358,12 +319,12 @@ handle_native_iface(DBusMessage *message)
 
     }
     int ret;
-    if ((ret = calendar_spec_from_string (str_start, &maint_window_start)) < 0)
+    if ((ret = calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
     {
         return reply;
     }
 
-    if ((maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
+    if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
     {
         free(str_start);
         return reply;
@@ -406,8 +367,9 @@ handle_properties_iface(DBusMessage *msg)
 
 /* vtable implementation: handles messages and calls respective C functions */
 static DBusHandlerResult
-handle_message(DBusConnection *connection, DBusMessage * message, void *RM_UNUSED(user))
+handle_message(DBusConnection *connection, DBusMessage * message, void *user)
 {
+    RM_CTX *ctx = user;
     DBusMessage *reply = 0;
     const char* iface = dbus_message_get_interface(message);
 
@@ -419,7 +381,7 @@ handle_message(DBusConnection *connection, DBusMessage * message, void *RM_UNUSE
         reply = handle_properties_iface(message);
     } else if (strcmp(iface, RM_DBUS_INTERFACE) == 0) {
         /* Handle requests to our own interfaces  */
-        reply = handle_native_iface(message);
+        reply = handle_native_iface(ctx, message);
     }
 
     if (reply) {
@@ -432,6 +394,21 @@ handle_message(DBusConnection *connection, DBusMessage * message, void *RM_UNUSE
       dbus_message_unref(reply);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static int dbus_init (RM_CTX*);
+
+static gboolean
+dbus_reconnect (gpointer user_data)
+{
+  RM_CTX* ctx = user_data;
+  gboolean status;
+
+  status = dbus_init (ctx);
+  if (debug_flag)
+    log_msg (LOG_DEBUG, "Reconnect %s",
+        status ? "successful" : "failed");
+  return !status;
 }
 
 static DBusHandlerResult
@@ -457,9 +434,9 @@ dbus_filter (DBusConnection *connection, DBusMessage *message,
   else if (debug_flag)
     {
       log_msg (LOG_DEBUG, "interface: %s, object path: %s, method: %s",
-	       dbus_message_get_interface(message),
-	       dbus_message_get_path (message),
-	       dbus_message_get_member (message));
+         dbus_message_get_interface(message),
+         dbus_message_get_path (message),
+         dbus_message_get_member (message));
     }
 #endif
 
@@ -473,7 +450,7 @@ dbus_filter (DBusConnection *connection, DBusMessage *message,
    0: error
 */
 static int
-dbus_init (void)
+dbus_init (RM_CTX *ctx)
 {
   DBusConnection *connection = NULL;
   DBusError error;
@@ -586,7 +563,7 @@ dbus_init (void)
   memset(&vtable, 0, sizeof(vtable));
   vtable.message_function = handle_message;
 
-  if (!dbus_connection_register_object_path(connection, RM_DBUS_PATH, &vtable, NULL)) {
+  if (!dbus_connection_register_object_path(connection, RM_DBUS_PATH, &vtable, ctx)) {
     log_msg(LOG_ERR, "Failed to register object path\n");
   }
 
@@ -608,64 +585,12 @@ dbus_init (void)
       return 0;
     }
 }
- 
-static void
-load_config (void)
-{
-  GKeyFile *key_file;
-  GError *error;
-  gchar *str_start = NULL, *str_duration = NULL, *str_strategy = NULL;
-  int ret;
-
-  key_file = g_key_file_new ();
-  error = NULL;
-
-  if (!g_key_file_load_from_file (key_file, SYSCONFDIR"/rebootmgr.conf",
-				  G_KEY_FILE_KEEP_COMMENTS |
-				  G_KEY_FILE_KEEP_TRANSLATIONS,
-				  &error))
-    {
-      log_msg (LOG_ERR, "Cannot load '"SYSCONFDIR"/rebootmgr.conf': %s", error->message);
-    }
-  else
-    {
-      str_start = g_key_file_get_string (key_file, "rebootmgr", "window-start", NULL);
-      str_duration = g_key_file_get_string (key_file, "rebootmgr",
-					    "window-duration", NULL);
-     str_strategy = g_key_file_get_string(key_file, "rebootmgr", "strategy", NULL);
-    }
-  if (str_start == NULL)
-    str_start = "03:30";
-  if (str_duration == NULL)
-    str_duration = "1h";
-  if (str_strategy == NULL)
-    str_strategy = "best-effort";
-
-  if ((ret = calendar_spec_from_string (str_start, &maint_window_start)) < 0)
-    log_msg (LOG_ERR, "ERROR: cannot parse window-start (%s): %s",
-	     str_start, strerror (-ret));
-  if ((maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
-    log_msg (LOG_ERR, "ERROR: cannot parse window-duration '%s'",
-	     str_duration);
-  if (strcasecmp (str_strategy, "best-effort") == 0)
-    reboot_strategy = RM_REBOOTSTRATEGY_BEST_EFFORT;
-  else if (strcasecmp (str_strategy, "instantly") == 0)
-    reboot_strategy = RM_REBOOTSTRATEGY_INSTANTLY;
-  else if (strcasecmp (str_strategy, "maint_window") == 0 ||
-	   strcasecmp (str_strategy, "maint-window") == 0)
-    reboot_strategy = RM_REBOOTSTRATEGY_MAINT_WINDOW;
-  else if (strcasecmp (str_strategy, "etcd-lock") == 0)
-    reboot_strategy = RM_REBOOTSTRATEGY_ETCD_LOCK;
-  else if (strcasecmp (str_strategy, "off") == 0)
-    reboot_strategy = RM_REBOOTSTRATEGY_OFF;
-  else
-    log_msg (LOG_ERR, "ERROR: cannot parse strategy '%s'", str_strategy);
-}
 
 int
 main (int argc, char **argv)
 {
   GMainLoop *loop;
+  RM_CTX *ctx;
 
   while (1)
     {
@@ -711,14 +636,23 @@ main (int argc, char **argv)
       return 1;
     }
 
-  load_config ();
+  if (!create_context(&ctx)) {
+    log_msg(LOG_ERR, "Could not initialize context");
+    return -1;
+  }
+
+  load_config (ctx);
 
   loop = g_main_loop_new (NULL, FALSE);
 
-  if (dbus_init() != 1)
+  if (dbus_init(ctx) != 1)
     return 1;
 
   g_main_loop_run (loop);
+
+  if (!destroy_context(ctx)) {
+    log_msg(LOG_ERR, "Could not destroy context");
+  }
 
   return 0;
 }
