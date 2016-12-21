@@ -33,18 +33,27 @@
 static RM_RebootStrategy load_strategy(const char *str_strategy);
 static const char* save_strategy(RM_RebootStrategy strategy);
 
-char* spec_to_string()
-if (calendar_spec_to_string(ctx->maint_window_start, &str_start_full) > 0) {
-  return reply;
-}
-str_start = str_start_full;
-/* strip '*-*-* ' prefix */
-if (strlen(str_start_full) > 6)
-    str_start = str_start_full + 6;
+#define DURATION_LEN 10
 
-if (strftime(str_duration, 10, "%Hh%Mm", gmtime(&ctx->maint_window_duration)) == 0) {
-  free (str_start_full);
-  return reply;
+char* spec_to_string(CalendarSpec *spec)
+{
+  char *str_start;
+  if (calendar_spec_to_string(spec, &str_start) > 0) {
+    return 0;
+  }
+  return str_start;
+}
+char* duration_to_string(time_t duration)
+{
+  char buf[DURATION_LEN];
+  char *p;
+  if (strftime(buf, DURATION_LEN, "%Hh%Mm", gmtime(&duration)) == 0) {
+    return 0;
+  }
+  p = malloc(DURATION_LEN);
+  strncpy(p, buf, DURATION_LEN);
+
+  return p;
 }
 
 char*
@@ -99,9 +108,6 @@ save_config (RM_CTX *ctx)
 {
   GKeyFile *key_file;
   GError *error;
-  gchar *str_start = NULL, *str_duration = NULL;
-  const gchar *str_strategy = NULL;
-  int ret;
 
   key_file = g_key_file_new ();
   error = NULL;
@@ -112,24 +118,22 @@ save_config (RM_CTX *ctx)
                                   &error))
   {
     log_msg (LOG_ERR, "Cannot load '"CONFIG_FILE"': %s", error->message);
+    g_error_free(error);
   }
 
   g_key_file_set_string(key_file, RM_GROUP, "strategy", save_strategy(ctx->reboot_strategy));
-  g_key_file_set_string(key_file, RM_GROUP, "window-start", ctx->maint_window_start);
-  g_key_file_set_string(key_file, RM_GROUP, "window-duration", ctx->maint_window_duration);
+  char *p = spec_to_string(ctx->maint_window_start);
+  g_key_file_set_string(key_file, RM_GROUP, "window-start", p);
+  free(p);
+  p = duration_to_string(ctx->maint_window_duration);
+  g_key_file_set_string(key_file, RM_GROUP, "window-duration", p);
+  free(p);
 
-
-  if ((ret = calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
-    log_msg (LOG_ERR, "ERROR: cannot parse window-start (%s): %s",
-             str_start, strerror (-ret));
-  if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
-    log_msg (LOG_ERR, "ERROR: cannot parse window-duration '%s'",
-             str_duration);
-  ctx->reboot_strategy = load_strategy(str_strategy);
-
+  error = NULL;
   if (!g_key_file_save_to_file(key_file, RM_CONFIG_FILE, &error))
   {
     log_msg (LOG_ERR, "Cannot save to '"RM_CONFIG_FILE"': %s", error->message);
+    g_error_free(error);
   }
 
 }
@@ -175,6 +179,9 @@ load_config (RM_CTX *ctx)
 static RM_RebootStrategy
 load_strategy(const char *str_strategy)
 {
+  if (!str_strategy)
+    return RM_REBOOTSTRATEGY_BEST_EFFORT;
+
   if (strcasecmp (str_strategy, "best-effort") == 0)
     return RM_REBOOTSTRATEGY_BEST_EFFORT;
   else if (strcasecmp (str_strategy, "instantly") == 0)

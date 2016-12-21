@@ -259,6 +259,7 @@ handle_native_iface(RM_CTX *ctx, DBusMessage *message)
           log_msg (LOG_DEBUG, "reboot_strategy changed");
         ctx->reboot_strategy = strategy;
       }
+      save_config(ctx);
     }
   }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_GET_STRATEGY))
@@ -277,37 +278,22 @@ handle_native_iface(RM_CTX *ctx, DBusMessage *message)
   }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_GET_MAINTWINDOW))
   {
-    char *str_start_full, *str_start;
-    char *str_duration = (char*) malloc(10);
+    char *str_start = spec_to_string(ctx->maint_window_start);
+    char *str_duration = duration_to_string(ctx->maint_window_duration);
 
-    if (debug_flag)
-      log_msg (LOG_DEBUG, "get-maintenancewindow called");
-
-    if (calendar_spec_to_string(ctx->maint_window_start, &str_start_full) > 0) {
-      return reply;
-    }
-    str_start = str_start_full;
-    /* strip '*-*-* ' prefix */
-    if (strlen(str_start_full) > 6)
-        str_start = str_start_full + 6;
-
-    if (strftime(str_duration, 10, "%Hh%Mm", gmtime(&ctx->maint_window_duration)) == 0) {
-      free (str_start_full);
-      return reply;
-    }
     log_msg(LOG_DEBUG, "str_start: '%s' str_duration: '%s'", str_start, str_duration);
     /* create a reply from the message */
     dbus_message_append_args (reply, DBUS_TYPE_STRING, &str_start,
                                      DBUS_TYPE_STRING, &str_duration,
                                      DBUS_TYPE_INVALID);
 
-    free (str_start_full);
+    free (str_start);
     free (str_duration);
   }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_SET_MAINTWINDOW))
   {
-    char *str_start;
-    char *str_duration;
+    const char *str_start;
+    const char *str_duration;
 
     if (debug_flag)
       log_msg (LOG_DEBUG, "set-maintenancewindow called");
@@ -318,19 +304,16 @@ handle_native_iface(RM_CTX *ctx, DBusMessage *message)
     {
 
     }
-    int ret;
-    if ((ret = calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
+    if ((calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
     {
         return reply;
     }
 
     if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
     {
-        free(str_start);
         return reply;
     }
-    free(str_start);
-    free(str_duration);
+    save_config(ctx);
   }
   return reply;
 }

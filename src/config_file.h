@@ -14,9 +14,13 @@
    with this program; if not, see <http://www.gnu.org/licenses/>. */
 
 #include "rebootmgr.h"
+#include "calendarspec.h"
 
 #ifndef CONFIG_FILE
 #define CONFIG_FILE
+
+char* spec_to_string(CalendarSpec *spec);
+char* duration_to_string(time_t duration);
 
 void save_config (RM_CTX *ctx);
 void load_config (RM_CTX *ctx);
