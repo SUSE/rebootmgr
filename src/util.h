@@ -16,11 +16,12 @@
 #include "rebootmgr.h"
 #include "calendarspec.h"
 
-#ifndef CONFIG_FILE
-#define CONFIG_FILE
+#ifndef UTIL_H
+#define UTIL_H
 
-void save_config (RM_CTX *ctx);
-void load_config (RM_CTX *ctx);
-char* get_file_content(const char *fname);
+char* spec_to_string(CalendarSpec *spec);
+char* duration_to_string(time_t duration);
+RM_RebootStrategy string_to_strategy(const char *str_strategy, int *error);
+const char* strategy_to_string(RM_RebootStrategy strategy, int *error);
 
-#endif // CONFIG_FILE
+#endif // UTIL_H

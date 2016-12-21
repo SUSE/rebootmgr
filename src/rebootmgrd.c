@@ -34,6 +34,7 @@
 #include "log_msg.h"
 #include "rebootmgr.h"
 #include "parse-duration.h"
+#include "util.h"
 
 #define PROPERTIES_METHOD_GETALL "GetAll"
 #define PROPERTIES_METHOD_GET    "Get"

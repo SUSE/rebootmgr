@@ -25,6 +25,7 @@
 #include <dbus/dbus.h>
 
 #include "rebootmgr.h"
+#include "util.h"
 
 int debug_flag=1;
 
@@ -290,28 +291,23 @@ main (int argc, char **argv)
       RM_RebootStrategy strategy = RM_REBOOTSTRATEGY_BEST_EFFORT;
 
       if (argc > 2)
-	{
-	  if (strcasecmp ("best-effort", argv[2]) == 0 ||
-	      strcasecmp ("best_effort", argv[2]) == 0)
-	    strategy = RM_REBOOTSTRATEGY_BEST_EFFORT;
-	  else if (strcasecmp ("etcd-lock", argv[2]) == 0 ||
-		   strcasecmp ("etcd_lock", argv[2]) == 0)
-	    strategy = RM_REBOOTSTRATEGY_ETCD_LOCK;
-	  else if (strcasecmp ("instantly", argv[2]) == 0)
-	    strategy = RM_REBOOTSTRATEGY_INSTANTLY;
-	  else if (strcasecmp ("maint-window", argv[2]) == 0 ||
-		   strcasecmp ("maint_window", argv[2]) == 0)
-	    strategy = RM_REBOOTSTRATEGY_INSTANTLY;
-	  else if (strcasecmp ("off", argv[2]) == 0)
-	    strategy = RM_REBOOTSTRATEGY_OFF;
-	  else
-	    usage (1);
-	}
+    	{
+        int err;
+        strategy = string_to_strategy(argv[2], &err);
+        if (err != 0) {
+          usage(1);
+        }
+      } else {
+        usage(1);
+      }
       retval = set_strategy (connection, strategy);
     }
   else if (strcasecmp ("get-strategy", argv[1]) == 0 ||
-	   strcasecmp ("get_strategy", argv[1]) == 0)
-    retval = get_strategy (connection);
+           strcasecmp ("get_strategy", argv[1]) == 0) {
+      retval = get_strategy (connection);
+      printf("%s\n", strategy_to_string(retval, NULL));
+  }
+
   else if (strcasecmp ("cancel", argv[1]) == 0)
     retval = cancel_reboot (connection);
   else
