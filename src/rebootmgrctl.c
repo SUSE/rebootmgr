@@ -60,15 +60,15 @@ rebootmgr_is_running (DBusConnection *connection)
 
 
 static int
-send_message_with_arg (DBusConnection *connection, const char *signal,
+send_message_with_arg (DBusConnection *connection, const char *method,
 		       uint32_t arg)
 {
   DBusMessage *message;
   int retval = 0;
-
-  message = dbus_message_new_signal (RM_DBUS_PATH,
-				     RM_DBUS_INTERFACE,
-				     signal);
+  message = dbus_message_new_method_call (RM_DBUS_NAME,
+					  RM_DBUS_PATH,
+					  RM_DBUS_INTERFACE,
+					  method);
   if (message == NULL)
     {
       fprintf (stderr, _("Out of memory!\n"));
@@ -78,7 +78,36 @@ send_message_with_arg (DBusConnection *connection, const char *signal,
   dbus_message_append_args (message, DBUS_TYPE_UINT32, &arg,
 			    DBUS_TYPE_INVALID);
 
-  /* Send the signal */
+  /* Send the call */
+  if (dbus_connection_send (connection, message, NULL) == FALSE)
+    {
+      fprintf (stderr, _("Out of memory!\n"));
+      retval = 1;
+    }
+  dbus_message_unref (message);
+
+  return retval;
+}
+
+static int
+set_window (DBusConnection *connection, const char* start, const char* duration)
+{
+  DBusMessage *message;
+  int retval = 0;
+  message = dbus_message_new_method_call (RM_DBUS_NAME,
+					  RM_DBUS_PATH,
+					  RM_DBUS_INTERFACE,
+            RM_DBUS_METHOD_SET_MAINTWINDOW);
+  if (message == NULL)
+    {
+      fprintf (stderr, _("Out of memory!\n"));
+      return 1;
+    }
+
+  dbus_message_append_args (message, DBUS_TYPE_STRING, &start,
+			    DBUS_TYPE_STRING, &duration, DBUS_TYPE_INVALID);
+
+  /* Send the call */
   if (dbus_connection_send (connection, message, NULL) == FALSE)
     {
       fprintf (stderr, _("Out of memory!\n"));
@@ -109,15 +138,16 @@ cancel_reboot (DBusConnection *connection)
   DBusMessage *message;
   int retval = 0;
 
-  message = dbus_message_new_signal (RM_DBUS_PATH,
-				     RM_DBUS_INTERFACE,
-             RM_DBUS_METHOD_CANCEL);
+  message = dbus_message_new_method_call(RM_DBUS_NAME,
+ 				  	 RM_DBUS_PATH,
+				    	 RM_DBUS_INTERFACE,
+			                 RM_DBUS_METHOD_CANCEL);
   if (message == NULL)
     {
       fprintf (stderr, _("Out of memory!\n"));
       return 1;
     }
-  /* Send the signal */
+  /* Send the  */
   if (dbus_connection_send (connection, message, NULL) == FALSE)
     {
       fprintf (stderr, _("Out of memory!\n"));
@@ -129,6 +159,64 @@ cancel_reboot (DBusConnection *connection)
 }
 
 static int
+get_window (DBusConnection *connection)
+{
+  DBusError error;
+  DBusMessage *message, *reply;
+  const char *start, *duration;
+  message = dbus_message_new_method_call (RM_DBUS_NAME,
+					  RM_DBUS_PATH,
+					  RM_DBUS_INTERFACE,
+					  RM_DBUS_METHOD_GET_MAINTWINDOW);
+  if (message == NULL)
+    {
+      fprintf (stderr, _("Out of memory!\n"));
+      return 1;
+    }
+
+  dbus_error_init (&error);
+  /* send message and get a handle for a reply */
+  if ((reply = dbus_connection_send_with_reply_and_block (connection, message,
+          -1, &error)) == NULL)
+  {
+    if (dbus_error_is_set (&error))
+    {
+      fprintf (stderr, _("Error: %s\n"), error.message);
+      dbus_error_free (&error);
+    }
+    else
+      fprintf (stderr, _("Out of memory!\n"));
+
+    dbus_message_unref (message);
+
+    return 1;
+  }
+
+  /* read the parameters */
+  if (dbus_message_get_args (reply, &error, DBUS_TYPE_STRING, &start,
+			     DBUS_TYPE_STRING, &duration, DBUS_TYPE_INVALID))
+    {
+      printf (_("Maintenance window is set to %s, lasting %s.\n"), start, duration);
+    }
+  else
+  {
+    if (dbus_error_is_set (&error))
+    {
+      fprintf (stderr, _("Error reading arguments: %s\n"),
+          error.message);
+      dbus_error_free (&error);
+    }
+    else
+      fprintf (stderr, _("Unknown error reading arguments\n"));
+  }
+
+  /* free reply and close connection */
+  dbus_message_unref (reply);
+
+  return 0;
+}
+
+static int
 get_strategy (DBusConnection *connection)
 {
   DBusError error;
@@ -136,7 +224,7 @@ get_strategy (DBusConnection *connection)
   RM_RebootStrategy strategy = RM_REBOOTSTRATEGY_UNKNOWN;
 
   message = dbus_message_new_method_call (RM_DBUS_NAME,
-					  RM_DBUS_PATH_SERVER,
+					  RM_DBUS_PATH,
 					  RM_DBUS_INTERFACE,
 					  RM_DBUS_METHOD_GET_STRATEGY);
   if (message == NULL)
@@ -148,61 +236,44 @@ get_strategy (DBusConnection *connection)
   dbus_error_init (&error);
   /* send message and get a handle for a reply */
   if ((reply = dbus_connection_send_with_reply_and_block (connection, message,
-							  -1, &error)) == NULL)
+          -1, &error)) == NULL)
+  {
+    if (dbus_error_is_set (&error))
     {
-      if (dbus_error_is_set (&error))
-	{
-	  fprintf (stderr, _("Error: %s\n"), error.message);
-	  dbus_error_free (&error);
-	}
-      else
-	fprintf (stderr, _("Out of memory!\n"));
-
-      dbus_message_unref (message);
-
-      return 1;
+      fprintf (stderr, _("Error: %s\n"), error.message);
+      dbus_error_free (&error);
     }
+    else
+      fprintf (stderr, _("Out of memory!\n"));
 
+    dbus_message_unref (message);
+
+    return 1;
+  }
 
   /* read the parameters */
-  dbus_error_init (&error);
   if (dbus_message_get_args (reply, &error, DBUS_TYPE_UINT32,
 			     &strategy, DBUS_TYPE_INVALID))
     {
-      printf (_("Reboot strategy: "));
-      switch (strategy)
-	{
-	case RM_REBOOTSTRATEGY_BEST_EFFORT:
-	  printf ("best-effort\n");
-	  break;
-	case RM_REBOOTSTRATEGY_INSTANTLY:
-	  printf ("instantly\n");
-	  break;
-	case RM_REBOOTSTRATEGY_MAINT_WINDOW:
-	  printf ("maint-window\n");
-	  break;
-	case RM_REBOOTSTRATEGY_ETCD_LOCK:
-	  printf ("etcd-lock\n");
-	  break;
-	case RM_REBOOTSTRATEGY_OFF:
-	  printf ("off\n");
-	  break;
-	default:
-	  printf ("unknown (%i)\n", strategy);
-	  break;
-	}
+      int conv_error;
+      const char* str = strategy_to_string(strategy, &conv_error);
+      if (conv_error) {
+        printf (_("Invalid strategy, defaulting to: %s\n"), str);        
+      } else {
+        printf (_("Reboot strategy: %s\n"), str);
+      }
     }
   else
+  {
+    if (dbus_error_is_set (&error))
     {
-      if (dbus_error_is_set (&error))
-	{
-	  fprintf (stderr, _("Error reading arguments: %s\n"),
-		   error.message);
-	  dbus_error_free (&error);
-	}
-      else
-	fprintf (stderr, _("Unknown error reading arguments\n"));
+      fprintf (stderr, _("Error reading arguments: %s\n"),
+          error.message);
+      dbus_error_free (&error);
     }
+    else
+      fprintf (stderr, _("Unknown error reading arguments\n"));
+  }
 
   /* free reply and close connection */
   dbus_message_unref (reply);
@@ -305,9 +376,22 @@ main (int argc, char **argv)
   else if (strcasecmp ("get-strategy", argv[1]) == 0 ||
            strcasecmp ("get_strategy", argv[1]) == 0) {
       retval = get_strategy (connection);
-      printf("%s\n", strategy_to_string(retval, NULL));
   }
+  else if (strcasecmp ("get-window", argv[1]) == 0 ||
+           strcasecmp ("get_window", argv[1]) == 0) {
+      retval = get_window (connection);
+  }
+  else if (strcasecmp ("set-window", argv[1]) == 0 ||
+           strcasecmp ("set_window", argv[1]) == 0) {
 
+      if (argc > 3) {
+        const char* start = argv[2];
+        const char* duration = argv[3];
+        retval = set_window (connection, start, duration);
+      } else {
+        usage(1);
+      }
+  }
   else if (strcasecmp ("cancel", argv[1]) == 0)
     retval = cancel_reboot (connection);
   else
