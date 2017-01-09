@@ -39,6 +39,7 @@ src/rebootmgrd
 tests/test-calendarspec
 tests/test-json
 tests/test-parse-duration
+tests/test-etcd
 tests/test-*.log
 tests/test-*.trs
 tests/test-suite.log

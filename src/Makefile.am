@@ -13,12 +13,12 @@ AM_CFLAGS = -D_REENTRANT=1 $(EXTRA_CFLAGS) -DLOCALEDIR=\"$(localedir)\" \
 	-DINTROSPECTIONDIR=\"$(introspectiondir)\" -DSYSCONFDIR=\"$(sysconfdir)\"\
 	-I$(top_srcdir)/lib ${DBUS_CFLAGS} ${GLIB_CFLAGS} ${JSON_CFLAGS}
 
-noinst_HEADERS = rebootmgr.h log_msg.h etcd_handler.h config_file.h util.h \
-	lock-json.h
+noinst_HEADERS = rebootmgr.h log_msg.h config_file.h util.h \
+	lock-json.h lock-etcd.h
 sbin_PROGRAMS = rebootmgrd rebootmgrctl
 
-rebootmgrd_SOURCES = rebootmgrd.c log_msg.c etcd_handler.c config_file.c \
-	util.c lock-json.c
-rebootmgrd_LDADD = -L../lib -lcalendarspec @DBUS_LIBS@ @GLIB_LIBS@ @JSON_LIBS@
+rebootmgrd_SOURCES = rebootmgrd.c log_msg.c config_file.c util.c \
+		lock-json.c lock-etcd.c
+rebootmgrd_LDADD = -L../lib -lcalendarspec @DBUS_LIBS@ @GLIB_LIBS@ @JSON_LIBS@ -lcetcd
 rebootmgrctl_SOURCES = rebootmgrctl.c util.c
 rebootmgrctl_LDADD = -L../lib -lcalendarspec @DBUS_LIBS@ @GLIB_LIBS@

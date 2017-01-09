@@ -30,11 +30,11 @@
 #include <dbus/dbus-glib-lowlevel.h>
 
 #include "config_file.h"
-#include "etcd_handler.h"
 #include "log_msg.h"
 #include "rebootmgr.h"
 #include "parse-duration.h"
 #include "util.h"
+#include "lock-etcd.h"
 
 #define PROPERTIES_METHOD_GETALL "GetAll"
 #define PROPERTIES_METHOD_GET    "Get"
@@ -411,8 +411,6 @@ dbus_filter (DBusConnection *connection, DBusMessage *message,
     /* g_timeout_add (1000, dbus_reconnect, NULL); */
     g_timeout_add_seconds (1, dbus_reconnect, NULL);
     handled = DBUS_HANDLER_RESULT_HANDLED;
-  } else {
-    handled = etcd_handler_filter(message);
   }
 #if 0
   else if (debug_flag)
@@ -531,12 +529,6 @@ dbus_init (RM_CTX *ctx)
       connection = NULL;
       goto out;
     }
-
-  if(!etcd_handler_init(connection))
-  {
-    log_msg (LOG_ERR, "Error setting up listeners for etcd changes");
-    goto out;
-  }
 
   dbus_connection_set_exit_on_disconnect (connection, FALSE);
 
