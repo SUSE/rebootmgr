@@ -4,7 +4,7 @@
 # Author: Thorsten Kukuk <kukuk@suse.de>
 #
 
-AM_CFLAGS = -D_REENTRANT=1 -I../lib -I../src #$(EXTRA_CFLAGS)
+AM_CFLAGS = -D_REENTRANT=1 -I$(top_srcdir)/lib -I$(top_srcdir)/src
 
 CLEANFILES = *~ test-calendarspec.log test-parse-duration.log \
 	test-suite.log test-calendarspec.trs test-parse-duration.trs \
