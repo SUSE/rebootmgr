@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
+#include <sys/time.h>
 
 typedef uint64_t usec_t;
 typedef uint64_t nsec_t;
