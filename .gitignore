@@ -31,15 +31,18 @@ test-driver
 po/POTFILES
 po/stamp-po
 po/remove-potcdate.sed
-lib/test-calendarspec
-lib/test-parse-duration
-lib/test-*.log
-lib/test-*.trs
 man/org.opensuse.RebootMgr.conf.8
 man/rebootmgr.service.8
 man/rebootmgrd.8
 src/rebootmgrctl
 src/rebootmgrd
+tests/test-calendarspec
+tests/test-json
+tests/test-parse-duration
+tests/test-*.log
+tests/test-*.trs
+tests/test-suite.log
+
 
 # tar archive
 rebootmgr-*.tar.*

@@ -46,6 +46,9 @@ AC_SUBST(DBUS_LIBS)
 PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.6)
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
+PKG_CHECK_MODULES([JSON], [json-c])
+AC_SUBST(JSON_CFLAGS)
+AC_SUBST(JSON_LIBS)
 
 dnl
 dnl Check for xsltproc
@@ -80,4 +83,4 @@ AH_VERBATIM([__ZZENABLE_NLS],
 #endif /* ENABLE_NLS */])
 
 AC_OUTPUT([Makefile lib/Makefile src/Makefile man/Makefile dbus/Makefile \
-	systemd/Makefile etc/Makefile])
+	systemd/Makefile etc/Makefile tests/Makefile])
