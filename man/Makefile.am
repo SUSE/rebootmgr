@@ -8,7 +8,7 @@ CLEANFILES = $(MANS)
 
 EXTRA_DIST = $(MANS) $(XMLS)
 
-man_MANS = rebootmgrd.8 rebootmgr-dbus.conf.8 rebootmgr.service.8
+man_MANS = rebootmgrd.8 rebootmgr.service.8 org.opensuse.RebootMgr.conf.8
 XMLS = rebootmgrd.8.xml
 
 if ENABLE_REGENERATE_MAN

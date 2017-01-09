@@ -33,7 +33,9 @@ po/stamp-po
 po/remove-potcdate.sed
 lib/test-calendarspec
 lib/test-parse-duration
-man/rebootmgr-dbus.conf.8
+lib/test-*.log
+lib/test-*.trs
+man/org.opensuse.RebootMgr.conf.8
 man/rebootmgr.service.8
 man/rebootmgrd.8
 src/rebootmgrctl

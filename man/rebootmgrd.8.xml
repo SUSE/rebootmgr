@@ -33,7 +33,7 @@
   <refnamediv id='name'>
     <refname>rebootmgrd</refname>
     <refname>rebootmgr.service</refname>
-    <refname>rebootmgr-dbus.conf</refname>
+    <refname>org.opensuse.RebootMgr.conf</refname>
     <refpurpose>Reboot the machine during a maintenance window.</refpurpose>
   </refnamediv>
 
@@ -48,7 +48,7 @@
       </group>
     </cmdsynopsis>
     <para><filename>/usr/lib/systemd/system/rebootmgr.service</filename></para>
-    <para><filename>/etc/dbus-1/system.d/rebootmgr-dbus.conf</filename></para>
+    <para><filename>/etc/dbus-1/system.d/org.opensuse.RebootMgr.conf</filename></para>
   </refsynopsisdiv>
 
   <refsect1 id='description'><title>DESCRIPTION</title>
