@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 Thorsten Kukuk
+/* Copyright (c) 2016, 2017 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -41,7 +41,7 @@
 #define PROPERTIES_METHOD_SET    "Set"
 
 static int
-create_context(RM_CTX **ctx)
+create_context (RM_CTX **ctx)
 {
   if ((*ctx = calloc(1, sizeof(RM_CTX))) == NULL) {
     return 0;
@@ -53,7 +53,7 @@ create_context(RM_CTX **ctx)
 }
 
 static int
-destroy_context(RM_CTX *ctx)
+destroy_context (RM_CTX *ctx)
 {
   if (ctx == NULL) {
     errno = EBADF;
@@ -92,7 +92,7 @@ reboot_now (RM_CTX *ctx)
       if (!debug_flag)
 	{
 	  log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
-    if (execl ("/usr/bin/systemctl", "systemctl", "reboot", NULL) == -1)
+	  if (execl ("/usr/bin/systemctl", "systemctl", "reboot", NULL) == -1)
 	    log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %s\n",
 		     strerror (errno));
 	}
@@ -108,9 +108,10 @@ static gboolean
 reboot_timer (gpointer user_data)
 {
   RM_CTX *ctx = user_data;
+
   if ((ctx->reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT ||
        ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK) &&
-       etcd_is_running())
+      etcd_is_running())
     {
       /* get etcd lock */;
     }
@@ -175,19 +176,19 @@ do_reboot (RM_CTX *ctx, RM_RebootOrder order)
     case RM_REBOOTSTRATEGY_BEST_EFFORT:
       if (ctx->maint_window_start != NULL &&
 	  order != RM_REBOOTORDER_FAST)
-  initialize_timer(ctx);
+	initialize_timer(ctx);
       else if (etcd_is_running())
 	{ /* XXX reboot with locks */ }
       else
-  reboot_now (ctx);
+	reboot_now (ctx);
       break;
     case RM_REBOOTSTRATEGY_INSTANTLY:
       reboot_now (ctx);
       break;
     case RM_REBOOTSTRATEGY_MAINT_WINDOW:
       if (order == RM_REBOOTORDER_FAST ||
-    ctx->maint_window_start == NULL)
-  reboot_now(ctx);
+	  ctx->maint_window_start == NULL)
+	reboot_now(ctx);
       initialize_timer(ctx);
       break;
     case RM_REBOOTSTRATEGY_ETCD_LOCK:
@@ -207,7 +208,7 @@ do_reboot (RM_CTX *ctx, RM_RebootOrder order)
 }
 
 static DBusMessage *
-handle_native_iface(RM_CTX *ctx, DBusMessage *message)
+handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 {
   DBusError err;
   DBusMessage *reply = 0;
@@ -215,169 +216,188 @@ handle_native_iface(RM_CTX *ctx, DBusMessage *message)
   reply = dbus_message_new_method_return (message);
 
   dbus_error_init(&err);
-  if (dbus_message_is_method_call(message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_REBOOT))
-  {
-    RM_RebootOrder order = RM_REBOOTORDER_UNKNOWN;
-
-    if (dbus_message_get_args (message, NULL, DBUS_TYPE_UINT32,
-          &order, DBUS_TYPE_INVALID))
+  if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+				   RM_DBUS_METHOD_REBOOT))
     {
-      if (order == RM_REBOOTORDER_STANDARD) {
-        if (debug_flag)
-          log_msg (LOG_DEBUG, "Reboot at next possible time");
-      } else if (order == RM_REBOOTORDER_FAST) {
-        if (debug_flag)
-          log_msg (LOG_DEBUG, "Reboot as fast as possible");
-      } else if (order == RM_REBOOTORDER_FORCED) {
-        if (debug_flag)
-          log_msg (LOG_DEBUG, "Reboot now");
-      }
-    }
-    do_reboot (ctx, order);
-  }
-  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_CANCEL))
-  {
-    if (debug_flag)
-      log_msg (LOG_DEBUG, "Cancel reboot");
-    if (ctx->reboot_running > 0 && ctx->reboot_timer_id > 0)
-      g_source_remove (ctx->reboot_timer_id);
-    ctx->reboot_running = 0;
-    ctx->reboot_timer_id = 0;
-  }
-  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_SET_STRATEGY))
-  {
-    RM_RebootStrategy strategy = RM_REBOOTSTRATEGY_UNKNOWN;
+      RM_RebootOrder order = RM_REBOOTORDER_UNKNOWN;
 
-    if (dbus_message_get_args (message, NULL, DBUS_TYPE_UINT32,
-          &strategy, DBUS_TYPE_INVALID))
+      if (dbus_message_get_args (message, NULL, DBUS_TYPE_UINT32,
+				 &order, DBUS_TYPE_INVALID))
+	{
+	  if (order == RM_REBOOTORDER_STANDARD)
+	    {
+	      if (debug_flag)
+		log_msg (LOG_DEBUG, "Reboot at next possible time");
+	    }
+	  else if (order == RM_REBOOTORDER_FAST)
+	    {
+	      if (debug_flag)
+		log_msg (LOG_DEBUG, "Reboot as fast as possible");
+	    }
+	  else if (order == RM_REBOOTORDER_FORCED)
+	    {
+	      if (debug_flag)
+		log_msg (LOG_DEBUG, "Reboot now");
+	    }
+	}
+      do_reboot (ctx, order);
+    }
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_METHOD_CANCEL))
     {
       if (debug_flag)
-        log_msg (LOG_DEBUG, "set-strategy called");
-      if (strategy != RM_REBOOTSTRATEGY_UNKNOWN &&
-          ctx->reboot_strategy != strategy)
-      {
-        if (debug_flag)
-          log_msg (LOG_DEBUG, "reboot_strategy changed");
-        ctx->reboot_strategy = strategy;
-      }
+	log_msg (LOG_DEBUG, "Cancel reboot");
+      if (ctx->reboot_running > 0 && ctx->reboot_timer_id > 0)
+	g_source_remove (ctx->reboot_timer_id);
+      ctx->reboot_running = 0;
+      ctx->reboot_timer_id = 0;
+    }
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_METHOD_SET_STRATEGY))
+    {
+      RM_RebootStrategy strategy = RM_REBOOTSTRATEGY_UNKNOWN;
+
+      if (dbus_message_get_args (message, NULL, DBUS_TYPE_UINT32,
+				 &strategy, DBUS_TYPE_INVALID))
+	{
+	  if (debug_flag)
+	    log_msg (LOG_DEBUG, "set-strategy called");
+	  if (strategy != RM_REBOOTSTRATEGY_UNKNOWN &&
+	      ctx->reboot_strategy != strategy)
+	    {
+	      if (debug_flag)
+		log_msg (LOG_DEBUG, "reboot_strategy changed");
+	      ctx->reboot_strategy = strategy;
+	    }
+	  save_config (ctx);
+	}
+    }
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_METHOD_GET_STRATEGY))
+    {
+      if (debug_flag)
+	log_msg (LOG_DEBUG, "get-strategy called");
+
+      /* create a reply from the message */
+      dbus_message_append_args (reply, DBUS_TYPE_UINT32, &ctx->reboot_strategy,
+				DBUS_TYPE_INVALID);
+    }
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_METHOD_STATUS))
+    {
+      if (debug_flag)
+	log_msg (LOG_DEBUG, "Reboot status requested");
+    }
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_METHOD_GET_MAINTWINDOW))
+    {
+      char *str_start = spec_to_string(ctx->maint_window_start);
+      char *str_duration = duration_to_string(ctx->maint_window_duration);
+
+      log_msg(LOG_DEBUG, "str_start: '%s' str_duration: '%s'", str_start, str_duration);
+      /* create a reply from the message */
+      dbus_message_append_args (reply, DBUS_TYPE_STRING, &str_start,
+				DBUS_TYPE_STRING, &str_duration,
+				DBUS_TYPE_INVALID);
+
+      free (str_start);
+      free (str_duration);
+    }
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_METHOD_SET_MAINTWINDOW))
+    {
+      const char *str_start;
+      const char *str_duration;
+
+      if (debug_flag)
+	log_msg (LOG_DEBUG, "set-maintenancewindow called");
+
+      if (dbus_message_get_args (message, NULL, DBUS_TYPE_STRING, &str_start,
+				 DBUS_TYPE_STRING, &str_duration,
+				 DBUS_TYPE_INVALID))
+	{
+
+	}
+      if ((calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
+	{
+	  return reply;
+	}
+
+      if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
+	{
+	  return reply;
+	}
       save_config(ctx);
     }
-  }
-  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_GET_STRATEGY))
-  {
-    if (debug_flag)
-      log_msg (LOG_DEBUG, "get-strategy called");
-
-    /* create a reply from the message */
-    dbus_message_append_args (reply, DBUS_TYPE_UINT32, &ctx->reboot_strategy,
-        DBUS_TYPE_INVALID);
-  }
-  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_STATUS))
-  {
-    if (debug_flag)
-      log_msg (LOG_DEBUG, "Reboot status requested");
-  }
-  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_GET_MAINTWINDOW))
-  {
-    char *str_start = spec_to_string(ctx->maint_window_start);
-    char *str_duration = duration_to_string(ctx->maint_window_duration);
-
-    log_msg(LOG_DEBUG, "str_start: '%s' str_duration: '%s'", str_start, str_duration);
-    /* create a reply from the message */
-    dbus_message_append_args (reply, DBUS_TYPE_STRING, &str_start,
-                                     DBUS_TYPE_STRING, &str_duration,
-                                     DBUS_TYPE_INVALID);
-
-    free (str_start);
-    free (str_duration);
-  }
-  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE, RM_DBUS_METHOD_SET_MAINTWINDOW))
-  {
-    const char *str_start;
-    const char *str_duration;
-
-    if (debug_flag)
-      log_msg (LOG_DEBUG, "set-maintenancewindow called");
-
-    if (dbus_message_get_args (message, NULL, DBUS_TYPE_STRING, &str_start,
-                                              DBUS_TYPE_STRING, &str_duration,
-                                              DBUS_TYPE_INVALID))
-    {
-
-    }
-    if ((calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
-    {
-        return reply;
-    }
-
-    if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
-    {
-        return reply;
-    }
-    save_config(ctx);
-  }
   return reply;
 }
 
 static DBusMessage *
-handle_introspect_request(DBusMessage *msg)
+handle_introspect_request (DBusMessage *msg)
 {
   DBusMessage *reply = dbus_message_new_method_return(msg);
-    char * content = get_file_content(INTROSPECTIONDIR "/" RM_DBUS_INTERFACE ".xml");
-    if (!content) {
-        content = get_file_content("../dbus/" RM_DBUS_INTERFACE ".xml");
-    }
-    dbus_message_append_args(reply, DBUS_TYPE_STRING, &content, DBUS_TYPE_INVALID);
-    free(content);
-    return reply;
+  char * content = get_file_content(INTROSPECTIONDIR "/" RM_DBUS_INTERFACE ".xml");
+  if (!content) {
+    content = get_file_content("../dbus/" RM_DBUS_INTERFACE ".xml");
+  }
+  dbus_message_append_args(reply, DBUS_TYPE_STRING, &content, DBUS_TYPE_INVALID);
+  free(content);
+  return reply;
 }
 
 /* This is just a stub implementation, and we don't announce it in the xml file
  * but without it, d-feet does fails when trying to query a method */
 static DBusMessage *
-handle_properties_iface(DBusMessage *msg)
+handle_properties_iface (DBusMessage *msg)
 {
-    DBusMessage *reply = 0;
-    const char* member = dbus_message_get_member(msg);
-    if (strcmp(member, PROPERTIES_METHOD_GETALL) == 0 ||
-        strcmp(member, PROPERTIES_METHOD_GET) == 0 ||
-        strcmp(member, PROPERTIES_METHOD_SET) == 0)
+  DBusMessage *reply = 0;
+  const char* member = dbus_message_get_member(msg);
+  if (strcmp(member, PROPERTIES_METHOD_GETALL) == 0 ||
+      strcmp(member, PROPERTIES_METHOD_GET) == 0 ||
+      strcmp(member, PROPERTIES_METHOD_SET) == 0)
     {
-        reply = dbus_message_new_method_return(msg);
-        dbus_message_append_args(reply, DBUS_TYPE_INVALID);
+      reply = dbus_message_new_method_return(msg);
+      dbus_message_append_args(reply, DBUS_TYPE_INVALID);
     }
-    return reply;
+  return reply;
 }
 
 /* vtable implementation: handles messages and calls respective C functions */
 static DBusHandlerResult
-handle_message(DBusConnection *connection, DBusMessage * message, void *user)
+handle_message (DBusConnection *connection, DBusMessage * message, void *user)
 {
-    RM_CTX *ctx = user;
-    DBusMessage *reply = 0;
-    const char* iface = dbus_message_get_interface(message);
+  RM_CTX *ctx = user;
+  DBusMessage *reply = 0;
+  const char* iface = dbus_message_get_interface(message);
 
-    if (dbus_message_is_method_call(message, DBUS_INTERFACE_INTROSPECTABLE, "Introspect")) {
-        /* Handle Introspection request */
-        reply = handle_introspect_request(message);
-    } else if (strcmp(iface, DBUS_INTERFACE_PROPERTIES) == 0) {
-        /* Stub implementation for property requests */
-        reply = handle_properties_iface(message);
-    } else if (strcmp(iface, RM_DBUS_INTERFACE) == 0) {
-        /* Handle requests to our own interfaces  */
-        reply = handle_native_iface(ctx, message);
+  if (dbus_message_is_method_call(message, DBUS_INTERFACE_INTROSPECTABLE,
+				  "Introspect"))
+    {
+      /* Handle Introspection request */
+      reply = handle_introspect_request(message);
+    }
+  else if (strcmp(iface, DBUS_INTERFACE_PROPERTIES) == 0)
+    {
+      /* Stub implementation for property requests */
+      reply = handle_properties_iface(message);
+    }
+  else if (strcmp(iface, RM_DBUS_INTERFACE) == 0)
+    {
+      /* Handle requests to our own interfaces  */
+      reply = handle_native_iface(ctx, message);
     }
 
-    if (reply) {
+  if (reply)
+    {
       /* send the reply && flush the connection */
       if (!dbus_connection_send (connection, reply, NULL))
-      {
-        log_msg (LOG_ERR, "Out of memory!");
-        return DBUS_HANDLER_RESULT_NEED_MEMORY;
-      }
+	{
+	  log_msg (LOG_ERR, "Out of memory!");
+	  return DBUS_HANDLER_RESULT_NEED_MEMORY;
+	}
       dbus_message_unref(reply);
     }
-    return DBUS_HANDLER_RESULT_HANDLED;
+  return DBUS_HANDLER_RESULT_HANDLED;
 }
 
 static int dbus_init (RM_CTX*);

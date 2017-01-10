@@ -22,5 +22,6 @@
 int etcd_is_running (void);
 int get_lock (const char *group);
 int release_lock (const char *group);
+int own_lock (const char *group);
 
 #endif /* _LOCK_ETCD_H_ */

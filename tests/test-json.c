@@ -33,7 +33,7 @@ main (void)
 
   printf("JSON string: %s\n", input);
 
-  json_object * jobj = json_tokener_parse (input);
+  json_object *jobj = json_tokener_parse (input);
 
   max = get_max_locks (jobj);
   printf ("Max locks: %li\n", max);

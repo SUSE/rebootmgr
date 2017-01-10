@@ -262,7 +262,13 @@ get_lock (const char *group)
       if (curr_locks < max_locks)
 	{
 	  if (get_mutex (&cli, group) != 0)
-	    continue;
+	    {
+	      /* either we got a lock but etcd data was not changed (what should never
+		 happen), or the mutex was hold by somebody else and the watch reported
+		 that this changed, so try again. */
+	      debug ("get_lock: get_mutex for group '%s' failed, trying again.", group);
+	      continue;
+	    }
 
 	  /* we have the mutex, check if we can set the lock */
 	  val = get_value (&cli, group, "data");
@@ -315,7 +321,10 @@ release_lock (const char *group)
   cetcd_client cli;
   cetcd_array addrs;
   int retval = 1;
-  int have_lock = 0;
+  int removed_lock = 0;
+
+  if (!own_lock (group))
+    return 0;
 
   cetcd_array_init (&addrs, 3);
   cetcd_array_append (&addrs, "http://127.0.0.1:2379");
@@ -323,33 +332,41 @@ release_lock (const char *group)
   cetcd_client_init (&cli, &addrs);
 
   /* try in a loop to get a mutex */
-  while (!have_lock)
+  while (!removed_lock)
     {
-      long curr_locks;
+      json_object *jobj;
       char *val;
 
       if (get_mutex (&cli, group) != 0)
-	continue;
-      /* we have the mutex, check if we can remove the lock */
-      val = get_value (&cli, group, "count");
-      if (val == NULL)
-	goto cleanup;
-      curr_locks = atol (val);
-      free (val);
-      if (curr_locks > 0)
 	{
-	  char *value = NULL;
+	  /* either we got a lock but etcd data was not changed (what should never
+	     happen), or the mutex was hold by somebody else and the watch reported
+	     that this changed, so try again. */
+	  debug ("release_lock: get_mutex for group '%s' failed, trying again.", group);
+	  continue;
+	}
 
-	  curr_locks--;
-	  if (asprintf (&value, "%lu", curr_locks) == -1)
-	    goto leave;
-
-	      set_lock_key (&cli, group, "count", value);
-	      have_lock = 1;
-	      retval = 0;
-	    }
-	leave:
+      val = get_value (&cli, group, "data");
+      if (val == NULL)
+	{
 	  release_mutex (&cli, group);
+	  goto cleanup;
+	}
+
+      jobj = json_tokener_parse (val);
+      if (jobj == NULL)
+	{
+	  release_mutex (&cli, group);
+	  goto cleanup;
+	}
+
+      remove_id_from_holders (jobj, get_machine_id());
+      set_lock_key (&cli, group, "data",
+		    json_object_to_json_string_ext (jobj,
+						    JSON_C_TO_STRING_PRETTY));
+      removed_lock = 1;
+      retval = 0;
+      release_mutex (&cli, group);
     }
 
  cleanup:
@@ -357,6 +374,54 @@ release_lock (const char *group)
   cetcd_client_destroy (&cli);
 
   return retval;
+}
+
+/*
+  return values:
+  1: own a lock
+  0: don't own a lock
+*/
+int
+own_lock (const char *group)
+{
+  cetcd_client cli;
+  cetcd_response *resp;
+  cetcd_array addrs;
+  char *path = NULL;
+  int have_lock = 0;
+
+  cetcd_array_init (&addrs, 3);
+  cetcd_array_append (&addrs, "http://127.0.0.1:2379");
+
+  cetcd_client_init (&cli, &addrs);
+
+  /* Check if the data structure for the locks exists, else create them */
+  if (asprintf (&path, "%s/%s/data", ETCD_LOCKS, group) == -1)
+    return 1;
+  resp = cetcd_get (&cli, path);
+  free (path);
+  if (resp->err)
+    {
+      if (resp->err->ecode == 100)
+	create_lock_dir (&cli, group);
+      else
+	{
+	  fprintf (stderr, "error: %d, %s (%s)\n", resp->err->ecode,
+		   resp->err->message, resp->err->cause);
+	}
+    }
+  else
+    {
+      json_object *jobj = json_tokener_parse (resp->node->value);
+
+      have_lock = is_id_in_holders (jobj, get_machine_id ());
+
+      json_object_put (jobj);
+    }
+
+  cetcd_response_release (resp);
+
+  return have_lock;
 }
 
 /*
