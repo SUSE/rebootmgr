@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 Thorsten Kukuk
+/* Copyright (c) 2016, 2017 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -256,7 +256,7 @@ get_strategy (DBusConnection *connection)
       int conv_error;
       const char* str = strategy_to_string(strategy, &conv_error);
       if (conv_error) {
-        printf (_("Invalid strategy, defaulting to: %s\n"), str);        
+        printf (_("Invalid strategy, defaulting to: %s\n"), str);
       } else {
         printf (_("Reboot strategy: %s\n"), str);
       }
@@ -271,6 +271,67 @@ get_strategy (DBusConnection *connection)
     }
     else
       fprintf (stderr, _("Unknown error reading arguments\n"));
+  }
+
+  /* free reply and close connection */
+  dbus_message_unref (reply);
+
+  return 0;
+}
+
+static int
+print_status (DBusConnection *connection)
+{
+  DBusError error;
+  DBusMessage *message, *reply;
+  uint32_t status;
+  message = dbus_message_new_method_call (RM_DBUS_NAME,
+					  RM_DBUS_PATH,
+					  RM_DBUS_INTERFACE,
+					  RM_DBUS_METHOD_STATUS);
+  if (message == NULL)
+    {
+      fprintf (stderr, _("Out of memory!\n"));
+      return 1;
+    }
+
+  dbus_error_init (&error);
+  /* send message and get a handle for a reply */
+  if ((reply = dbus_connection_send_with_reply_and_block (connection, message,
+							  -1, &error)) == NULL)
+    {
+      if (dbus_error_is_set (&error))
+	{
+	  fprintf (stderr, _("Error: %s\n"), error.message);
+	  dbus_error_free (&error);
+	}
+      else
+	fprintf (stderr, _("Out of memory!\n"));
+
+      dbus_message_unref (message);
+
+      return 1;
+    }
+
+  /* read the parameters */
+  if (dbus_message_get_args (reply, &error, DBUS_TYPE_UINT32, &status,
+			     DBUS_TYPE_INVALID))
+    {
+      if (status)
+	printf (_("Reboot in progress\n"));
+      else
+	printf (_("No reboot requested\n"));
+    }
+  else
+    {
+      if (dbus_error_is_set (&error))
+	{
+	  fprintf (stderr, _("Error reading arguments: %s\n"),
+		   error.message);
+	  dbus_error_free (&error);
+	}
+      else
+	fprintf (stderr, _("Unknown error reading arguments\n"));
   }
 
   /* free reply and close connection */
@@ -392,6 +453,8 @@ main (int argc, char **argv)
   }
   else if (strcasecmp ("cancel", argv[1]) == 0)
     retval = cancel_reboot (connection);
+  else if (strcasecmp ("status", argv[1]) == 0)
+    retval = print_status (connection);
   else
     usage (1);
 

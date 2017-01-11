@@ -305,6 +305,10 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
     {
       if (debug_flag)
 	log_msg (LOG_DEBUG, "Reboot status requested");
+
+      /* create a reply from the message */
+      dbus_message_append_args (reply, DBUS_TYPE_UINT32,
+				&ctx->reboot_running, DBUS_TYPE_INVALID);
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_GET_MAINTWINDOW))
