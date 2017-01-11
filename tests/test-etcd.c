@@ -32,15 +32,15 @@ main (int argc, char *argv[])
 
   printf ("etcd is running, try to get a lock\n");
 
-  if (get_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+  if (etcd_get_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
     {
-      fprintf (stderr, "get_lock() failed!\n");
+      fprintf (stderr, "etcd_get_lock() failed!\n");
       return 1;
     }
 
   printf ("got a lock, check if we own it\n");
 
-  if (!own_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+  if (!etcd_own_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
     {
       fprintf (stderr, "Don't own a lock!\n");
       return 1;
@@ -48,15 +48,15 @@ main (int argc, char *argv[])
 
   printf ("have a lock, release it\n");
 
-  if (release_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+  if (etcd_release_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
     {
-      fprintf (stderr, "get_lock() failed!\n");
+      fprintf (stderr, "etcd_release_lock() failed!\n");
       return 1;
     }
 
   printf ("have no lock, check that we don't own one\n");
 
-  if (own_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+  if (etcd_own_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
     {
       fprintf (stderr, "Still own a lock!\n");
       return 1;

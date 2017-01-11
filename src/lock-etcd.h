@@ -20,8 +20,8 @@
 #define ETCD_LOCKS_DEFAULT_GROUP "default"
 
 int etcd_is_running (void);
-int get_lock (const char *group);
-int release_lock (const char *group);
-int own_lock (const char *group);
+int etcd_get_lock (const char *group);
+int etcd_release_lock (const char *group);
+int etcd_own_lock (const char *group);
 
 #endif /* _LOCK_ETCD_H_ */

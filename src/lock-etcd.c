@@ -198,7 +198,7 @@ release_mutex (cetcd_client *cli, const char *group)
   1: error
 */
 int
-get_lock (const char *group)
+etcd_get_lock (const char *group)
 {
   cetcd_client cli;
   cetcd_response *resp;
@@ -309,14 +309,14 @@ get_lock (const char *group)
   1: error
 */
 int
-release_lock (const char *group)
+etcd_release_lock (const char *group)
 {
   cetcd_client cli;
   cetcd_array addrs;
   int retval = 1;
   int removed_lock = 0;
 
-  if (!own_lock (group))
+  if (!etcd_own_lock (group))
     return 0;
 
   cetcd_array_init (&addrs, 3);
@@ -378,7 +378,7 @@ release_lock (const char *group)
   0: don't own a lock
 */
 int
-own_lock (const char *group)
+etcd_own_lock (const char *group)
 {
   cetcd_client cli;
   cetcd_response *resp;
