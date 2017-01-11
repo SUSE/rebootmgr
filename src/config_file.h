@@ -16,11 +16,11 @@
 #include "rebootmgr.h"
 #include "calendarspec.h"
 
-#ifndef CONFIG_FILE
-#define CONFIG_FILE
+#ifndef __CONFIG_FILE_H__
+#define __CONFIG_FILE_H__
 
 void save_config (RM_CTX *ctx);
 void load_config (RM_CTX *ctx);
-char* get_file_content(const char *fname);
+char *get_file_content (const char *fname);
 
-#endif // CONFIG_FILE
+#endif /* __CONFIG_FILE_H__ */
