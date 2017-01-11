@@ -40,12 +40,12 @@ get_file_content(const char *fname)
   int fd = open(fname, O_RDONLY);
 
   if (fd < 0) {
-    log_msg( LOG_INFO, "Failed to open %s: %s\n", fname, strerror(errno));
+    log_msg( LOG_INFO, "Failed to open %s: %m\n", fname);
     goto fail;
   }
 
   if (fstat(fd, &st) < 0) {
-    log_msg( LOG_INFO, "stat(%s) failed: %s\n", fname, strerror(errno));
+    log_msg( LOG_INFO, "stat(%s) failed: %m", fname);
     goto fail;
   }
 
@@ -57,7 +57,7 @@ get_file_content(const char *fname)
   buf = (char*)malloc(sizeof(char)*(size_t)st.st_size+1);
 
   if ((size = read(fd, buf, (size_t)st.st_size)) < 0) {
-    log_msg( LOG_INFO, "read() failed: %s\n", strerror(errno));
+    log_msg( LOG_INFO, "read() failed: %m");
     goto fail;
   }
 

@@ -59,6 +59,7 @@ typedef enum RM_RebootStrategy {
 typedef struct {
     RM_RebootStrategy reboot_strategy;
     int reboot_running;
+    int reboot_order;
     guint reboot_timer_id;
     CalendarSpec *maint_window_start;
     time_t maint_window_duration;

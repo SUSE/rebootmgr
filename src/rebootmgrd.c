@@ -46,7 +46,8 @@ create_context (RM_CTX **ctx)
   if ((*ctx = calloc(1, sizeof(RM_CTX))) == NULL)
     return 0;
 
-  **ctx = (RM_CTX) { RM_REBOOTSTRATEGY_BEST_EFFORT, 0,  0, NULL, 3600, NULL };
+  **ctx = (RM_CTX) {RM_REBOOTSTRATEGY_BEST_EFFORT, 0,
+		     RM_REBOOTORDER_STANDARD, 0, NULL, 3600, NULL};
   (*ctx)->lock_group = strdup ("default");
 
   return 1;
@@ -98,8 +99,8 @@ reboot_now (RM_CTX *ctx)
 	{
 	  log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
 	  if (execl ("/usr/bin/systemctl", "systemctl", "reboot", NULL) == -1)
-	    log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %s\n",
-		     strerror (errno));
+	    log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %s",
+		     g_strerror (errno));
 	}
       else
 	log_msg (LOG_DEBUG, "systemctl reboot called!");
@@ -124,8 +125,15 @@ reboot_timer (gpointer user_data)
 	  ctx->reboot_running = 0;
 	  return FALSE;
 	}
+      reboot_now (ctx);
+      /* if we end here, reboot was canceld */
+      if (etcd_release_lock (ctx->lock_group) != 0)
+	{
+	  log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
+	}
     }
-  reboot_now (ctx);
+  else
+    reboot_now (ctx);
   return FALSE;
 }
 
@@ -142,7 +150,7 @@ initialize_timer (RM_CTX *ctx)
   if (r < 0)
     {
       log_msg (LOG_ERR, "Internal error converting the timer: %s",
-	       strerror (-r));
+	       g_strerror (-r));
       return;
     }
   if (curr > next && curr < next + duration)
@@ -157,7 +165,7 @@ initialize_timer (RM_CTX *ctx)
   if (r < 0)
     {
       log_msg (LOG_ERR, "Internal error converting the timer: %s",
-	       strerror (-r));
+	       g_strerror (-r));
       return;
     }
 
@@ -174,12 +182,14 @@ initialize_timer (RM_CTX *ctx)
     g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, ctx);
 }
 
-static void
-do_reboot (RM_CTX *ctx, RM_RebootOrder order)
+static gpointer
+do_reboot (gpointer user_data)
 {
+  RM_CTX *ctx = user_data;
+
   ctx->reboot_running = 1;
 
-  if (order == RM_REBOOTORDER_FORCED)
+  if (ctx->reboot_order == RM_REBOOTORDER_FORCED)
     reboot_now (ctx);
 
   switch (ctx->reboot_strategy)
@@ -187,7 +197,7 @@ do_reboot (RM_CTX *ctx, RM_RebootOrder order)
     case RM_REBOOTSTRATEGY_BEST_EFFORT:
     case RM_REBOOTSTRATEGY_ETCD_LOCK:
       if (ctx->maint_window_start != NULL &&
-	  order != RM_REBOOTORDER_FAST)
+	  ctx->reboot_order != RM_REBOOTORDER_FAST)
 	initialize_timer(ctx);
       else
 	{
@@ -198,7 +208,7 @@ do_reboot (RM_CTX *ctx, RM_RebootOrder order)
 		{
 		  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
 		  ctx->reboot_running = 0;
-		  return;
+		  return NULL;
 		}
 	    }
 	  reboot_now (ctx);
@@ -208,7 +218,7 @@ do_reboot (RM_CTX *ctx, RM_RebootOrder order)
       reboot_now (ctx);
       break;
     case RM_REBOOTSTRATEGY_MAINT_WINDOW:
-      if (order == RM_REBOOTORDER_FAST ||
+      if (ctx->reboot_order == RM_REBOOTORDER_FAST ||
 	  ctx->maint_window_start == NULL)
 	reboot_now(ctx);
       initialize_timer(ctx);
@@ -223,6 +233,7 @@ do_reboot (RM_CTX *ctx, RM_RebootOrder order)
 	       ctx->reboot_strategy);
       break;
     }
+  return NULL;
 }
 
 static DBusMessage *
@@ -257,14 +268,23 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	      if (debug_flag)
 		log_msg (LOG_DEBUG, "Reboot now");
 	    }
+	  else
+	    {
+	      log_msg (LOG_ERR, "Unknown reboot order (%i), ignore reboot command",
+		       order);
+	      return reply;
+	    }
+	  ctx->reboot_order = order;
 	}
-      do_reboot (ctx, order);
+      if (ctx->reboot_running > 0)
+	log_msg (LOG_INFO, "Reboot already in progress, ignored");
+      else
+	g_thread_new ("do reboot thread", do_reboot, ctx);
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_CANCEL))
     {
-      if (debug_flag)
-	log_msg (LOG_DEBUG, "Cancel reboot");
+      log_msg (LOG_INFO, "Reboot canceld");
       if (ctx->reboot_running > 0 && ctx->reboot_timer_id > 0)
 	g_source_remove (ctx->reboot_timer_id);
       ctx->reboot_running = 0;
@@ -449,7 +469,7 @@ dbus_filter (DBusConnection *connection, DBusMessage *message,
 			      "Disconnected"))
     {
       /* D-Bus system bus went away */
-      log_msg (LOG_INFO, "Lost connection to D-Bus\n");
+      log_msg (LOG_INFO, "Lost connection to D-Bus");
       dbus_connection_unref (connection);
       connection = NULL;
       /* g_timeout_add (1000, dbus_reconnect, NULL); */
@@ -576,7 +596,7 @@ dbus_init (RM_CTX *ctx)
 
   if (!dbus_connection_register_object_path(connection, RM_DBUS_PATH,
 					    &vtable, ctx))
-    log_msg(LOG_ERR, "Failed to register object path\n");
+    log_msg(LOG_ERR, "Failed to register object path");
 
   dbus_connection_setup_with_g_main (connection, NULL);
 
