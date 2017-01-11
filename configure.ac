@@ -8,6 +8,22 @@ AC_PREFIX_DEFAULT(/usr)
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 
+dnl Some hacks...
+test "${prefix}" = "NONE" && prefix="/usr"
+if test ${prefix} = '/usr'
+then
+dnl If we use /usr as prefix, use /etc for ypserv.conf
+        if test ${sysconfdir} = '${prefix}/etc'
+        then
+           sysconfdir="/etc"
+        fi
+dnl If we use /usr as prefix, use /usr/share/man for manual pages
+        if test ${mandir} = '${prefix}/man'
+        then
+           mandir='${prefix}/share/man'
+        fi
+fi
+
 if test ${libexecdir} = '${exec_prefix}/libexec'
 then
   libexecdir='${exec_prefix}/lib'
@@ -25,6 +41,8 @@ else
 fi
 AC_SUBST(TMPFILESDIR)
 AC_SUBST(SYSTEMDDIR)
+
+
 
 
 EXTRA_CFLAGS="-Werror -W -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -DXTSTRINGDEFINES -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef"

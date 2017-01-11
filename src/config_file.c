@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 Daniel Molkentin
+/* Copyright (c) 2016, 2017 Daniel Molkentin
    Author: Daniel Molkentin <dmolkentin@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -92,7 +92,7 @@ save_config (RM_CTX *ctx)
                                   G_KEY_FILE_KEEP_TRANSLATIONS,
                                   &error))
   {
-    log_msg (LOG_ERR, "Cannot load '"CONFIG_FILE"': %s", error->message);
+    log_msg (LOG_ERR, "Cannot load '"RM_CONFIG_FILE"': %s", error->message);
     g_error_free(error);
   }
 
@@ -129,7 +129,7 @@ load_config (RM_CTX *ctx)
                                   G_KEY_FILE_KEEP_TRANSLATIONS,
                                   &error))
     {
-      log_msg (LOG_ERR, "Cannot load '"CONFIG_FILE"': %s", error->message);
+      log_msg (LOG_ERR, "Cannot load '"RM_CONFIG_FILE"': %s", error->message);
     }
   else
     {
@@ -150,4 +150,3 @@ load_config (RM_CTX *ctx)
     log_msg (LOG_ERR, "ERROR: cannot parse window-duration '%s'",
              str_duration);
 }
-
