@@ -313,22 +313,22 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	log_msg (LOG_DEBUG, "set-maintenancewindow called");
 
       if (dbus_message_get_args (message, NULL, DBUS_TYPE_STRING, &str_start,
-				 DBUS_TYPE_STRING, &str_duration,
-				 DBUS_TYPE_INVALID))
-	{
+                                 DBUS_TYPE_STRING, &str_duration,
+                                 DBUS_TYPE_INVALID))
+      {
 
-	}
-      if ((calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
-	{
-	  return reply;
-	}
+        if ((calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
+        {
+          return reply;
+        }
 
-      if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
-	{
-	  return reply;
-	}
-      save_config(ctx);
-    }
+        if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
+        {
+          return reply;
+        }
+        save_config(ctx);
+      }
+  }
   return reply;
 }
 
