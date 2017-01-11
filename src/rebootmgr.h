@@ -62,6 +62,7 @@ typedef struct {
     guint reboot_timer_id;
     CalendarSpec *maint_window_start;
     time_t maint_window_duration;
+    char *lock_group;
 } RM_CTX;
 
 #endif /* _REBOOTMGR_H_ */

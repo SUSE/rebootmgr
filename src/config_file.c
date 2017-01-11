@@ -103,6 +103,7 @@ save_config (RM_CTX *ctx)
   p = duration_to_string(ctx->maint_window_duration);
   g_key_file_set_string(key_file, RM_GROUP, "window-duration", p);
   free(p);
+  g_key_file_set_string (key_file, RM_GROUP, "lock-group", ctx->lock_group);
 
   error = NULL;
   if (!g_key_file_save_to_file(key_file, RM_CONFIG_FILE, &error))
@@ -118,7 +119,7 @@ load_config (RM_CTX *ctx)
 {
   GKeyFile *key_file;
   GError *error;
-  gchar *str_start = NULL, *str_duration = NULL, *str_strategy = NULL;
+  gchar *str_start = NULL, *str_duration = NULL, *str_strategy = NULL, *lock_group = NULL;
   int ret;
 
   key_file = g_key_file_new ();
@@ -136,17 +137,24 @@ load_config (RM_CTX *ctx)
       str_start = g_key_file_get_string (key_file, RM_GROUP, "window-start", NULL);
       str_duration = g_key_file_get_string (key_file, RM_GROUP,
                                             "window-duration", NULL);
-      str_strategy = g_key_file_get_string(key_file, RM_GROUP, "strategy", NULL);
+      str_strategy = g_key_file_get_string (key_file, RM_GROUP, "strategy", NULL);
+      lock_group = g_key_file_get_string (key_file, RM_GROUP, "lock-group", NULL);
+
+      if (str_start == NULL)
+	str_start = "03:30";
+      if (str_duration == NULL)
+	str_duration = "1h";
+      ctx->reboot_strategy = string_to_strategy(str_strategy, NULL);
+      if ((ret = calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
+	log_msg (LOG_ERR, "ERROR: cannot parse window-start (%s): %s",
+		 str_start, strerror (-ret));
+      if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
+	log_msg (LOG_ERR, "ERROR: cannot parse window-duration '%s'",
+		 str_duration);
+      if (lock_group == NULL)
+	ctx->lock_group = strdup ("default");
+      else
+	ctx->lock_group = strdup (lock_group);
+      g_key_file_free (key_file);
     }
-  if (str_start == NULL)
-    str_start = "03:30";
-  if (str_duration == NULL)
-    str_duration = "1h";
-  ctx->reboot_strategy = string_to_strategy(str_strategy, NULL);
-  if ((ret = calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
-    log_msg (LOG_ERR, "ERROR: cannot parse window-start (%s): %s",
-             str_start, strerror (-ret));
-  if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
-    log_msg (LOG_ERR, "ERROR: cannot parse window-duration '%s'",
-             str_duration);
 }

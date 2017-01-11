@@ -46,7 +46,8 @@ create_context (RM_CTX **ctx)
   if ((*ctx = calloc(1, sizeof(RM_CTX))) == NULL)
     return 0;
 
-  **ctx = (RM_CTX) { RM_REBOOTSTRATEGY_BEST_EFFORT, 0,  0, NULL, 3600 };
+  **ctx = (RM_CTX) { RM_REBOOTSTRATEGY_BEST_EFFORT, 0,  0, NULL, 3600, NULL };
+  (*ctx)->lock_group = strdup ("default");
 
   return 1;
 }
@@ -60,6 +61,10 @@ destroy_context (RM_CTX *ctx)
       return 0;
     }
 
+  if (ctx->maint_window_start != NULL)
+    calendar_spec_free (ctx->maint_window_start);
+  if (ctx->lock_group != NULL)
+    free (ctx->lock_group);
   free (ctx);
   return 1;
 }
@@ -113,7 +118,7 @@ reboot_timer (gpointer user_data)
 	etcd_is_running()) ||
        ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK))
     {
-      if (etcd_get_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+      if (etcd_get_lock (ctx->lock_group) != 0)
 	{
 	  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
 	  ctx->reboot_running = 0;
@@ -189,7 +194,7 @@ do_reboot (RM_CTX *ctx, RM_RebootOrder order)
 	  if (ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK ||
 	      etcd_is_running())
 	    {
-	      if (etcd_get_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+	      if (etcd_get_lock (ctx->lock_group) != 0)
 		{
 		  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
 		  ctx->reboot_running = 0;
@@ -647,9 +652,9 @@ main (int argc, char **argv)
   load_config (ctx);
 
   if (etcd_is_running () &&
-      etcd_own_lock (ETCD_LOCKS_DEFAULT_GROUP))
+      etcd_own_lock (ctx->lock_group))
     {
-      if (etcd_release_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+      if (etcd_release_lock (ctx->lock_group) != 0)
 	log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
     }
 
