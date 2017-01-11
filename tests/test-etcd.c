@@ -21,6 +21,8 @@
 
 #include "lock-etcd.h"
 
+#define ETCD_LOCKS_DEFAULT_GROUP "rebootmgr-testsuite"
+
 int
 main (int argc, char *argv[])
 {
