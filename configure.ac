@@ -50,6 +50,10 @@ PKG_CHECK_MODULES([JSON], [json-c])
 AC_SUBST(JSON_CFLAGS)
 AC_SUBST(JSON_LIBS)
 
+AC_CHECK_LIB([cetcd],[cetcd_client_init],[], [
+  AC_MSG_ERROR([unable to find the cetcd library])
+])
+
 dnl
 dnl Check for xsltproc
 dnl

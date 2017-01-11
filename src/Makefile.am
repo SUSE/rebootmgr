@@ -19,6 +19,7 @@ sbin_PROGRAMS = rebootmgrd rebootmgrctl
 
 rebootmgrd_SOURCES = rebootmgrd.c log_msg.c config_file.c util.c \
 		lock-json.c lock-etcd.c
-rebootmgrd_LDADD = -L../lib -lcalendarspec @DBUS_LIBS@ @GLIB_LIBS@ @JSON_LIBS@ -lcetcd
+rebootmgrd_LDADD = -L../lib -lcalendarspec ${DBUS_LIBS} ${GLIB_LIBS} ${JSON_LIBS} ${LIBS}
 rebootmgrctl_SOURCES = rebootmgrctl.c util.c
-rebootmgrctl_LDADD = -L../lib -lcalendarspec @DBUS_LIBS@ @GLIB_LIBS@
+rebootmgrctl_LDADD = -L../lib -lcalendarspec ${DBUS_LIBS}
+
