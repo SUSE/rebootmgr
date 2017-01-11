@@ -27,8 +27,6 @@
 #include "rebootmgr.h"
 #include "util.h"
 
-int debug_flag=1;
-
 static void
 usage (int exit_code)
 {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 Thorsten Kukuk
+/* Copyright (c) 2016, 2017 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -43,7 +43,7 @@ int debug_flag = 0;
 int logfile_flag = 0;
 
 static FILE *logfp = NULL;
-static const char *logfilename = "/var/log/ypbind-mt.log";
+static const char *logfilename = "/var/log/rebootmgr.log";
 
 void
 close_logfile (void)
@@ -108,5 +108,4 @@ log_msg (int type, const char *fmt,...)
 
   if (type != LOG_DEBUG)
     syslog (type, "%s", string);
-
 }

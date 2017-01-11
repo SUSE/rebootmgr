@@ -22,6 +22,7 @@
 #include <string.h>
 #include <json-c/json.h>
 
+#include "log_msg.h"
 #include "lock-json.h"
 
 /* returns number of allowed locks or -1 in error case */
@@ -33,7 +34,7 @@ get_max_locks (json_object *jobj)
 
   if (json_object_object_get_ex (jobj, "max", &maxobj) != TRUE)
     {
-      fprintf (stderr, "Key \"max\" not found\n");
+      log_msg (LOG_ERR, "json: key \"max\" not found");
       return -1;
     }
 
@@ -41,7 +42,7 @@ get_max_locks (json_object *jobj)
   max_locks = json_object_get_int64 (maxobj);
   if (errno != 0)
     {
-      fprintf (stderr, "Couldn't get max locks value: %m\n");
+      log_msg (LOG_ERR, "json: couldn't get max locks value: %m");
       return -1;
     }
   return max_locks;
@@ -55,7 +56,7 @@ get_curr_locks (json_object *jobj)
 
   if (json_object_object_get_ex (jobj, "holders", &jarray) != TRUE)
     {
-      fprintf (stderr, "Key \"holders\" not found\n");
+      log_msg (LOG_ERR, "json: key \"holders\" not found");
       return -1;
     }
 
@@ -70,7 +71,7 @@ add_id_to_holders (json_object *jobj, const char *id)
 
   if (json_object_object_get_ex (jobj, "holders", &jarray) != TRUE)
     {
-      fprintf (stderr, "Key \"holders\" not found\n");
+      log_msg (LOG_ERR, "json: Key \"holders\" not found");
       return FALSE;
     }
 
@@ -89,7 +90,7 @@ remove_id_from_holders (json_object *jobj, const char *id)
 
   if (json_object_object_get_ex (jobj, "holders", &jarray) != TRUE)
     {
-      fprintf (stderr, "Key \"holders\" not found\n");
+      log_msg (LOG_ERR, "json: key \"holders\" not found");
       return FALSE;
     }
 
@@ -123,7 +124,7 @@ is_id_in_holders (json_object *jobj, const char *id)
 
   if (json_object_object_get_ex (jobj, "holders", &jarray) != TRUE)
     {
-      fprintf (stderr, "Key \"holders\" not found\n");
+      log_msg (LOG_ERR, "json: key \"holders\" not found");
       return FALSE;
     }
 

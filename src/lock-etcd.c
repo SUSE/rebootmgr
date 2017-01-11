@@ -23,50 +23,33 @@
 #include <cetcd.h>
 #include <json-c/json.h>
 
+#include "log_msg.h"
 #include "lock-etcd.h"
 #include "lock-json.h"
 
 #define INIT_LOCK_DATA "{\n    \"max\": 1,\n    \"holders\": []\n}"
 
-static int debug_flag = 1;
-
-static void
-debug (const char *fmt,...)
-{
-  char string[400];
-  va_list ap;
-
-  if (!debug_flag)
-    return;
-
-  va_start (ap, fmt);
-  vsnprintf (string, sizeof (string), fmt, ap);
-  va_end (ap);
-
-  fprintf (stderr, "%s\n", string);
-}
-
 static const char *
-get_machine_id (void)
-{
-  static const char *machine_id = NULL;
+ get_machine_id (void)
+ {
+   static const char *machine_id = NULL;
 
-  if (machine_id == NULL)
-    {
-      char *buffer = NULL;
-      FILE *fp = fopen ("/etc/machine-id", "rb");
+   if (machine_id == NULL)
+     {
+       char *buffer = NULL;
+       FILE *fp = fopen ("/etc/machine-id", "rb");
 
-      if (fp)
-	{
-	  /*read text until newline */
-	  fscanf (fp,"%m[^\n]", &buffer);
-	  fclose (fp);
-	  machine_id = buffer;
-	}
-    }
+       if (fp)
+	 {
+	   /*read text until newline */
+	   fscanf (fp,"%m[^\n]", &buffer);
+	   fclose (fp);
+	   machine_id = buffer;
+	 }
+     }
 
-  return machine_id;
-}
+   return machine_id;
+ }
 
 /* return value: 0 success, 1 error */
 static int
@@ -76,7 +59,9 @@ watch_key (cetcd_client *cli, const char *group, const char *name, uint64_t inde
   char *key = NULL;
   int retval = 0;
 
-  debug ("watch key '%s' of group '%s' (index %lu)", name, group, index);
+  if (debug_flag)
+    log_msg (LOG_DEBUG, "watch key '%s' of group '%s' (index %lu)",
+	     name, group, index);
 
   if (asprintf (&key, "%s/%s/%s", ETCD_LOCKS, group, name) == -1)
     return 1;
@@ -84,7 +69,7 @@ watch_key (cetcd_client *cli, const char *group, const char *name, uint64_t inde
   resp = cetcd_watch (cli, key, index);
   if (resp->err)
     {
-      fprintf (stderr, "error: %d, %s (%s)\n", resp->err->ecode,
+      log_msg (LOG_ERR, "ERROR: %d, %s (%s)", resp->err->ecode,
 	       resp->err->message, resp->err->cause);
       retval = 1;
     }
@@ -105,7 +90,7 @@ get_value (cetcd_client *cli, const char *group, const char *name)
     return NULL;
   resp = cetcd_get (cli, key);
   if (resp->err)
-    fprintf (stderr, "Error getting value (%s):%d, %s (%s)\n", key,
+    log_msg (LOG_ERR, "Error getting value (%s):%d, %s (%s)", key,
 	     resp->err->ecode, resp->err->message, resp->err->cause);
   else
     retval = strdup (resp->node->value);
@@ -127,7 +112,7 @@ set_lock_key (cetcd_client *cli, const char *group,
     return 1;
   resp = cetcd_set (cli, key, value, 0);
   if (resp->err)
-    fprintf (stderr, "Error creating key (%s):%d, %s (%s)\n", key,
+    log_msg (LOG_ERR, "Error creating key (%s):%d, %s (%s)", key,
 	     resp->err->ecode, resp->err->message, resp->err->cause);
   cetcd_response_release (resp);
   free (key);
@@ -138,7 +123,8 @@ set_lock_key (cetcd_client *cli, const char *group,
 static int
 create_lock_dir (cetcd_client *cli, const char *group)
 {
-  debug ("create_lock_dir for group '%s' called", group);
+  if (debug_flag)
+    log_msg (LOG_DEBUG, "create_lock_dir for group '%s' called", group);
 
   if (set_lock_key (cli, group, "mutex", "0") != 0)
     return 1;
@@ -155,7 +141,8 @@ get_mutex (cetcd_client *cli, const char *group)
   char *path = NULL;
   uint64_t index = 0;
 
-  debug ("get_mutex for group '%s' called", group);
+  if (debug_flag)
+    log_msg (LOG_DEBUG, "get_mutex for group '%s' called", group);
 
   if (asprintf (&path, "%s/%s/mutex", ETCD_LOCKS, group) == -1)
     return 1;
@@ -164,10 +151,11 @@ get_mutex (cetcd_client *cli, const char *group)
   index = resp->etcd_index+1;
   if (resp->err)
     {
-      debug ("cmp_and_swap failed: %d, %s (%s)", resp->err->ecode,
-	     resp->err->message, resp->err->cause);
+      if (debug_flag)
+	log_msg (LOG_DEBUG, "cmp_and_swap failed: %d, %s (%s)",
+		 resp->err->ecode, resp->err->message, resp->err->cause);
       if (resp->err->ecode != 101)
-	fprintf (stderr, "error: %d, %s (%s)\n", resp->err->ecode,
+        log_msg (LOG_ERR, "ERROR: %d, %s (%s)", resp->err->ecode,
 		 resp->err->message, resp->err->cause);
       cetcd_response_release (resp);
 
@@ -185,12 +173,13 @@ get_mutex (cetcd_client *cli, const char *group)
       val = get_value (cli, group, "mutex");
       if (strcmp (val, "1") != 0)
 	{
-	  fprintf (stderr, "cetcd_cmp_and_swap succeeded, but no lock set?\n");
+	  log_msg (LOG_ERR,
+		   "ERROR: cetcd_cmp_and_swap succeeded, but no lock set?");
 	  return 1;
 	}
 
-      debug ("got mutex for group '%s'", group);
-
+      if (debug_flag)
+	log_msg (LOG_DEBUG, "got mutex for group '%s'", group);
     }
   return 0;
 }
@@ -233,7 +222,7 @@ get_lock (const char *group)
 	create_lock_dir (&cli, group);
       else
 	{
-	  fprintf (stderr, "error: %d, %s (%s)\n", resp->err->ecode,
+	  log_msg (LOG_ERR, "ERROR: %d, %s (%s)", resp->err->ecode,
 		   resp->err->message, resp->err->cause);
 	  return 1;
 	}
@@ -263,10 +252,13 @@ get_lock (const char *group)
 	{
 	  if (get_mutex (&cli, group) != 0)
 	    {
-	      /* either we got a lock but etcd data was not changed (what should never
-		 happen), or the mutex was hold by somebody else and the watch reported
-		 that this changed, so try again. */
-	      debug ("get_lock: get_mutex for group '%s' failed, trying again.", group);
+	      /* either we got a lock but etcd data was not changed (what should
+		 never happen), or the mutex was hold by somebody else and the
+		 watch reported that this changed, so try again. */
+	      if (debug_flag)
+		log_msg (LOG_DEBUG,
+			 "get_lock: get_mutex for group '%s' failed, trying again.",
+			 group);
 	      continue;
 	    }
 
@@ -297,7 +289,8 @@ get_lock (const char *group)
 	}
       else
 	{
-	  debug ("max locks reached for group '%s'", group);
+	  if (debug_flag)
+	    log_msg (LOG_DEBUG, "max locks reached for group '%s'", group);
 	  if (watch_key (&cli, group, "count", 0 /* XXX */) != 0)
 	    goto cleanup;
 	}
@@ -339,10 +332,13 @@ release_lock (const char *group)
 
       if (get_mutex (&cli, group) != 0)
 	{
-	  /* either we got a lock but etcd data was not changed (what should never
-	     happen), or the mutex was hold by somebody else and the watch reported
-	     that this changed, so try again. */
-	  debug ("release_lock: get_mutex for group '%s' failed, trying again.", group);
+	  /* either we got a lock but etcd data was not changed (what should
+	     never happen), or the mutex was hold by somebody else and the
+	     watch reported that this changed, so try again. */
+	  if (debug_flag)
+	    log_msg (LOG_DEBUG,
+		     "release_lock: get_mutex for group '%s' failed, trying again.",
+		     group);
 	  continue;
 	}
 
@@ -405,10 +401,8 @@ own_lock (const char *group)
       if (resp->err->ecode == 100)
 	create_lock_dir (&cli, group);
       else
-	{
-	  fprintf (stderr, "error: %d, %s (%s)\n", resp->err->ecode,
-		   resp->err->message, resp->err->cause);
-	}
+	log_msg (LOG_ERR, "ERROR: %d, %s (%s)", resp->err->ecode,
+		 resp->err->message, resp->err->cause);
     }
   else
     {
