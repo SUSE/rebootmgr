@@ -43,9 +43,8 @@
 static int
 create_context (RM_CTX **ctx)
 {
-  if ((*ctx = calloc(1, sizeof(RM_CTX))) == NULL) {
+  if ((*ctx = calloc(1, sizeof(RM_CTX))) == NULL)
     return 0;
-  }
 
   **ctx = (RM_CTX) { RM_REBOOTSTRATEGY_BEST_EFFORT, 0,  0, NULL, 3600 };
 
@@ -55,12 +54,13 @@ create_context (RM_CTX **ctx)
 static int
 destroy_context (RM_CTX *ctx)
 {
-  if (ctx == NULL) {
-    errno = EBADF;
-    return 0;
-  }
+  if (ctx == NULL)
+    {
+      errno = EBADF;
+      return 0;
+    }
 
-  free(ctx);
+  free (ctx);
   return 1;
 }
 
@@ -109,11 +109,16 @@ reboot_timer (gpointer user_data)
 {
   RM_CTX *ctx = user_data;
 
-  if ((ctx->reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT ||
-       ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK) &&
-      etcd_is_running())
+  if (((ctx->reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT &&
+	etcd_is_running()) ||
+       ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK))
     {
-      /* get etcd lock */;
+      if (etcd_get_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+	{
+	  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
+	  ctx->reboot_running = 0;
+	  return FALSE;
+	}
     }
   reboot_now (ctx);
   return FALSE;
@@ -160,7 +165,8 @@ initialize_timer (RM_CTX *ctx)
 	       "Reboot in %i seconds at %s", in_secs,
 	       format_timestamp(buf, sizeof(buf), next));
     }
-  ctx->reboot_timer_id = g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, ctx);
+  ctx->reboot_timer_id =
+    g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, ctx);
 }
 
 static void
@@ -174,13 +180,24 @@ do_reboot (RM_CTX *ctx, RM_RebootOrder order)
   switch (ctx->reboot_strategy)
     {
     case RM_REBOOTSTRATEGY_BEST_EFFORT:
+    case RM_REBOOTSTRATEGY_ETCD_LOCK:
       if (ctx->maint_window_start != NULL &&
 	  order != RM_REBOOTORDER_FAST)
 	initialize_timer(ctx);
-      else if (etcd_is_running())
-	{ /* XXX reboot with locks */ }
       else
-	reboot_now (ctx);
+	{
+	  if (ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK ||
+	      etcd_is_running())
+	    {
+	      if (etcd_get_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+		{
+		  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
+		  ctx->reboot_running = 0;
+		  return;
+		}
+	    }
+	  reboot_now (ctx);
+	}
       break;
     case RM_REBOOTSTRATEGY_INSTANTLY:
       reboot_now (ctx);
@@ -191,18 +208,14 @@ do_reboot (RM_CTX *ctx, RM_RebootOrder order)
 	reboot_now(ctx);
       initialize_timer(ctx);
       break;
-    case RM_REBOOTSTRATEGY_ETCD_LOCK:
-      if (order == RM_REBOOTORDER_FAST)
-	{ /* ignore maintenance window */ };
-      /* XXX */
-      break;
     case RM_REBOOTSTRATEGY_OFF:
       ctx->reboot_running = 0;
       /* Do nothing */
       break;
     default:
       ctx->reboot_running = 0;
-      log_msg (LOG_ERR, "ERROR: unknown reboot strategy %i", ctx->reboot_strategy);
+      log_msg (LOG_ERR, "ERROR: unknown reboot strategy %i",
+	       ctx->reboot_strategy);
       break;
     }
 }
@@ -279,8 +292,8 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	log_msg (LOG_DEBUG, "get-strategy called");
 
       /* create a reply from the message */
-      dbus_message_append_args (reply, DBUS_TYPE_UINT32, &ctx->reboot_strategy,
-				DBUS_TYPE_INVALID);
+      dbus_message_append_args (reply, DBUS_TYPE_UINT32,
+				&ctx->reboot_strategy, DBUS_TYPE_INVALID);
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_STATUS))
@@ -294,7 +307,8 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
       char *str_start = spec_to_string(ctx->maint_window_start);
       char *str_duration = duration_to_string(ctx->maint_window_duration);
 
-      log_msg(LOG_DEBUG, "str_start: '%s' str_duration: '%s'", str_start, str_duration);
+      log_msg (LOG_DEBUG, "str_start: '%s' str_duration: '%s'",
+	       str_start, str_duration);
       /* create a reply from the message */
       dbus_message_append_args (reply, DBUS_TYPE_STRING, &str_start,
 				DBUS_TYPE_STRING, &str_duration,
@@ -315,20 +329,17 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
       if (dbus_message_get_args (message, NULL, DBUS_TYPE_STRING, &str_start,
                                  DBUS_TYPE_STRING, &str_duration,
                                  DBUS_TYPE_INVALID))
-      {
+	{
 
-        if ((calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
-        {
-          return reply;
-        }
+	  if ((calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
+	    return reply;
 
-        if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
-        {
-          return reply;
-        }
-        save_config(ctx);
-      }
-  }
+	  if ((ctx->maint_window_duration = parse_duration (str_duration)) ==
+	      BAD_TIME)
+	    return reply;
+	  save_config(ctx);
+	}
+    }
   return reply;
 }
 
@@ -336,11 +347,14 @@ static DBusMessage *
 handle_introspect_request (DBusMessage *msg)
 {
   DBusMessage *reply = dbus_message_new_method_return(msg);
-  char * content = get_file_content(INTROSPECTIONDIR "/" RM_DBUS_INTERFACE ".xml");
-  if (!content) {
+  char *content =
+    get_file_content(INTROSPECTIONDIR "/" RM_DBUS_INTERFACE ".xml");
+
+  if (!content)
     content = get_file_content("../dbus/" RM_DBUS_INTERFACE ".xml");
-  }
-  dbus_message_append_args(reply, DBUS_TYPE_STRING, &content, DBUS_TYPE_INVALID);
+
+  dbus_message_append_args(reply, DBUS_TYPE_STRING, &content,
+			   DBUS_TYPE_INVALID);
   free(content);
   return reply;
 }
@@ -364,7 +378,8 @@ handle_properties_iface (DBusMessage *msg)
 
 /* vtable implementation: handles messages and calls respective C functions */
 static DBusHandlerResult
-handle_message (DBusConnection *connection, DBusMessage * message, void *user)
+handle_message (DBusConnection *connection, DBusMessage *message,
+		void *user)
 {
   RM_CTX *ctx = user;
   DBusMessage *reply = 0;
@@ -411,45 +426,36 @@ dbus_reconnect (gpointer user_data)
   status = dbus_init (ctx);
   if (debug_flag)
     log_msg (LOG_DEBUG, "Reconnect %s",
-        status ? "successful" : "failed");
+	     status ? "successful" : "failed");
   return !status;
 }
 
 static DBusHandlerResult
 dbus_filter (DBusConnection *connection, DBusMessage *message,
-         void *RM_UNUSED(user_data))
+	     void *RM_UNUSED(user_data))
 {
   DBusHandlerResult handled = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
   if (dbus_message_is_signal (message, DBUS_INTERFACE_LOCAL,
-        "Disconnected"))
-  {
-    /* D-Bus system bus went away */
-    log_msg (LOG_INFO, "Lost connection to D-Bus\n");
-    dbus_connection_unref (connection);
-    connection = NULL;
-    /* g_timeout_add (1000, dbus_reconnect, NULL); */
-    g_timeout_add_seconds (1, dbus_reconnect, NULL);
-    handled = DBUS_HANDLER_RESULT_HANDLED;
-  }
-#if 0
-  else if (debug_flag)
+			      "Disconnected"))
     {
-      log_msg (LOG_DEBUG, "interface: %s, object path: %s, method: %s",
-         dbus_message_get_interface(message),
-         dbus_message_get_path (message),
-         dbus_message_get_member (message));
+      /* D-Bus system bus went away */
+      log_msg (LOG_INFO, "Lost connection to D-Bus\n");
+      dbus_connection_unref (connection);
+      connection = NULL;
+      /* g_timeout_add (1000, dbus_reconnect, NULL); */
+      g_timeout_add_seconds (1, dbus_reconnect, NULL);
+      handled = DBUS_HANDLER_RESULT_HANDLED;
     }
-#endif
 
   return handled;
 }
 
 /*
   init dbus
-   return value:
-   1: success
-   0: error
+  return value:
+  1: success
+  0: error
 */
 static int
 dbus_init (RM_CTX *ctx)
@@ -533,12 +539,12 @@ dbus_init (RM_CTX *ctx)
     }
 
   dbus_bus_add_match (connection,
-    "type='signal',interface='"RM_DBUS_INTERFACE"'",
+		      "type='signal',interface='"RM_DBUS_INTERFACE"'",
 #if 0
-    "sender='"RM_DBUS_SERVICE"',"
-    "path='"RM_DBUS_PATH"'",
+		      "sender='"RM_DBUS_SERVICE"',"
+		      "path='"RM_DBUS_PATH"'",
 #endif
-    &error);
+		      &error);
 
   if (dbus_error_is_set (&error))
     {
@@ -559,9 +565,9 @@ dbus_init (RM_CTX *ctx)
   memset(&vtable, 0, sizeof(vtable));
   vtable.message_function = handle_message;
 
-  if (!dbus_connection_register_object_path(connection, RM_DBUS_PATH, &vtable, ctx)) {
+  if (!dbus_connection_register_object_path(connection, RM_DBUS_PATH,
+					    &vtable, ctx))
     log_msg(LOG_ERR, "Failed to register object path\n");
-  }
 
   dbus_connection_setup_with_g_main (connection, NULL);
 
@@ -632,23 +638,30 @@ main (int argc, char **argv)
       return 1;
     }
 
-  if (!create_context(&ctx)) {
-    log_msg(LOG_ERR, "Could not initialize context");
-    return -1;
-  }
+  if (!create_context (&ctx))
+    {
+      log_msg (LOG_ERR, "Could not initialize context");
+      return -1;
+    }
 
   load_config (ctx);
 
+  if (etcd_is_running () &&
+      etcd_own_lock (ETCD_LOCKS_DEFAULT_GROUP))
+    {
+      if (etcd_release_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+	log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
+    }
+
   loop = g_main_loop_new (NULL, FALSE);
 
-  if (dbus_init(ctx) != 1)
+  if (dbus_init (ctx) != 1)
     return 1;
 
   g_main_loop_run (loop);
 
-  if (!destroy_context(ctx)) {
+  if (!destroy_context(ctx))
     log_msg(LOG_ERR, "Could not destroy context");
-  }
 
   return 0;
 }
