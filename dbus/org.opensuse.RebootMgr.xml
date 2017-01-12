@@ -44,6 +44,11 @@
     <!-- cancels a reboot -->
     <method name="Cancel"/>
 
+    <!-- get status about scheduled reboots -->
+    <method name="Status">
+      <arg name="status" type="u" direction="out"/>
+    </method>
+
     <!-- signal emitted as RebootMgrd initiates a reboot -->
     <signal name="AboutToReboot">
       <arg name="strategy" type="u" direction="out"/>
