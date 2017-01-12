@@ -4,7 +4,7 @@ Documentation=man:rebootmgrd(8) man:rebootmgrctl(1)
 
 [Service]
 Type=dbus
-BusName=org.opensuse.rebootmgr
+BusName=org.opensuse.RebootMgr
 ExecStart=/usr/sbin/rebootmgrd
 Restart=on-failure
 
