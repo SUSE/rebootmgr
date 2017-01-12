@@ -42,9 +42,10 @@ static const char *
        if (fp)
 	 {
 	   /*read text until newline */
-	   fscanf (fp,"%m[^\n]", &buffer);
+	   int n = fscanf (fp,"%m[^\n]", &buffer);
+	   if (n == 1)
+	     machine_id = buffer;
 	   fclose (fp);
-	   machine_id = buffer;
 	 }
      }
 

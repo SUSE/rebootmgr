@@ -45,7 +45,7 @@ AC_SUBST(SYSTEMDDIR)
 
 
 
-EXTRA_CFLAGS="-Werror -W -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -DXTSTRINGDEFINES -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef"
+EXTRA_CFLAGS="-Werror -W -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -DXTSTRINGDEFINES -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef -D_FORTIFY_SOURCE=2"
 AC_SUBST(EXTRA_CFLAGS)
 dnl Checks for programs.
 AC_GNU_SOURCE
