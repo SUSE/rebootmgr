@@ -8,11 +8,16 @@ CLEANFILES = $(MANS)
 
 EXTRA_DIST = $(MANS) $(XMLS)
 
-man_MANS = rebootmgrd.8 rebootmgr.service.8 org.opensuse.RebootMgr.conf.8
-XMLS = rebootmgrd.8.xml
+man_MANS = rebootmgrd.8 rebootmgr.service.8 org.opensuse.RebootMgr.conf.8 \
+	rebootmgrctl.1
+XMLS = rebootmgrd.8.xml rebootmgrctl.1.xml
 
 if ENABLE_REGENERATE_MAN
 rebootmgrd.8: rebootmgrd.8.xml
+	$(XMLLINT) --nonet --xinclude --postvalid --noout $<
+	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) --xinclude --nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
+
+rebootmgrctl.1: rebootmgrctl.1.xml
 	$(XMLLINT) --nonet --xinclude --postvalid --noout $<
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) --xinclude --nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
 endif

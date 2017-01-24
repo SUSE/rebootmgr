@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+
+<!--  \-*\- nroff \-*\- -->
+<!--  Copyright 2017 Thorsten Kukuk &lt;kukuk@suse.de&gt; -->
+
+<!--  This file is part of rebootmgr. -->
+
+<!--  rebootmgr is free software; you can redistribute it and/or -->
+<!--  modify it under the terms of the GNU General Public License as -->
+<!--  published by the Free Software Foundation in version 2 of the -->
+<!--  License. -->
+
+<!--  rebootmgr is distributed in the hope that it will be useful, -->
+<!--  but WITHOUT ANY WARRANTY; without even the implied warranty of -->
+<!--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU -->
+<!--  General Public License for more details. -->
+
+<!--  You should have received a copy of the GNU General Public -->
+<!--  License along with issue\-generator; see the file COPYING.  If not, -->
+<!--  write to the Free Software Foundation, Inc., 51 Franklin Street \- Suite 500, -->
+<!--  Boston, MA 02111\-1307, USA. -->
+
+<refentry id='rebootmgrctl1'>
+
+  <refmeta>
+    <refentrytitle>rebootmgrctl</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo class='setdesc'>rebootmgr</refmiscinfo>
+  </refmeta>
+
+  <refnamediv id='name'>
+    <refname>rebootmgrctl</refname>
+    <refpurpose>Tool to control and configure the reboot manager daemon.</refpurpose>
+  </refnamediv>
+
+<!-- body begins here -->
+  <refsynopsisdiv id='synopsis'>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <group choice='opt'>
+      <arg choice='plain'>--help</arg>
+      <arg choice='plain'>--version</arg>
+      </group>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>is-active</arg>
+      <arg choice='opt'>--quiet</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>reboot</arg>
+      <group choice='opt'>
+	<arg choice='plain'>fast</arg>
+	<arg choice='plain'>now</arg>
+      </group>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>cancel</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>status</arg>
+      <arg choice='opt'>--quiet</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+	<arg choice='plain'>set-strategy</arg>
+      <group choice='plain'>
+	<arg choice='plain'>best-effort</arg>
+	<arg choice='plain'>etcd-lock</arg>
+	<arg choice='plain'>maint-window</arg>
+	<arg choice='plain'>instantly</arg>
+	<arg choice='plain'>off</arg>
+      </group>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>get-strategy</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>set-strategy</arg>
+      <arg choice='plain'>&lt;time&gt;</arg>
+      <arg choice='plain'>&lt;duration&gt;</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>get-window</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1 id='description'><title>DESCRIPTION</title>
+  <para><emphasis remap='B'>rebootmgrctl</emphasis> is used to
+  query and configure the     <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry> process.</para>
+  </refsect1>
+
+  <refsect1 id='options'><title>OPTIONS</title>
+  <variablelist remap='TP'>
+    <varlistentry>
+      <term><option>--help</option></term>
+      <listitem>
+	<para>display help text and exit</para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term><option>--version</option></term>
+      <listitem>
+	<para>output version information and exit</para>
+      </listitem>
+    </varlistentry>
+  </variablelist>
+  </refsect1>
+
+  <refsect1 id='see_also'><title>SEE ALSO</title>
+  <para>
+    <citerefentry><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>
+  </para>
+  </refsect1>
+
+  <refsect1 id='author'>
+    <title>AUTHOR</title>
+    <para>
+      rebootmgr was written by Thorsten Kukuk &lt;kukuk@suse.com&gt;.
+    </para>
+  </refsect1>
+</refentry>

@@ -34,6 +34,7 @@ po/remove-potcdate.sed
 man/org.opensuse.RebootMgr.conf.8
 man/rebootmgr.service.8
 man/rebootmgrd.8
+man/rebootmgrctl.1
 src/rebootmgrctl
 src/rebootmgrd
 tests/test-calendarspec
