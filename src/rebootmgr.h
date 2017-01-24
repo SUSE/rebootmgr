@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 Thorsten Kukuk
+/* Copyright (c) 2016, 2017 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -48,7 +48,7 @@ typedef enum RM_RebootOrder {
 
 typedef enum RM_RebootStrategy {
   RM_REBOOTSTRATEGY_UNKNOWN = 0,
-  RM_REBOOTSTRATEGY_BEST_EFFORT, /* etcd-lock if available, else 
+  RM_REBOOTSTRATEGY_BEST_EFFORT, /* etcd-lock if available, else
 			            maintenance window, else instantly */
   RM_REBOOTSTRATEGY_INSTANTLY,	 /* reboot instantly */
   RM_REBOOTSTRATEGY_MAINT_WINDOW,/* reboot only during maintenance window */
@@ -56,14 +56,21 @@ typedef enum RM_RebootStrategy {
   RM_REBOOTSTRATEGY_OFF          /* don't reboot */
 } RM_RebootStrategy;
 
+typedef enum RM_RebootStatus {
+  RM_REBOOTSTATUS_NOT_REQUESTED = 0,
+  RM_REBOOTSTATUS_REQUESTED,
+  RM_REBOOTSTATUS_WAITING_WINDOW,
+  RM_REBOOTSTATUS_WAITING_ETCD
+} RM_RebootStatus;
+
 typedef struct {
-    RM_RebootStrategy reboot_strategy;
-    int reboot_running;
-    int reboot_order;
-    guint reboot_timer_id;
-    CalendarSpec *maint_window_start;
-    time_t maint_window_duration;
-    char *lock_group;
+  RM_RebootStrategy reboot_strategy;
+  RM_RebootStatus reboot_status;
+  int reboot_order;
+  guint reboot_timer_id;
+  CalendarSpec *maint_window_start;
+  time_t maint_window_duration;
+  char *lock_group;
 } RM_CTX;
 
 #endif /* _REBOOTMGR_H_ */

@@ -35,7 +35,7 @@ usage (int exit_code)
   printf (_("\trebootmgrctl is-active [--quiet]\n"));
   printf (_("\trebootmgrctl reboot [fast|now]\n"));
   printf (_("\trebootmgrctl cancel\n"));
-  printf (_("\trebootmgrctl status\n"));
+  printf (_("\trebootmgrctl status [--quiet]\n"));
   printf (_("\trebootmgrctl set-strategy best-effort|etcd-lock|maint-window|\n"));
   printf (_("\t                   instantly|off\n"));
   printf (_("\trebootmgrctl get-strategy\n"));
@@ -280,7 +280,7 @@ get_strategy (DBusConnection *connection)
 }
 
 static int
-print_status (DBusConnection *connection)
+get_status (DBusConnection *connection)
 {
   DBusError error;
   DBusMessage *message, *reply;
@@ -292,7 +292,7 @@ print_status (DBusConnection *connection)
   if (message == NULL)
     {
       fprintf (stderr, _("Out of memory!\n"));
-      return 1;
+      return -1;
     }
 
   dbus_error_init (&error);
@@ -310,19 +310,12 @@ print_status (DBusConnection *connection)
 
       dbus_message_unref (message);
 
-      return 1;
+      return -1;
     }
 
   /* read the parameters */
-  if (dbus_message_get_args (reply, &error, DBUS_TYPE_UINT32, &status,
+  if (!dbus_message_get_args (reply, &error, DBUS_TYPE_UINT32, &status,
 			     DBUS_TYPE_INVALID))
-    {
-      if (status)
-	printf (_("Reboot in progress\n"));
-      else
-	printf (_("No reboot requested\n"));
-    }
-  else
     {
       if (dbus_error_is_set (&error))
 	{
@@ -332,12 +325,16 @@ print_status (DBusConnection *connection)
 	}
       else
 	fprintf (stderr, _("Unknown error reading arguments\n"));
+
+      /* free reply and close connection */
+      dbus_message_unref (reply);
+      return -1;
   }
 
   /* free reply and close connection */
   dbus_message_unref (reply);
 
-  return 0;
+  return status;
 }
 
 int
@@ -454,7 +451,26 @@ main (int argc, char **argv)
   else if (strcasecmp ("cancel", argv[1]) == 0)
     retval = cancel_reboot (connection);
   else if (strcasecmp ("status", argv[1]) == 0)
-    retval = print_status (connection);
+    {
+      int status;
+      int quiet = 0;
+
+      if (argc > 2)
+	if (strcasecmp ("-q", argv[2]) == 0 ||
+	    strcasecmp ("--quiet", argv[2]) == 0)
+	  quiet = 1;
+
+      status = get_status (connection);
+      if (quiet)
+	retval = status;
+      else
+	{
+	  if (status >= 0)
+	    printf ("Status: %s (%d)\n", status_to_string (status, NULL), status);
+	  else
+	    retval = 1;
+	}
+    }
   else
     usage (1);
 

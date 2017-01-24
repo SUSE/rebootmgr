@@ -84,6 +84,30 @@ string_to_strategy(const char *str_strategy, int *error)
 }
 
 const char*
+status_to_string(RM_RebootStatus status, int *error)
+{
+  if (error)
+    *error=0;
+
+  switch(status)
+    {
+    case RM_REBOOTSTATUS_NOT_REQUESTED:
+      return "Reboot not requested";
+    case RM_REBOOTSTATUS_REQUESTED:
+      return "Reboot requested";
+    case RM_REBOOTSTATUS_WAITING_WINDOW:
+      return "Reboot requested, waiting for maintenance window";
+    case RM_REBOOTSTATUS_WAITING_ETCD:
+      return "Reboot requested, waiting for etcd lock";
+    default:
+      if (error)
+	*error=1;
+    }
+
+  return "Unknown";
+}
+
+const char*
 strategy_to_string(RM_RebootStrategy strategy, int *error)
 {
   if (error) {

@@ -93,7 +93,7 @@ print_error (void)
 static void
 reboot_now (RM_CTX *ctx)
 {
-  if (ctx->reboot_running == 1)
+  if (ctx->reboot_status > 0)
     {
       if (!debug_flag)
 	{
@@ -105,7 +105,7 @@ reboot_now (RM_CTX *ctx)
       else
 	log_msg (LOG_DEBUG, "systemctl reboot called!");
 
-      ctx->reboot_running = 0;
+      ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
     }
 }
 
@@ -122,7 +122,7 @@ reboot_timer (gpointer user_data)
       if (etcd_get_lock (ctx->lock_group) != 0)
 	{
 	  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
-	  ctx->reboot_running = 0;
+	  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
 	  return FALSE;
 	}
       reboot_now (ctx);
@@ -178,6 +178,8 @@ initialize_timer (RM_CTX *ctx)
 	       "Reboot in %i seconds at %s", in_secs,
 	       format_timestamp(buf, sizeof(buf), next));
     }
+
+  ctx->reboot_status = RM_REBOOTSTATUS_WAITING_WINDOW;
   ctx->reboot_timer_id =
     g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, ctx);
 }
@@ -187,7 +189,7 @@ do_reboot (gpointer user_data)
 {
   RM_CTX *ctx = user_data;
 
-  ctx->reboot_running = 1;
+  ctx->reboot_status = RM_REBOOTSTATUS_REQUESTED;
 
   if (ctx->reboot_order == RM_REBOOTORDER_FORCED)
     reboot_now (ctx);
@@ -204,10 +206,11 @@ do_reboot (gpointer user_data)
 	  if (ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK ||
 	      etcd_is_running())
 	    {
+	      ctx->reboot_status = RM_REBOOTSTATUS_WAITING_ETCD;
 	      if (etcd_get_lock (ctx->lock_group) != 0)
 		{
 		  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
-		  ctx->reboot_running = 0;
+		  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
 		  return NULL;
 		}
 	    }
@@ -224,11 +227,11 @@ do_reboot (gpointer user_data)
       initialize_timer(ctx);
       break;
     case RM_REBOOTSTRATEGY_OFF:
-      ctx->reboot_running = 0;
+      ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
       /* Do nothing */
       break;
     default:
-      ctx->reboot_running = 0;
+      ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
       log_msg (LOG_ERR, "ERROR: unknown reboot strategy %i",
 	       ctx->reboot_strategy);
       break;
@@ -276,7 +279,7 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	    }
 	  ctx->reboot_order = order;
 	}
-      if (ctx->reboot_running > 0)
+      if (ctx->reboot_status > 0)
 	log_msg (LOG_INFO, "Reboot already in progress, ignored");
       else
 	g_thread_new ("do reboot thread", do_reboot, ctx);
@@ -285,9 +288,9 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 					RM_DBUS_METHOD_CANCEL))
     {
       log_msg (LOG_INFO, "Reboot canceld");
-      if (ctx->reboot_running > 0 && ctx->reboot_timer_id > 0)
+      if (ctx->reboot_status > 0 && ctx->reboot_timer_id > 0)
 	g_source_remove (ctx->reboot_timer_id);
-      ctx->reboot_running = 0;
+      ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
       ctx->reboot_timer_id = 0;
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
@@ -328,7 +331,7 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 
       /* create a reply from the message */
       dbus_message_append_args (reply, DBUS_TYPE_UINT32,
-				&ctx->reboot_running, DBUS_TYPE_INVALID);
+				&ctx->reboot_status, DBUS_TYPE_INVALID);
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_GET_MAINTWINDOW))

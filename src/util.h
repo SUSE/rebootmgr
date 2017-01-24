@@ -19,9 +19,10 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-char* spec_to_string(CalendarSpec *spec);
-char* duration_to_string(time_t duration);
+char *spec_to_string(CalendarSpec *spec);
+char *duration_to_string(time_t duration);
 RM_RebootStrategy string_to_strategy(const char *str_strategy, int *error);
-const char* strategy_to_string(RM_RebootStrategy strategy, int *error);
+const char *strategy_to_string (RM_RebootStrategy strategy, int *error);
+const char *status_to_string (RM_RebootStatus status, int *error);
 
 #endif // UTIL_H
