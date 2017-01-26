@@ -26,6 +26,7 @@
 
 #include "rebootmgr.h"
 #include "util.h"
+#include "lock-etcd.h"
 
 static void
 usage (int exit_code)
@@ -214,6 +215,11 @@ get_window (DBusConnection *connection)
   return 0;
 }
 
+/*
+  return values:
+  -1 : error
+  RM_RebootStatus otherwise.
+ */
 static int
 get_strategy (DBusConnection *connection)
 {
@@ -228,7 +234,7 @@ get_strategy (DBusConnection *connection)
   if (message == NULL)
     {
       fprintf (stderr, _("Out of memory!\n"));
-      return 1;
+      return -1;
     }
 
   dbus_error_init (&error);
@@ -246,37 +252,32 @@ get_strategy (DBusConnection *connection)
 
     dbus_message_unref (message);
 
-    return 1;
+    return -1;
   }
 
   /* read the parameters */
-  if (dbus_message_get_args (reply, &error, DBUS_TYPE_UINT32,
-			     &strategy, DBUS_TYPE_INVALID))
+  if (!dbus_message_get_args (reply, &error, DBUS_TYPE_UINT32,
+			      &strategy, DBUS_TYPE_INVALID))
     {
-      int conv_error;
-      const char* str = strategy_to_string(strategy, &conv_error);
-      if (conv_error) {
-        printf (_("Invalid strategy, defaulting to: %s\n"), str);
-      } else {
-        printf (_("Reboot strategy: %s\n"), str);
-      }
+      if (dbus_error_is_set (&error))
+	{
+	  fprintf (stderr, _("Error reading arguments: %s\n"),
+		   error.message);
+	  dbus_error_free (&error);
+	}
+      else
+	fprintf (stderr, _("Unknown error reading arguments\n"));
+
+      /* free reply and close connection */
+      dbus_message_unref (reply);
+
+      return -1;
     }
-  else
-  {
-    if (dbus_error_is_set (&error))
-    {
-      fprintf (stderr, _("Error reading arguments: %s\n"),
-          error.message);
-      dbus_error_free (&error);
-    }
-    else
-      fprintf (stderr, _("Unknown error reading arguments\n"));
-  }
 
   /* free reply and close connection */
   dbus_message_unref (reply);
 
-  return 0;
+  return strategy;
 }
 
 static int
@@ -336,6 +337,20 @@ get_status (DBusConnection *connection)
 
   return status;
 }
+
+static void
+print_etcd_status (DBusConnection *connection)
+{
+  int strategy = get_strategy (connection);
+
+  if ((strategy == RM_REBOOTSTRATEGY_ETCD_LOCK ||
+       strategy == RM_REBOOTSTRATEGY_BEST_EFFORT) &&
+      etcd_is_running ())
+    {
+
+    }
+}
+
 
 int
 main (int argc, char **argv)
@@ -430,24 +445,43 @@ main (int argc, char **argv)
       retval = set_strategy (connection, strategy);
     }
   else if (strcasecmp ("get-strategy", argv[1]) == 0 ||
-           strcasecmp ("get_strategy", argv[1]) == 0) {
-      retval = get_strategy (connection);
-  }
-  else if (strcasecmp ("get-window", argv[1]) == 0 ||
-           strcasecmp ("get_window", argv[1]) == 0) {
-      retval = get_window (connection);
-  }
-  else if (strcasecmp ("set-window", argv[1]) == 0 ||
-           strcasecmp ("set_window", argv[1]) == 0) {
+           strcasecmp ("get_strategy", argv[1]) == 0)
+    {
+      int strategy;
 
-      if (argc > 3) {
-        const char* start = argv[2];
-        const char* duration = argv[3];
-        retval = set_window (connection, start, duration);
-      } else {
-        usage(1);
+      strategy = get_strategy (connection);
+      if (strategy < 0)
+	retval = 1;
+      else
+	{
+	  int conv_error;
+	  const char *str = strategy_to_string(strategy, &conv_error);
+	  if (conv_error)
+	    {
+	      printf (_("Invalid strategy, defaulting to: %s\n"), str);
+	      retval = 1;
+	    }
+	  else
+	    printf (_("Reboot strategy: %s\n"), str);
       }
-  }
+    }
+  else if (strcasecmp ("get-window", argv[1]) == 0 ||
+           strcasecmp ("get_window", argv[1]) == 0)
+      retval = get_window (connection);
+  else if (strcasecmp ("set-window", argv[1]) == 0 ||
+           strcasecmp ("set_window", argv[1]) == 0)
+    {
+      if (argc > 3)
+	{
+	  const char* start = argv[2];
+	  const char* duration = argv[3];
+	  retval = set_window (connection, start, duration);
+	}
+      else
+	{
+	  usage(1);
+	}
+    }
   else if (strcasecmp ("cancel", argv[1]) == 0)
     retval = cancel_reboot (connection);
   else if (strcasecmp ("status", argv[1]) == 0)
@@ -466,7 +500,10 @@ main (int argc, char **argv)
       else
 	{
 	  if (status >= 0)
-	    printf ("Status: %s (%d)\n", status_to_string (status, NULL), status);
+	    {
+	      printf ("Status: %s\n", status_to_string (status, NULL));
+	      print_etcd_status (connection);
+	    }
 	  else
 	    retval = 1;
 	}
