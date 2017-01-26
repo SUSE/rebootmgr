@@ -62,6 +62,8 @@ static void test_one(const char *input, const char *output) {
         calendar_spec_free(c);
 
         assert_se(streq(q, p));
+        free (p);
+        free (q);
 }
 
 static void test_next(const char *input, const char *new_tz, usec_t after, usec_t expect) {

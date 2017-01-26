@@ -149,6 +149,7 @@ get_mutex (cetcd_client *cli, const char *group)
     return 1;
 
   resp = cetcd_cmp_and_swap(cli, path, "1", "0", 0);
+  free (path);
   index = resp->etcd_index+1;
   if (resp->err)
     {
@@ -176,8 +177,10 @@ get_mutex (cetcd_client *cli, const char *group)
 	{
 	  log_msg (LOG_ERR,
 		   "ERROR: cetcd_cmp_and_swap succeeded, but no lock set?");
+	  free (val);
 	  return 1;
 	}
+      free (val);
 
       if (debug_flag)
 	log_msg (LOG_DEBUG, "got mutex for group '%s'", group);
@@ -217,6 +220,7 @@ etcd_get_lock (const char *group)
   if (asprintf (&path, "%s/%s/mutex", ETCD_LOCKS, group) == -1)
     return 1;
   resp = cetcd_get (&cli, path);
+  free (path);
   if (resp->err)
     {
       if (resp->err->ecode == 100)
@@ -243,6 +247,7 @@ etcd_get_lock (const char *group)
 	goto cleanup;
 
       jobj = json_tokener_parse (val);
+      free (val);
       if (jobj == NULL)
 	goto cleanup;
       max_locks = get_max_locks (jobj);
@@ -269,6 +274,7 @@ etcd_get_lock (const char *group)
 	    goto leave;
 
 	  jobj = json_tokener_parse (val);
+	  free (val);
 	  if (jobj == NULL)
 	    goto leave;
 	  max_locks = get_max_locks (jobj);
@@ -351,6 +357,7 @@ etcd_release_lock (const char *group)
 	}
 
       jobj = json_tokener_parse (val);
+      free (val);
       if (jobj == NULL)
 	{
 	  release_mutex (&cli, group);
@@ -361,6 +368,7 @@ etcd_release_lock (const char *group)
       set_lock_key (&cli, group, "data",
 		    json_object_to_json_string_ext (jobj,
 						    JSON_C_TO_STRING_PRETTY));
+      json_object_put (jobj);
       removed_lock = 1;
       retval = 0;
       release_mutex (&cli, group);
@@ -394,7 +402,7 @@ etcd_own_lock (const char *group)
 
   /* Check if the data structure for the locks exists, else create them */
   if (asprintf (&path, "%s/%s/data", ETCD_LOCKS, group) == -1)
-    return 1;
+    /*XXX */return 1;
   resp = cetcd_get (&cli, path);
   free (path);
   if (resp->err)
@@ -415,6 +423,8 @@ etcd_own_lock (const char *group)
     }
 
   cetcd_response_release (resp);
+  cetcd_array_destroy (&addrs);
+  cetcd_client_destroy (&cli);
 
   return have_lock;
 }
