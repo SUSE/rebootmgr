@@ -27,6 +27,8 @@
 #define RM_DBUS_METHOD_GET_STRATEGY	"GetStrategy"
 #define RM_DBUS_METHOD_SET_MAINTWINDOW "SetMaintenanceWindow"
 #define RM_DBUS_METHOD_GET_MAINTWINDOW "GetMaintenanceWindow"
+#define RM_DBUS_METHOD_SET_LOCKGROUP	"SetLockGroup"
+#define RM_DBUS_METHOD_GET_LOCKGROUP	"GetLockGroup"
 
 #ifndef _
 #define _(String) gettext (String)

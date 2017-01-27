@@ -19,8 +19,9 @@
 #define ETCD_LOCKS "/opensuse.org/rebootmgr/locks"
 
 int etcd_is_running (void);
-int etcd_get_lock (const char *group);
-int etcd_release_lock (const char *group);
+int etcd_get_lock (const char *group, const char *machine_id);
+int etcd_release_lock (const char *group, const char *machine_id);
 int etcd_own_lock (const char *group);
+char *etcd_get_data_value (const char *group);
 
 #endif /* _LOCK_ETCD_H_ */

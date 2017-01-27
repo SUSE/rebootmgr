@@ -1,3 +1,4 @@
+
 /* Copyright (c) 2016, 2017 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
@@ -119,7 +120,7 @@ reboot_timer (gpointer user_data)
 	etcd_is_running()) ||
        ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK))
     {
-      if (etcd_get_lock (ctx->lock_group) != 0)
+      if (etcd_get_lock (ctx->lock_group, NULL) != 0)
 	{
 	  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
 	  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
@@ -127,7 +128,7 @@ reboot_timer (gpointer user_data)
 	}
       reboot_now (ctx);
       /* if we end here, reboot was canceld */
-      if (etcd_release_lock (ctx->lock_group) != 0)
+      if (etcd_release_lock (ctx->lock_group, NULL) != 0)
 	{
 	  log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
 	}
@@ -207,7 +208,7 @@ do_reboot (gpointer user_data)
 	      etcd_is_running())
 	    {
 	      ctx->reboot_status = RM_REBOOTSTATUS_WAITING_ETCD;
-	      if (etcd_get_lock (ctx->lock_group) != 0)
+	      if (etcd_get_lock (ctx->lock_group, NULL) != 0)
 		{
 		  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
 		  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
@@ -322,6 +323,38 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
       /* create a reply from the message */
       dbus_message_append_args (reply, DBUS_TYPE_UINT32,
 				&ctx->reboot_strategy, DBUS_TYPE_INVALID);
+    }
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_METHOD_SET_LOCKGROUP))
+    {
+      const char *group = NULL;
+
+      if (dbus_message_get_args (message, NULL, DBUS_TYPE_STRING,
+				 &group, DBUS_TYPE_INVALID))
+	{
+	  if (debug_flag)
+	    log_msg (LOG_DEBUG, "set-group called");
+	  if (group != NULL &&
+	      strcmp (ctx->lock_group, group))
+	    {
+	      if (debug_flag)
+		log_msg (LOG_DEBUG, "lock group changed to %s", group);
+	      if (ctx->lock_group != NULL)
+		free (ctx->lock_group);
+	      ctx->lock_group = strdup (group);
+	    }
+	  save_config (ctx);
+	}
+    }
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_METHOD_GET_LOCKGROUP))
+    {
+      if (debug_flag)
+	log_msg (LOG_DEBUG, "get-group called");
+
+      /* create a reply from the message */
+      dbus_message_append_args (reply, DBUS_TYPE_STRING,
+				&ctx->lock_group, DBUS_TYPE_INVALID);
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_STATUS))
@@ -681,7 +714,7 @@ main (int argc, char **argv)
   if (etcd_is_running () &&
       etcd_own_lock (ctx->lock_group))
     {
-      if (etcd_release_lock (ctx->lock_group) != 0)
+      if (etcd_release_lock (ctx->lock_group, NULL) != 0)
 	log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
     }
 

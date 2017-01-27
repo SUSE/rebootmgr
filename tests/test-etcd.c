@@ -34,7 +34,7 @@ main (int argc, char *argv[])
 
   printf ("etcd is running, try to get a lock\n");
 
-  if (etcd_get_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+  if (etcd_get_lock (ETCD_LOCKS_DEFAULT_GROUP, NULL) != 0)
     {
       fprintf (stderr, "etcd_get_lock() failed!\n");
       return 1;
@@ -50,7 +50,7 @@ main (int argc, char *argv[])
 
   printf ("have a lock, release it\n");
 
-  if (etcd_release_lock (ETCD_LOCKS_DEFAULT_GROUP) != 0)
+  if (etcd_release_lock (ETCD_LOCKS_DEFAULT_GROUP, NULL) != 0)
     {
       fprintf (stderr, "etcd_release_lock() failed!\n");
       return 1;

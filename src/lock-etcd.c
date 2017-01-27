@@ -102,6 +102,25 @@ get_value (cetcd_client *cli, const char *group, const char *name)
   return retval;
 }
 
+char *
+etcd_get_data_value (const char *group)
+{
+  cetcd_array addrs;
+  cetcd_client cli;
+  char *val;
+
+  cetcd_array_init (&addrs, 3);
+  cetcd_array_append (&addrs, "http://127.0.0.1:2379");
+  cetcd_client_init (&cli, &addrs);
+
+  val = get_value (&cli, group, "data");
+
+  cetcd_array_destroy (&addrs);
+  cetcd_client_destroy (&cli);
+
+  return val;
+}
+
 static int
 set_lock_key (cetcd_client *cli, const char *group,
 	      const char *name, const char *value)
@@ -202,7 +221,7 @@ release_mutex (cetcd_client *cli, const char *group)
   1: error
 */
 int
-etcd_get_lock (const char *group)
+etcd_get_lock (const char *group, const char *machine_id)
 {
   cetcd_client cli;
   cetcd_response *resp;
@@ -282,7 +301,7 @@ etcd_get_lock (const char *group)
 
 	  if (curr_locks < max_locks)
 	    {
-	      add_id_to_holders (jobj, get_machine_id());
+	      add_id_to_holders (jobj, machine_id?machine_id:get_machine_id());
 	      set_lock_key (&cli, group, "data",
 			    json_object_to_json_string_ext (jobj,
 							    JSON_C_TO_STRING_PRETTY));
@@ -316,7 +335,7 @@ etcd_get_lock (const char *group)
   1: error
 */
 int
-etcd_release_lock (const char *group)
+etcd_release_lock (const char *group, const char *machine_id)
 {
   cetcd_client cli;
   cetcd_array addrs;
@@ -364,7 +383,7 @@ etcd_release_lock (const char *group)
 	  goto cleanup;
 	}
 
-      remove_id_from_holders (jobj, get_machine_id());
+      remove_id_from_holders (jobj, machine_id?machine_id:get_machine_id());
       set_lock_key (&cli, group, "data",
 		    json_object_to_json_string_ext (jobj,
 						    JSON_C_TO_STRING_PRETTY));

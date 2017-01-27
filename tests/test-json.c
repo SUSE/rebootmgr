@@ -27,6 +27,7 @@
 int
 main (void)
 {
+  int retval = 0;
   const char *input = "{\n    \"max\": 2,\n    \"holders\": [\"A\"]\n}";
   int64_t max;
   int64_t curr;
@@ -48,19 +49,38 @@ main (void)
   printf ("The json object created:\n%s\n",
 	  json_object_to_json_string_ext (jobj,JSON_C_TO_STRING_PRETTY));
 
-  remove_id_from_holders (jobj, "A");
+  if (remove_id_from_holders (jobj, "A") != TRUE)
+    {
+      fprintf (stderr, "Remove \"A\" from holders failed!\n");
+      retval = 1;
+    }
 
   if (is_id_in_holders (jobj, "A"))
-    fprintf (stderr, "\"A\" found in holders, should have been removed!\n");
+    {
+      fprintf (stderr, "\"A\" found in holders, should have been removed!\n");
+      retval = 1;
+    }
+
+  if (remove_id_from_holders (jobj, "A") == TRUE)
+    {
+      fprintf (stderr, "Remove non existent \"A\" from holders succedded!\n");
+      retval = 1;
+    }
 
   if (!is_id_in_holders (jobj, "B"))
-    fprintf (stderr, "\"B\" not found in holders, should have been added!\n");
+    {
+      fprintf (stderr, "\"B\" not found in holders, should have been added!\n");
+      retval = 1;
+    }
 
   printf ("The json object created:\n%s\n",
 	  json_object_to_json_string_ext (jobj,JSON_C_TO_STRING_PRETTY));
 
   if (json_object_put (jobj) != 1)
-    fprintf (stderr, "json object not free'd!\n");
+    {
+      fprintf (stderr, "json object not free'd!\n");
+      retval = 1;
+    }
 
   return 0;
 }

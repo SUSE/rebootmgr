@@ -87,6 +87,7 @@ remove_id_from_holders (json_object *jobj, const char *id)
 {
   json_object *jarray = NULL;
   int64_t idx;
+  json_bool found = FALSE;
 
   if (json_object_object_get_ex (jobj, "holders", &jarray) != TRUE)
     {
@@ -107,6 +108,14 @@ remove_id_from_holders (json_object *jobj, const char *id)
 	  json_object_get (entry);
 	  json_object_array_add (jnew, entry);
 	}
+      else
+	found = TRUE;;
+    }
+
+  if (!found)
+    {
+      json_object_put (jnew);
+      return FALSE;
     }
 
   /*Form the json object*/

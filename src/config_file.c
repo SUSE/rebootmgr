@@ -112,6 +112,7 @@ save_config (RM_CTX *ctx)
     g_error_free(error);
   }
 
+  g_key_file_free (key_file);
 }
 
 void
