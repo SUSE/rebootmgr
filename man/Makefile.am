@@ -26,14 +26,12 @@ XSLTPROC_FLAGS_HTML = \
 if ENABLE_REGENERATE_MAN
 
 rebootmgrd.8: rebootmgrd.8.xml
-	$(XMLLINT) --nonet --xinclude --postvalid --noout $<
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) --xinclude --nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
 
 rebootmgrd.8.html: rebootmgrd.8.xml custom-html.xsl
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) $(XSLTPROC_FLAGS_HTML) $<
 
 rebootmgrctl.1: rebootmgrctl.1.xml
-	$(XMLLINT) --nonet --xinclude --postvalid --noout $<
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) --xinclude --nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
 
 rebootmgrctl.1.html: rebootmgrctl.1.xml custom-html.xsl

@@ -96,7 +96,16 @@
     </cmdsynopsis>
     <cmdsynopsis>
       <command>rebootmgrctl</command>
-      <arg choice='plain'>set-strategy</arg>
+      <arg choice='plain'>set-group</arg>
+      <arg choice='plain'>&lt;group&gt;</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>get-group</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>set-window</arg>
       <arg choice='plain'>&lt;time&gt;</arg>
       <arg choice='plain'>&lt;duration&gt;</arg>
     </cmdsynopsis>
@@ -130,7 +139,7 @@
 
   <refsect1 id='see_also'><title>SEE ALSO</title>
   <para>
-    <citerefentry><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>
+    <citerefentry project='systemd'><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>
   </para>
   </refsect1>
 </refentry>
