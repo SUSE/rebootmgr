@@ -31,15 +31,6 @@ TEMPLATE = '''\
   <refentryinfo>
     <title>rebootmgr.index</title>
     <productname>rebootmgr</productname>
-
-    <authorgroup>
-      <author>
-        <contrib>Developer</contrib>
-        <firstname>Lennart</firstname>
-        <surname>Poettering</surname>
-        <email>lennart@poettering.net</email>
-      </author>
-    </authorgroup>
   </refentryinfo>
 
   <refmeta>
