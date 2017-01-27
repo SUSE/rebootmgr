@@ -35,6 +35,8 @@ man/org.opensuse.RebootMgr.conf.8
 man/rebootmgr.service.8
 man/rebootmgrd.8
 man/rebootmgrctl.1
+man/rebootmgrd.8.html
+man/rebootmgrctl.1.html
 src/rebootmgrctl
 src/rebootmgrd
 tests/test-calendarspec

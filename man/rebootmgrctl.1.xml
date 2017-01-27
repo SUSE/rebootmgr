@@ -23,6 +23,19 @@
 <!--  Boston, MA 02111\-1307, USA. -->
 
 <refentry id='rebootmgrctl1'>
+  <refentryinfo>
+    <title>rebootmgrctl</title>
+    <productname>rebootmgr</productname>
+
+    <authorgroup>
+      <author>
+        <contrib></contrib>
+        <firstname>Thorsten</firstname>
+        <surname>Kukuk</surname>
+        <email>kukuk@suse.de</email>
+      </author>
+    </authorgroup>
+  </refentryinfo>
 
   <refmeta>
     <refentrytitle>rebootmgrctl</refentrytitle>
@@ -119,12 +132,5 @@
   <para>
     <citerefentry><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>
   </para>
-  </refsect1>
-
-  <refsect1 id='author'>
-    <title>AUTHOR</title>
-    <para>
-      rebootmgr was written by Thorsten Kukuk &lt;kukuk@suse.com&gt;.
-    </para>
   </refsect1>
 </refentry>
