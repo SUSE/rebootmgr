@@ -217,7 +217,7 @@
 
   <a>
     <xsl:attribute name="href">
-      <xsl:text>index.html</xsl:text>
+      <xsl:text>rebootmgr.index.html</xsl:text>
     </xsl:attribute>
     <xsl:text>Index </xsl:text>
   </a>

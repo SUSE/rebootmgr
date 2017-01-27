@@ -22,7 +22,7 @@
 <!--  write to the Free Software Foundation, Inc., 51 Franklin Street \- Suite 500, -->
 <!--  Boston, MA 02111\-1307, USA. -->
 
-<refentry id='rebootmgrd8'>
+<refentry id='rebootmgrd.8'>
   <refentryinfo>
     <title>rebootmgrd</title>
     <productname>rebootmgr</productname>
