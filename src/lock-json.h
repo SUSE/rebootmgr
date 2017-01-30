@@ -18,6 +18,7 @@
 
 int64_t get_max_locks (json_object *jobj);
 int64_t get_curr_locks (json_object *jobj);
+json_bool set_max_locks (json_object *jobj, int64_t max_locks);
 json_bool add_id_to_holders (json_object *jobj, const char *id);
 json_bool remove_id_from_holders (json_object *jobj, const char *id);
 json_bool is_id_in_holders (json_object *jobj, const char *id);

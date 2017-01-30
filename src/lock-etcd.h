@@ -22,6 +22,7 @@ int etcd_is_running (void);
 int etcd_get_lock (const char *group, const char *machine_id);
 int etcd_release_lock (const char *group, const char *machine_id);
 int etcd_own_lock (const char *group);
+int etcd_set_max_locks (const char *group, int64_t max_locks);
 char *etcd_get_data_value (const char *group);
 
 #endif /* _LOCK_ETCD_H_ */

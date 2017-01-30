@@ -46,6 +46,10 @@ main (void)
       add_id_to_holders (jobj, "B");
     }
 
+  set_max_locks (jobj, 3);
+  max = get_max_locks (jobj);
+  printf ("Max locks: %li\n", max);
+
   printf ("The json object created:\n%s\n",
 	  json_object_to_json_string_ext (jobj,JSON_C_TO_STRING_PRETTY));
 

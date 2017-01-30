@@ -46,6 +46,7 @@ usage (int exit_code)
   printf (_("\trebootmgrctl get-window\n"));
   printf (_("\trebootmgrctl set-group <etcd lock group>\n"));
   printf (_("\trebootmgrctl get-group\n"));
+  printf (_("\trebootmgrctl set-max [--group <group>] <number>\n"));
   printf (_("\trebootmgrctl lock [--group <group>] [<machine id>]\n"));
   printf (_("\trebootmgrctl unlock [--group <group>] [<machine id>]\n"));
   exit (exit_code);
@@ -741,6 +742,53 @@ main (int argc, char **argv)
 		printf (_("Released lock from etcd for machine with ID %s\n"), machine_id);
 	      else
 		printf (_("Released lock from etcd for local machine\n"));
+	    }
+	}
+    }
+  else if (strcasecmp ("set-max", argv[1]) == 0)
+    {
+      const char *group;
+      int64_t max_locks = 0;
+
+      if (argc > 3)
+	{
+	  if (strcmp (argv[2], "-g") == 0 ||
+	      strcmp (argv[2], "--group") == 0)
+	    group = argv[3];
+	  else
+	    group = get_lock_group (connection);
+
+	  if (argc > 4)
+	    max_locks = atol (argv[4]); /* XXX */
+	}
+      else
+	{
+	  group = get_lock_group (connection);
+	  if (argc > 2)
+	    max_locks = atol (argv[2]); /* XXX */
+	}
+
+      if (group == NULL || max_locks <= 0)
+	retval = 1;
+      else
+	{
+	  int64_t old_max = -1;
+	  char *data = etcd_get_data_value (group);
+	  if (data != NULL)
+	    {
+	      json_object *jobj = json_tokener_parse (data);
+	      free (data);
+	      if (jobj != NULL)
+	        old_max = get_max_locks (jobj);
+	    }
+
+	  retval = etcd_set_max_locks (group, max_locks);
+	  if (retval != 0)
+	    fprintf (stderr, _("Error setting max locks at etcd!\n"));
+	  else
+	    {
+	      printf (_("Old: %li\n"), old_max);
+	      printf (_("New: %li\n"), max_locks);
 	    }
 	}
     }

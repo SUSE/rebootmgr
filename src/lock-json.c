@@ -25,6 +25,21 @@
 #include "log_msg.h"
 #include "lock-json.h"
 
+
+/* set number of allowed locks or -1 in error case */
+json_bool
+set_max_locks (json_object *jobj, int64_t max_locks)
+{
+  json_object *jint = json_object_new_int64(max_locks);
+
+  /*Form the json object*/ /* XXX return code checks? */
+  json_object_object_del (jobj, "max");
+  json_object_object_add (jobj, "max", jint);
+
+  return TRUE;
+}
+
+
 /* returns number of allowed locks or -1 in error case */
 int64_t
 get_max_locks (json_object *jobj)

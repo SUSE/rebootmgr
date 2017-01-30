@@ -41,9 +41,9 @@ rebootmgrd.8: rebootmgrd.8.xml
 rebootmgrd.8.html: rebootmgrd.8.xml custom-html.xsl
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) $(XSLTPROC_FLAGS_HTML) $<
 
-org.opensuse.RebootMgr.conf.8.html: rebootmgrd.8.xml
+org.opensuse.RebootMgr.conf.8.html: rebootmgrd.8.html
 	$(html-alias)
-rebootmgr.service.8.html: rebootmgrd.8.xml
+rebootmgr.service.8.html: rebootmgrd.8.html
 	$(html-alias)
 
 rebootmgrctl.1: rebootmgrctl.1.xml
