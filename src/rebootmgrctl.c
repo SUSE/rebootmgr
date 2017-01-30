@@ -488,7 +488,6 @@ print_etcd_status (DBusConnection *connection)
     }
 }
 
-
 int
 main (int argc, char **argv)
 {
@@ -787,7 +786,10 @@ main (int argc, char **argv)
 	    fprintf (stderr, _("Error setting max locks at etcd!\n"));
 	  else
 	    {
-	      printf (_("Old: %li\n"), old_max);
+	      if (old_max > 0)
+                printf (_("Old: %li\n"), old_max);
+              else
+                printf (_("Old: -\n"));
 	      printf (_("New: %li\n"), max_locks);
 	    }
 	}

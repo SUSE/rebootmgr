@@ -30,27 +30,27 @@
 #define INIT_LOCK_DATA "{\n    \"max\": 1,\n    \"holders\": []\n}"
 
 static const char *
- get_machine_id (void)
- {
-   static const char *machine_id = NULL;
+get_machine_id (void)
+{
+  static const char *machine_id = NULL;
 
-   if (machine_id == NULL)
-     {
-       char *buffer = NULL;
-       FILE *fp = fopen ("/etc/machine-id", "rb");
+  if (machine_id == NULL)
+    {
+      char *buffer = NULL;
+      FILE *fp = fopen ("/etc/machine-id", "rb");
 
-       if (fp)
-	 {
-	   /*read text until newline */
-	   int n = fscanf (fp,"%m[^\n]", &buffer);
-	   if (n == 1)
-	     machine_id = buffer;
-	   fclose (fp);
-	 }
-     }
+      if (fp)
+	{
+	  /*read text until newline */
+	  int n = fscanf (fp,"%m[^\n]", &buffer);
+	  if (n == 1)
+	    machine_id = buffer;
+	  fclose (fp);
+	}
+    }
 
-   return machine_id;
- }
+  return machine_id;
+}
 
 /* return value: 0 success, 1 error */
 static int
@@ -154,6 +154,11 @@ create_lock_dir (cetcd_client *cli, const char *group)
   return 0;
 }
 
+/*
+  0: got lock
+  1: got no lock, try again
+  -X: negative cetcd error code, abort
+ */
 static int
 get_mutex (cetcd_client *cli, const char *group)
 {
@@ -176,8 +181,15 @@ get_mutex (cetcd_client *cli, const char *group)
 	log_msg (LOG_DEBUG, "cmp_and_swap failed: %d, %s (%s)",
 		 resp->err->ecode, resp->err->message, resp->err->cause);
       if (resp->err->ecode != 101)
-        log_msg (LOG_ERR, "ERROR: %d, %s (%s)", resp->err->ecode,
-		 resp->err->message, resp->err->cause);
+	{
+	  int ecode = -1 * resp->err->ecode;
+
+	  log_msg (LOG_ERR, "ERROR: %d, %s (%s)", resp->err->ecode,
+		   resp->err->message, resp->err->cause);
+	  cetcd_response_release (resp);
+	  return ecode;
+	}
+
       cetcd_response_release (resp);
 
       /* Wait that the mutex key changes */
@@ -275,7 +287,9 @@ etcd_get_lock (const char *group, const char *machine_id)
 
       if (curr_locks < max_locks)
 	{
-	  if (get_mutex (&cli, group) != 0)
+	  int ecode = get_mutex (&cli, group);
+
+	  if (ecode > 0)
 	    {
 	      /* either we got a lock but etcd data was not changed (what should
 		 never happen), or the mutex was hold by somebody else and the
@@ -285,6 +299,14 @@ etcd_get_lock (const char *group, const char *machine_id)
 			 "get_lock: get_mutex for group '%s' failed, trying again.",
 			 group);
 	      continue;
+	    }
+	  else if (ecode < 0)
+	    {
+	      if (debug_flag)
+		log_msg (LOG_DEBUG,
+			 "get_lock: get_mutex for group '%s' failed, abort.",
+			 group);
+	      break;
 	    }
 
 	  /* we have the mutex, check if we can set the lock */
@@ -355,8 +377,9 @@ etcd_release_lock (const char *group, const char *machine_id)
     {
       json_object *jobj;
       char *val;
+      int ecode = get_mutex (&cli, group);
 
-      if (get_mutex (&cli, group) != 0)
+      if (ecode > 0)
 	{
 	  /* either we got a lock but etcd data was not changed (what should
 	     never happen), or the mutex was hold by somebody else and the
@@ -366,6 +389,14 @@ etcd_release_lock (const char *group, const char *machine_id)
 		     "release_lock: get_mutex for group '%s' failed, trying again.",
 		     group);
 	  continue;
+	}
+      else if (ecode < 0)
+	{
+	  if (debug_flag)
+	    log_msg (LOG_DEBUG,
+		     "release_lock: get_mutex for group '%s' failed, abort.",
+		     group);
+	  break;
 	}
 
       val = get_value (&cli, group, "data");
@@ -423,8 +454,9 @@ etcd_set_max_locks (const char *group, int64_t max_locks)
     {
       json_object *jobj;
       char *val;
+      int ecode = get_mutex (&cli, group);
 
-      if (get_mutex (&cli, group) != 0)
+      if (ecode > 0)
 	{
 	  /* either we got a lock but etcd data was not changed (what should
 	     never happen), or the mutex was hold by somebody else and the
@@ -434,6 +466,25 @@ etcd_set_max_locks (const char *group, int64_t max_locks)
 		     "set_max_locks: get_mutex for group '%s' failed, trying again.",
 		     group);
 	  continue;
+	}
+      else if (ecode == -100)
+	{
+	  /* directory structure does not exist in etcd, create it. */
+	  if (debug_flag)
+	    log_msg (LOG_DEBUG,
+		     "set_max_locks: get_mutex for group '%s' failed, create data structure.",
+		     group);
+	  create_lock_dir (&cli, group);
+	  continue;
+
+	}
+      else if (ecode < 0)
+	{
+	  if (debug_flag)
+	    log_msg (LOG_DEBUG,
+		     "set_max_locks: get_mutex for group '%s' failed, abort.",
+		     group);
+	  break;
 	}
 
       val = get_value (&cli, group, "data");
