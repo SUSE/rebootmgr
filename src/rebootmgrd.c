@@ -170,6 +170,9 @@ initialize_timer (RM_CTX *ctx)
       return;
     }
 
+  /* XXX we should a random time between 0 and duration to not reboot
+     everything at the beginning of the maintenance window */
+
   if (debug_flag)
     {
       char buf[FORMAT_TIMESTAMP_MAX];
