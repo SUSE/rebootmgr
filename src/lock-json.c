@@ -32,8 +32,7 @@ set_max_locks (json_object *jobj, int64_t max_locks)
 {
   json_object *jint = json_object_new_int64(max_locks);
 
-  /*Form the json object*/ /* XXX return code checks? */
-  json_object_object_del (jobj, "max");
+  /* *_add will overwrite existing entries without memory leak */
   json_object_object_add (jobj, "max", jint);
 
   return TRUE;
@@ -133,9 +132,8 @@ remove_id_from_holders (json_object *jobj, const char *id)
       return FALSE;
     }
 
-  /*Form the json object*/
-  json_object_object_del (jobj, "holders");
-  json_object_object_add (jobj,"holders", jnew);
+  /* Overwrite the old json object */
+  json_object_object_add (jobj, "holders", jnew);
 
   return TRUE;
 }
