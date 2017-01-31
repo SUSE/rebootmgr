@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <assert.h>
 #include <cetcd.h>
 #include <json-c/json.h>
 
@@ -102,6 +103,51 @@ get_value (cetcd_client *cli, const char *group, const char *name)
   return retval;
 }
 
+#define URL_DELIM "\n\r\t ,;"
+
+static int
+setup_etcd_connection (cetcd_array *addrs, cetcd_client *cli)
+{
+  int num_server = 0;
+  char *sp;
+  char *server = getenv ("ETCD_SERVERS");
+
+  if (server == NULL)
+    server = strdup ("http://127.0.0.1:2379");
+  else
+    server = strdup (server);
+
+  if (server == NULL)
+    return 1;
+
+  for (sp = server; *sp; ++sp)
+    if (strchr (URL_DELIM, *sp) != NULL)
+      ++num_server;
+  ++num_server;
+
+  cetcd_array_init (addrs, num_server);
+
+  int idx = 0;
+  char *token = strtok (server, URL_DELIM);
+  while (token)
+    {
+      if (strlen (token) > 0)
+	{
+	  assert(idx < num_server);
+	  ++idx;
+	  printf ("idx=%i, token=%s\n", idx, token);
+	  cetcd_array_append (addrs, token);
+	}
+      token = strtok(NULL, URL_DELIM);
+    }
+
+  cetcd_client_init (cli, addrs);
+
+  free (server);
+
+  return 0;
+}
+
 char *
 etcd_get_data_value (const char *group)
 {
@@ -109,9 +155,7 @@ etcd_get_data_value (const char *group)
   cetcd_client cli;
   char *val;
 
-  cetcd_array_init (&addrs, 3);
-  cetcd_array_append (&addrs, "http://127.0.0.1:2379");
-  cetcd_client_init (&cli, &addrs);
+  setup_etcd_connection (&addrs, &cli);
 
   val = get_value (&cli, group, "data");
 
@@ -242,10 +286,7 @@ etcd_get_lock (const char *group, const char *machine_id)
   int retval = 1;
   int have_lock = 0;
 
-  cetcd_array_init (&addrs, 3);
-  cetcd_array_append (&addrs, "http://127.0.0.1:2379");
-
-  cetcd_client_init (&cli, &addrs);
+  setup_etcd_connection (&addrs, &cli);
 
   /* Check if the data structure for the locks exists, else create them */
   if (asprintf (&path, "%s/%s/mutex", ETCD_LOCKS, group) == -1)
@@ -367,10 +408,7 @@ etcd_release_lock (const char *group, const char *machine_id)
   if (!etcd_own_lock (group))
     return 0;
 
-  cetcd_array_init (&addrs, 3);
-  cetcd_array_append (&addrs, "http://127.0.0.1:2379");
-
-  cetcd_client_init (&cli, &addrs);
+  setup_etcd_connection(&addrs, &cli);
 
   /* try in a loop to get a mutex */
   while (!removed_lock)
@@ -444,10 +482,7 @@ etcd_set_max_locks (const char *group, int64_t max_locks)
   int retval = 1;
   int set_value = 0;
 
-  cetcd_array_init (&addrs, 3);
-  cetcd_array_append (&addrs, "http://127.0.0.1:2379");
-
-  cetcd_client_init (&cli, &addrs);
+  setup_etcd_connection (&addrs, &cli);
 
   /* try in a loop to get a mutex */
   while (!set_value)
@@ -536,10 +571,7 @@ etcd_own_lock (const char *group)
   char *path = NULL;
   int have_lock = 0;
 
-  cetcd_array_init (&addrs, 3);
-  cetcd_array_append (&addrs, "http://127.0.0.1:2379");
-
-  cetcd_client_init (&cli, &addrs);
+  setup_etcd_connection(&addrs, &cli);
 
   /* Check if the data structure for the locks exists, else create them */
   if (asprintf (&path, "%s/%s/data", ETCD_LOCKS, group) == -1)
@@ -584,9 +616,7 @@ etcd_is_running (void)
   cetcd_response *resp;
   cetcd_array addrs;
 
-  cetcd_array_init (&addrs, 3);
-  cetcd_array_append (&addrs, "http://127.0.0.1:2379");
-  cetcd_client_init (&cli, &addrs);
+  setup_etcd_connection (&addrs, &cli);
 
   resp = cetcd_get (&cli, "/");
   if (resp->err && resp->err->ecode == 1002)
