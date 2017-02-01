@@ -17,10 +17,8 @@
 <!--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU -->
 <!--  General Public License for more details. -->
 
-<!--  You should have received a copy of the GNU General Public -->
-<!--  License along with issue\-generator; see the file COPYING.  If not, -->
-<!--  write to the Free Software Foundation, Inc., 51 Franklin Street \- Suite 500, -->
-<!--  Boston, MA 02111\-1307, USA. -->
+<!--  You should have received a copy of the GNU General Public License -->
+<!-- along with rebootmgr; If not, see <http://www.gnu.org/licenses/>.  -->
 
 <refentry id='rebootmgrctl.1'>
   <refentryinfo>
@@ -113,14 +111,37 @@
       <command>rebootmgrctl</command>
       <arg choice='plain'>get-window</arg>
     </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>set-max</arg>
+      <arg choice='opt'>--group &lt;group&gt;</arg>
+      <arg choice='plain'>&lt;number&gt;</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>lock</arg>
+      <arg choice='opt'>--group &lt;group&gt;</arg>
+      <arg choice='opt'>&lt;machine-id&gt;</arg>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>unlock</arg>
+      <arg choice='opt'>--group &lt;group&gt;</arg>
+      <arg choice='opt'>&lt;machine-id&gt;</arg>
+    </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1 id='description'><title>DESCRIPTION</title>
+  <refsect1 id='description'><title>Description</title>
   <para><emphasis remap='B'>rebootmgrctl</emphasis> is used to
-  query and configure the     <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry> process.</para>
+  query and configure the
+  <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry>
+  process.</para>
+  <para>
+XXX
+  </para>
   </refsect1>
 
-  <refsect1 id='options'><title>OPTIONS</title>
+  <refsect1 id='options'><title>Options</title>
   <variablelist remap='TP'>
     <varlistentry>
       <term><option>--help</option></term>
@@ -137,9 +158,10 @@
   </variablelist>
   </refsect1>
 
-  <refsect1 id='see_also'><title>SEE ALSO</title>
-  <para>
-    <citerefentry project='systemd'><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>
-  </para>
+  <refsect1 id='see_also'>
+    <title>See Also</title>
+    <para>
+      <citerefentry project='systemd'><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>
+    </para>
   </refsect1>
 </refentry>

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+
+<!--  \-*\- nroff \-*\- -->
+<!--  Copyright 2016, 2017 Thorsten Kukuk &lt;kukuk@suse.de&gt; -->
+
+<!--  This file is part of rebootmgr. -->
+
+<!--  rebootmgr is free software; you can redistribute it and/or -->
+<!--  modify it under the terms of the GNU General Public License as -->
+<!--  published by the Free Software Foundation in version 2 of the -->
+<!--  License. -->
+
+<!--  rebootmgr is distributed in the hope that it will be useful, -->
+<!--  but WITHOUT ANY WARRANTY; without even the implied warranty of -->
+<!--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU -->
+<!--  General Public License for more details. -->
+
+<!--  You should have received a copy of the GNU General Public License -->
+<!-- along with rebootmgr; If not, see <http://www.gnu.org/licenses/>.  -->
+
+<refentry id="rebootmgr.conf.5">
+  <refentryinfo>
+    <title>resolved.conf</title>
+    <productname>rebootmgr</productname>
+
+    <authorgroup>
+      <author>
+        <contrib></contrib>
+        <firstname>Thorsten</firstname>
+        <surname>Kukuk</surname>
+        <email>kukuk@suse.com</email>
+      </author>
+    </authorgroup>
+  </refentryinfo>
+
+  <refmeta>
+    <refentrytitle>rebootmgr.conf</refentrytitle>
+    <manvolnum>5</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>rebootmgr.conf</refname>
+    <refpurpose>Reboot Manager configuration files</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <para><filename>/etc/rebootmgr.conf</filename></para>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>Description</title>
+
+    <para>These configuration file controls and defines the reboot policy for
+    <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry>.</para>
+  </refsect1>
+
+  <refsect1>
+    <title>Options</title>
+
+    <para>The following options are available in the <literal>rebootmgr</literal>
+    section:</para>
+
+    <variablelist>
+      <varlistentry>
+        <term><varname>window-start=</varname></term>
+        <listitem>
+	  <para>
+	    The format of <varname>window-start</varname> is the same as
+	    described in  <citerefentry
+	    project='systemd'><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>.
+        </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><varname>window-duration=</varname></term>
+        <listitem>
+	  <para>
+	    The format of <varname>window-duration</varname> is
+	    <literal>[XXh][YYm]</literal>.
+        </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><varname>strategy=</varname></term>
+        <listitem>
+	  <para>
+	    This entry specifies the reboot strategy. For a list of valid
+	    strategies and their meaning look at the
+	    <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry>
+	    manual page.
+        </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><varname>lock-group=</varname></term>
+        <listitem>
+	  <para>
+	    This option is only used in conjuction with
+	    <filename>etcd</filename> locking.
+	    To avoid that all machines running the same services reboots at
+	    the same time, they can be grouped into classes and only a
+	    specified number of machines in the same group are allowed to
+	    reboot at the same time. The standard group name is
+	    <literal>default</literal>.
+          </para>
+	</listitem>
+      </varlistentry>
+
+    </variablelist>
+  </refsect1>
+
+  <refsect1 id='example'>
+    <title>Example</title>
+
+    <example>
+      <title>Example configuration file</title>
+
+      <para>
+	In this example, the machine will reboot between 03:30 and 05:00
+	o'clock in the morning. If an etcd is running, rebootmgrd will obtain a
+	lock for the group <literal>etcd_cluster</literal> before the reboot is
+	done.
+      </para>
+
+      <para><filename>/etc/rebootmgr.conf</filename>:</para>
+
+      <programlisting>
+	[rebootmgr]
+	window-start=03:30
+	window-duration=1h30m
+	strategy=best-effort
+	lock-group=etcd_cluster
+      </programlisting>
+    </example>
+
+  </refsect1>
+
+
+  <refsect1 id='see_also'>
+    <title>See Also</title>
+    <para>
+      <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry>,
+      <citerefentry project='systemd'><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>
+    </para>
+  </refsect1>
+
+</refentry>

@@ -10,12 +10,12 @@ EXTRA_DIST = $(MANS) $(XMLS) $(DATA) custom-html.xsl \
 	make-man-index.py xml_helper.py rebootmgr.index.xml
 
 man_MANS = rebootmgrd.8 rebootmgr.service.8 org.opensuse.RebootMgr.conf.8 \
-	rebootmgrctl.1
+	rebootmgrctl.1 rebootmgr.conf.5
 noinst_DATA = rebootmgrd.8.html rebootmgr.service.8.html \
 	org.opensuse.RebootMgr.conf.8.html rebootmgrctl.1.html \
-	rebootmgr.index.html
+	rebootmgr.conf.5.html rebootmgr.index.html
 
-XMLS = rebootmgrd.8.xml rebootmgrctl.1.xml
+XMLS = rebootmgrd.8.xml rebootmgrctl.1.xml rebootmgr.conf.5.xml
 
 XSLTPROC_FLAGS_HTML = \
 	--nonet \
@@ -43,6 +43,7 @@ rebootmgrd.8.html: rebootmgrd.8.xml custom-html.xsl
 
 org.opensuse.RebootMgr.conf.8.html: rebootmgrd.8.html
 	$(html-alias)
+
 rebootmgr.service.8.html: rebootmgrd.8.html
 	$(html-alias)
 
@@ -50,6 +51,12 @@ rebootmgrctl.1: rebootmgrctl.1.xml
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) --xinclude --nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
 
 rebootmgrctl.1.html: rebootmgrctl.1.xml custom-html.xsl
+	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) $(XSLTPROC_FLAGS_HTML) $<
+
+rebootmgr.conf.5: rebootmgr.conf.5.xml
+	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) --xinclude --nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
+
+rebootmgr.conf.5.html: rebootmgr.conf.5.xml
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) $(XSLTPROC_FLAGS_HTML) $<
 
 rebootmgr.index.html: rebootmgr.index.xml
