@@ -41,6 +41,8 @@ man/org.opensuse.RebootMgr.conf.8.html
 man/rebootmgr.index.html
 man/rebootmgr.index.xml
 man/rebootmgr.service.8.html
+man/rebootmgr.conf.5
+man/rebootmgr.conf.5.html
 man/xml_helper.pyc
 src/rebootmgrctl
 src/rebootmgrd
