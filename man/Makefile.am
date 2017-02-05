@@ -22,7 +22,8 @@ XSLTPROC_FLAGS_HTML = \
 	--xinclude \
         --stringparam man.authors.section.enabled 0 \
         --stringparam man.copyright.section.enabled 0 \
-	--stringparam rebootmgr.version $(VERSION) \
+	--stringparam package.name $(PACKAGE) \
+	--stringparam package.version $(VERSION) \
 	--stringparam chunker.output.encoding UTF-8 \
 	$(srcdir)/custom-html.xsl
 

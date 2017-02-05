@@ -72,6 +72,18 @@
   </a>
 </xsl:template>
 
+<xsl:template match="citerefentry[@project='snapper']">
+  <a>
+    <xsl:attribute name="href">
+      <xsl:text>http://snapper.io/manpages/</xsl:text>
+      <xsl:value-of select="refentrytitle"/>
+      <xsl:text>.html</xsl:text>
+    </xsl:attribute>
+    <xsl:call-template name="inline.charseq"/>
+  </a>
+</xsl:template>
+
+
 <!--
   - helper template to do conflict resolution between various headings with the same inferred ID attribute/tag from the headerlink template
   - this conflict resolution is necessary to prevent malformed HTML output (multiple ID attributes with the same value)
@@ -217,14 +229,16 @@
 
   <a>
     <xsl:attribute name="href">
-      <xsl:text>rebootmgr.index.html</xsl:text>
+      <xsl:value-of select="$package.name"/>
+      <xsl:text>.index.html</xsl:text>
     </xsl:attribute>
     <xsl:text>Index </xsl:text>
   </a>
 
   <span style="float:right">
-    <xsl:text>rebootmgr </xsl:text>
-    <xsl:value-of select="$rebootmgr.version"/>
+    <xsl:value-of select="$package.name"/>
+    <xsl:text> </xsl:text>
+    <xsl:value-of select="$package.version"/>
   </span>
   <hr/>
 </xsl:template>
