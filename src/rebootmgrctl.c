@@ -127,8 +127,12 @@ set_window (DBusConnection *connection, const char* start, const char* duration)
 static int
 set_strategy (DBusConnection *connection, RM_RebootStrategy strategy)
 {
-  return send_message_with_arg (connection,
-				RM_DBUS_METHOD_SET_STRATEGY, strategy);
+  if (strategy == RM_REBOOTSTRATEGY_OFF)
+    return send_message_with_arg (connection,
+				  RM_DBUS_METHOD_TEMPORARY_OFF, strategy);
+  else
+    return send_message_with_arg (connection,
+				  RM_DBUS_METHOD_SET_STRATEGY, strategy);
  }
 
 static int

@@ -65,5 +65,11 @@
       <arg name="order" type="u" direction="out"/>
     </signal>
 
+    <!-- disable rebootmgrd temporary -->
+    <method name="TemporaryOff"/>
+
+    <!-- enable rebootmgrd again with old values -->
+    <method name="TemporaryOn"/>
+
   </interface>
 </node>

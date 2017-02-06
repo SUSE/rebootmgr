@@ -48,7 +48,7 @@ create_context (RM_CTX **ctx)
     return 0;
 
   **ctx = (RM_CTX) {RM_REBOOTSTRATEGY_BEST_EFFORT, 0,
-		     RM_REBOOTORDER_STANDARD, 0, NULL, 3600, NULL};
+		    RM_REBOOTORDER_STANDARD, 0, 0, NULL, 3600, NULL};
   (*ctx)->lock_group = strdup ("default");
 
   return 1;
@@ -94,6 +94,9 @@ print_error (void)
 static void
 reboot_now (RM_CTX *ctx)
 {
+  if (ctx->temp_off)
+    return;
+
   if (ctx->reboot_status > 0)
     {
       if (!debug_flag)
@@ -366,8 +369,16 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	log_msg (LOG_DEBUG, "Reboot status requested");
 
       /* create a reply from the message */
-      dbus_message_append_args (reply, DBUS_TYPE_UINT32,
-				&ctx->reboot_status, DBUS_TYPE_INVALID);
+      if (ctx->temp_off)
+	{
+	  RM_RebootStatus tmp = RM_REBOOTSTATUS_NOT_REQUESTED;
+
+	  dbus_message_append_args (reply, DBUS_TYPE_UINT32,
+				    &tmp, DBUS_TYPE_INVALID);
+	}
+      else
+	dbus_message_append_args (reply, DBUS_TYPE_UINT32,
+				  &ctx->reboot_status, DBUS_TYPE_INVALID);
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_GET_MAINTWINDOW))
@@ -408,6 +419,19 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	  save_config(ctx);
 	}
     }
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_METHOD_TEMPORARY_OFF))
+    {
+      log_msg (LOG_INFO, "Switched temporary off");
+      ctx->temp_off = 1;
+    }
+  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
+					RM_DBUS_METHOD_TEMPORARY_ON))
+    {
+      log_msg (LOG_INFO, "Enabled rebootmgr again");
+      ctx->temp_off = 1;
+    }
+
   return reply;
 }
 

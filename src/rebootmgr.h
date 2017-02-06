@@ -29,6 +29,8 @@
 #define RM_DBUS_METHOD_GET_MAINTWINDOW "GetMaintenanceWindow"
 #define RM_DBUS_METHOD_SET_LOCKGROUP	"SetLockGroup"
 #define RM_DBUS_METHOD_GET_LOCKGROUP	"GetLockGroup"
+#define RM_DBUS_METHOD_TEMPORARY_OFF "TemporaryOff"
+#define RM_DBUS_METHOD_TEMPORARY_ON "TemporaryON"
 
 #ifndef _
 #define _(String) gettext (String)
@@ -69,6 +71,7 @@ typedef struct {
   RM_RebootStrategy reboot_strategy;
   RM_RebootStatus reboot_status;
   int reboot_order;
+  int temp_off;
   guint reboot_timer_id;
   CalendarSpec *maint_window_start;
   time_t maint_window_duration;
