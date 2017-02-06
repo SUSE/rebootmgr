@@ -136,9 +136,6 @@
   query and configure the
   <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry>
   process.</para>
-  <para>
-XXX
-  </para>
   </refsect1>
 
   <refsect1 id='options'><title>Options</title>
@@ -153,6 +150,33 @@ XXX
       <term><option>--version</option></term>
       <listitem>
 	<para>output version information and exit</para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term><option>cancel</option></term>
+      <listitem>
+	<para>Cancels an already running reboot.</para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term><option>is-active</option> <replaceable>--quiet</replaceable></term>
+      <listitem>
+	<para>Prints if the rebootmgrd is running and ative or not. With the
+	<replaceable>--quiet</replaceable> option,
+	<command>rebootmgrctl</command> does not print any output, but returns
+	<literal>1</literal> if <command>rebootmgrd</command> is running or
+	<literal>0</literal> if not.</para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term><option>status</option> <replaceable>--quiet</replaceable></term>
+      <listitem>
+	<para>Prints the current status of <command>rebootmgrd</command>,
+	including current data structure stored in etcd if available. With the
+	<replaceable>--quiet</replaceable> option,
+	<command>rebootmgrctl</command> does not print any output, but returns
+	the current reboot status as return value. Valid values are: XXX
+	</para>
       </listitem>
     </varlistentry>
   </variablelist>
