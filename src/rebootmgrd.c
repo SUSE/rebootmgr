@@ -308,6 +308,7 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
       if (dbus_message_get_args (message, NULL, DBUS_TYPE_UINT32,
 				 &strategy, DBUS_TYPE_INVALID))
 	{
+	  ctx->temp_off = 0;
 	  if (debug_flag)
 	    log_msg (LOG_DEBUG, "set-strategy called");
 	  if (strategy != RM_REBOOTSTRATEGY_UNKNOWN &&
@@ -316,8 +317,8 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	      if (debug_flag)
 		log_msg (LOG_DEBUG, "reboot_strategy changed");
 	      ctx->reboot_strategy = strategy;
+	      save_config (ctx);
 	    }
-	  save_config (ctx);
 	}
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
@@ -327,8 +328,16 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	log_msg (LOG_DEBUG, "get-strategy called");
 
       /* create a reply from the message */
-      dbus_message_append_args (reply, DBUS_TYPE_UINT32,
-				&ctx->reboot_strategy, DBUS_TYPE_INVALID);
+      if (ctx->temp_off)
+	{
+	  RM_RebootStrategy strategy = RM_REBOOTSTRATEGY_OFF;
+
+	  dbus_message_append_args (reply, DBUS_TYPE_UINT32,
+				    &strategy, DBUS_TYPE_INVALID);
+	}
+      else
+	dbus_message_append_args (reply, DBUS_TYPE_UINT32,
+				  &ctx->reboot_strategy, DBUS_TYPE_INVALID);
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_SET_LOCKGROUP))
