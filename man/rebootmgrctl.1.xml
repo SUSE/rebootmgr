@@ -95,7 +95,7 @@
     <cmdsynopsis>
       <command>rebootmgrctl</command>
       <arg choice='plain'>set-group</arg>
-      <arg choice='plain'>&lt;group&gt;</arg>
+      <arg choice='plain'><replaceable>group</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
       <command>rebootmgrctl</command>
@@ -104,8 +104,8 @@
     <cmdsynopsis>
       <command>rebootmgrctl</command>
       <arg choice='plain'>set-window</arg>
-      <arg choice='plain'>&lt;time&gt;</arg>
-      <arg choice='plain'>&lt;duration&gt;</arg>
+      <arg choice='plain'><replaceable>time</replaceable></arg>
+      <arg choice='plain'><replaceable>duration</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
       <command>rebootmgrctl</command>
@@ -114,20 +114,20 @@
     <cmdsynopsis>
       <command>rebootmgrctl</command>
       <arg choice='plain'>set-max</arg>
-      <arg choice='opt'>--group &lt;group&gt;</arg>
-      <arg choice='plain'>&lt;number&gt;</arg>
+      <arg choice='opt'>--group <replaceable>group</replaceable></arg>
+      <arg choice='plain'><replaceable>number</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
       <command>rebootmgrctl</command>
       <arg choice='plain'>lock</arg>
-      <arg choice='opt'>--group &lt;group&gt;</arg>
-      <arg choice='opt'>&lt;machine-id&gt;</arg>
+      <arg choice='opt'>--group <replaceable>group</replaceable></arg>
+      <arg choice='opt'><replaceable>machine-id</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
       <command>rebootmgrctl</command>
       <arg choice='plain'>unlock</arg>
-      <arg choice='opt'>--group &lt;group&gt;</arg>
-      <arg choice='opt'>&lt;machine-id&gt;</arg>
+      <arg choice='opt'>--group <replaceable>group</replaceable></arg>
+      <arg choice='opt'><replaceable>machine-id</replaceable></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
@@ -159,26 +159,134 @@
       </listitem>
     </varlistentry>
     <varlistentry>
-      <term><option>is-active</option> <replaceable>--quiet</replaceable></term>
+      <term><option>is-active</option> <optional>--quiet</optional></term>
       <listitem>
 	<para>Prints if the rebootmgrd is running and ative or not. With the
-	<replaceable>--quiet</replaceable> option,
+	<optional>--quiet</optional> option,
 	<command>rebootmgrctl</command> does not print any output, but returns
 	<literal>1</literal> if <command>rebootmgrd</command> is running or
 	<literal>0</literal> if not.</para>
       </listitem>
     </varlistentry>
+
     <varlistentry>
-      <term><option>status</option> <replaceable>--quiet</replaceable></term>
+      <term><option>status</option> <optional>--quiet</optional></term>
       <listitem>
 	<para>Prints the current status of <command>rebootmgrd</command>,
 	including current data structure stored in etcd if available. With the
-	<replaceable>--quiet</replaceable> option,
+	<optional>--quiet</optional> option,
 	<command>rebootmgrctl</command> does not print any output, but returns
 	the current reboot status as return value. Valid values are: XXX
 	</para>
       </listitem>
     </varlistentry>
+
+    <varlistentry>
+      <term><option>set-strategy</option> best-efford|etcd-lock|maint-window|instantly|off</term>
+      <listitem>
+	<para>
+	  XXX
+	</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>get-strategy</option></term>
+      <listitem>
+	<para>
+	  The currently used reboot strategy of <command>rebootmgrd</command>
+	  will be printed.
+	</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>set-window</option> <replaceable>time</replaceable>
+      <replaceable>duration</replaceable></term>
+      <listitem>
+	<para>
+	  Set's the maintenance window. The format of <varname>time</varname>
+	  is the same as described in  <citerefentry
+	  project='systemd'><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>.
+	  The format of <varname>duration</varname> is
+          <literal>[XXh][YYm]</literal>.
+	</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>get-window</option></term>
+      <listitem>
+	<para>
+	  The currently set maintenance window will be printed.
+	</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>set-group</option>
+      <replaceable>etcd-lock-group</replaceable></term>
+      <listitem>
+	<para>
+	  Set's the group, to which this machine belongs to get a reboot lock
+	  from <command>etcd</command>.
+	</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>get-group</option></term>
+      <listitem>
+	<para>
+	  The currently set lock group for <command>etcd</command>.
+	</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>set-max</option>
+      <optional>--group <replaceable>group</replaceable></optional>
+      <replaceable>number</replaceable></term>
+      <listitem>
+	<para>
+	  Set the maximal number of hosts in a group, which are allowed to
+	  reboot at the same time.
+	</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>lock</option>
+      <optional>--group <replaceable>group</replaceable></optional>
+      <optional><replaceable>machine-id</replaceable></optional></term>
+      <listitem>
+	<para>
+	  Lock a machine. If no <varname>group</varname> is specified, the
+	  local default group will be used. If no
+	  <varname>machine-id</varname> is specified, the local machine will
+	  be locked.
+	</para>
+	<para>
+	  The machine-id is a network wide, unique ID. Per default the ID from
+	  <filename>/etc/machine-id</filename> is used.
+	</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>unlock</option>
+      <optional>--group <replaceable>group</replaceable></optional>
+      <optional><replaceable>machine-id</replaceable></optional></term>
+      <listitem>
+	<para>
+	  Unlock a machine. If no <varname>group</varname> is specified, the
+	  local default group will be used. If no
+	  <varname>machine-id</varname> is specified, the local machine will
+	  be unlocked.
+	</para>
+      </listitem>
+    </varlistentry>
+
   </variablelist>
   </refsect1>
 
