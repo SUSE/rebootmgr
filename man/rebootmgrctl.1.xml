@@ -176,8 +176,42 @@
 	including current data structure stored in etcd if available. With the
 	<optional>--quiet</optional> option,
 	<command>rebootmgrctl</command> does not print any output, but returns
-	the current reboot status as return value. Valid values are: XXX
+	the current reboot status as return value. Valid values are:
 	</para>
+	<variablelist spacing='compact'>
+	  <varlistentry>
+	    <term>0</term>
+	    <listitem>
+	      <para>
+		No reboot requested
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>1</term>
+	    <listitem>
+	      <para>
+		Reboot requested
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>2</term>
+	    <listitem>
+	      <para>
+		Reboot requested, waiting for maintenance window
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>3</term>
+	    <listitem>
+	      <para>
+		Reboot requested, waiting for etcd lock.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
       </listitem>
     </varlistentry>
 
@@ -185,8 +219,66 @@
       <term><option>set-strategy</option> best-efford|etcd-lock|maint-window|instantly|off</term>
       <listitem>
 	<para>
-	  XXX
+	  A new strategy to reboot the machine is set and written into
+	  <filename>/etc/rebootmgr.conf</filename>.
 	</para>
+	<variablelist>
+	  <varlistentry>
+	    <term>best-efford</term>
+	    <listitem>
+	      <para>
+		This is the default strategy. If <command>etcd</command> is
+		running, <option>etcd-lock</option> is used. If no
+		<command>etcd</command> is running, but a maintenance window
+		is specified, the strategy will be
+		<option>maint-window</option>. If no maintenance window is
+		specified, the machine is immeaditly rebooted
+		(<option>instantly</option>).
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>etcd-lock</term>
+	    <listitem>
+	      <para>
+		A lock at <command>etcd</command> for the specified
+		<option>lock-group</option> will be acquired before reboot. If
+		a maintenance window is specified, the lock is only acquired
+		during this window.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>maint-window</term>
+	    <listitem>
+	      <para>
+		Reboot does happen only during a specified maintenance
+		window. If no window is specified, the
+		<option>instantly</option> strategy is followed.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>instantly</term>
+	    <listitem>
+	      <para>
+		Other services will be informed that a reboot will
+		happen. Reboot will be done without getting any locks or
+		waiting for a maitnenance window.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>off</term>
+	    <listitem>
+	      <para>
+		Reboot requests are temporary
+		ignored. <filename>/etc/rebootmgr.conf</filename> is not
+		modified.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
       </listitem>
     </varlistentry>
 
