@@ -66,7 +66,7 @@
     <title>Description</title>
     <para>To avoid that a whole cluster or a set of machines with the same task
     reboot at the same there, <emphasis remap='B'>rebootmgrd</emphasis> reboots
-    the maschine following configured policies.</para>
+    the machine following configured policies.</para>
     <refsect2 id='reboot_strategy_options'>
       <title>Reboot Strategies</title>
       <para>
@@ -78,7 +78,7 @@
 	  <para>
 	    When the signal arrives other services will be informed
 	    that we plan to reboot and do the reboot without getting any locks
-	    or waiting for a maitnenance window.
+	    or waiting for a maintenance window.
 	  </para>
 	</listitem>
 	</varlistentry>
@@ -86,7 +86,7 @@
 	<listitem>
 	  <para>
 	    Reboot only during a specified maintenance window. If no window is
-	    specified, reboot immeaditly.
+	    specified, reboot immediately.
 	  </para>
 	</listitem>
 	</varlistentry>
@@ -105,7 +105,7 @@
 	    This is the default. If etcd is running, use etcd-lock. If no etcd
 	    is running, but a maintenance window is specified, use
 	    maint-window. If no maintenance window is specified, reboot
-	    immeaditly (instantly).
+	    immediately (instantly).
 	  </para>
 	</listitem>
 	</varlistentry>
@@ -175,7 +175,7 @@
 	}
       </programlisting>
       <para>
-	A typical workflow of a client which tries to reboot would look like:
+	A typical work-flow of a client which tries to reboot would look like:
       </para>
       <itemizedlist>
 	<listitem>
