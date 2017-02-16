@@ -62,7 +62,7 @@ watch_key (cetcd_client *cli, const char *group, const char *name, uint64_t inde
   int retval = 0;
 
   if (debug_flag)
-    log_msg (LOG_DEBUG, "watch key '%s' of group '%s' (index %lu)",
+    log_msg (LOG_DEBUG, "watch key '%s' of group '%s' (index %"PRIu64")",
 	     name, group, index);
 
   if (asprintf (&key, "%s/%s/%s", ETCD_LOCKS, group, name) == -1)

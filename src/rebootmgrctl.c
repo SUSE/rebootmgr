@@ -465,8 +465,8 @@ print_etcd_status (DBusConnection *connection)
 	return;
       max_locks = get_max_locks (jobj);
       curr_locks = get_curr_locks (jobj);
-      printf (_("\tAvailable: %ld\n"), max_locks - curr_locks);
-      printf (_("\tMax: %lu\n"), max_locks);
+      printf (_("\tAvailable: %"PRId64"\n"), max_locks - curr_locks);
+      printf (_("\tMax: %"PRIu64"\n"), max_locks);
 
       if (curr_locks > 0)
 	{
@@ -791,10 +791,10 @@ main (int argc, char **argv)
 	  else
 	    {
 	      if (old_max > 0)
-                printf (_("Old: %li\n"), old_max);
+                printf (_("Old: %"PRId64"\n"), old_max);
               else
                 printf (_("Old: -\n"));
-	      printf (_("New: %li\n"), max_locks);
+	      printf (_("New: %"PRId64"\n"), max_locks);
 	    }
 	}
     }
