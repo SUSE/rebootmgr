@@ -161,7 +161,7 @@
     <varlistentry>
       <term><option>is-active</option> <optional>--quiet</optional></term>
       <listitem>
-	<para>Prints if the rebootmgrd is running and ative or not. With the
+	<para>Prints if the rebootmgrd is running and active or not. With the
 	<optional>--quiet</optional> option,
 	<command>rebootmgrctl</command> does not print any output, but returns
 	<literal>1</literal> if <command>rebootmgrd</command> is running or
@@ -216,7 +216,7 @@
     </varlistentry>
 
     <varlistentry>
-      <term><option>set-strategy</option> best-efford|etcd-lock|maint-window|instantly|off</term>
+      <term><option>set-strategy</option> best-effort|etcd-lock|maint-window|instantly|off</term>
       <listitem>
 	<para>
 	  A new strategy to reboot the machine is set and written into
@@ -224,7 +224,7 @@
 	</para>
 	<variablelist>
 	  <varlistentry>
-	    <term>best-efford</term>
+	    <term>best-effort</term>
 	    <listitem>
 	      <para>
 		This is the default strategy. If <command>etcd</command> is
@@ -232,7 +232,7 @@
 		<command>etcd</command> is running, but a maintenance window
 		is specified, the strategy will be
 		<option>maint-window</option>. If no maintenance window is
-		specified, the machine is immeaditly rebooted
+		specified, the machine is immediately rebooted
 		(<option>instantly</option>).
 	      </para>
 	    </listitem>
@@ -264,7 +264,7 @@
 	      <para>
 		Other services will be informed that a reboot will
 		happen. Reboot will be done without getting any locks or
-		waiting for a maitnenance window.
+		waiting for a maintenance window.
 	      </para>
 	    </listitem>
 	  </varlistentry>

@@ -46,7 +46,7 @@ typedef enum RM_RebootOrder {
   RM_REBOOTORDER_STANDARD, /* Follow normal reboot strategy */
   RM_REBOOTORDER_FAST,     /* Ignore maintenance window, but
 			      get locks first */
-  RM_REBOOTORDER_FORCED    /* Reboot immeaditly, without
+  RM_REBOOTORDER_FORCED    /* Reboot immediately, without
                               waiting for maintenance window */
 } RM_RebootOrder;
 
