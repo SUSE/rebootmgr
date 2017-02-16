@@ -170,6 +170,20 @@
     </varlistentry>
 
     <varlistentry>
+      <term><option>reboot</option> <optional>fast|now</optional></term>
+      <listitem>
+	<para>
+	  Tells rebootmgr to schedule a reboot. With
+	  the <optional>now</optional> option, a forced reboot is done, no lock
+	  from <command>etcd</command> is requested and a set maintenance
+	  window is ignored. With the <optional>fast</optional> option, a lock
+	  from <command>etcd</command> is requested if needed, but a defined
+	  maintenance window is ignored.
+	</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
       <term><option>status</option> <optional>--quiet</optional></term>
       <listitem>
 	<para>Prints the current status of <command>rebootmgrd</command>,
@@ -178,7 +192,7 @@
 	<command>rebootmgrctl</command> does not print any output, but returns
 	the current reboot status as return value. Valid values are:
 	</para>
-	<variablelist spacing='compact'>
+	<variablelist>
 	  <varlistentry>
 	    <term>0</term>
 	    <listitem>
