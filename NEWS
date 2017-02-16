@@ -2,6 +2,10 @@ rebootmgr NEWS -- history of user-visible changes.
 
 Copyright (C) 2016, 2017 Thorsten Kukuk
 
+Version 0.10
+* Fix typos in documentation
+* Fix compilation on 32bit systems
+
 Version 0.9
 * Finish manual page for rebootmgrctl
 
