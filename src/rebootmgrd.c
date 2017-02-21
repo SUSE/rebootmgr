@@ -123,6 +123,7 @@ reboot_timer (gpointer user_data)
 	etcd_is_running()) ||
        ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK))
     {
+      ctx->reboot_status = RM_REBOOTSTATUS_WAITING_ETCD;
       if (etcd_get_lock (ctx->lock_group, NULL) != 0)
 	{
 	  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
