@@ -135,7 +135,6 @@ setup_etcd_connection (cetcd_array *addrs, cetcd_client *cli)
 	{
 	  assert(idx < num_server);
 	  ++idx;
-	  printf ("idx=%i, token=%s\n", idx, token);
 	  cetcd_array_append (addrs, token);
 	}
       token = strtok(NULL, URL_DELIM);
