@@ -379,7 +379,7 @@ etcd_get_lock (const char *group, const char *machine_id)
 	{
 	  if (debug_flag)
 	    log_msg (LOG_DEBUG, "max locks reached for group '%s'", group);
-	  if (watch_key (&cli, group, "count", 0 /* XXX */) != 0)
+	  if (watch_key (&cli, group, "mutex", 0 /* XXX */) != 0)
 	    goto cleanup;
 	}
     }
