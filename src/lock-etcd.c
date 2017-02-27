@@ -270,6 +270,52 @@ release_mutex (cetcd_client *cli, const char *group)
   return 0;
 }
 
+
+/*
+  return values:
+  1: own a lock
+  0: don't own a lock
+  -1: error
+*/
+static int
+internal_etcd_own_lock (cetcd_client *cli, const char *group,
+			const char *machine_id)
+{
+  char *path = NULL;
+  int have_lock = 0;
+  cetcd_response *resp;
+
+  /* Check if the data structure for the locks exists, else create them */
+  if (asprintf (&path, "%s/%s/data", ETCD_LOCKS, group) == -1)
+    return -1;
+  resp = cetcd_get (cli, path);
+  free (path);
+  if (resp->err)
+    {
+      if (resp->err->ecode == 100)
+	create_lock_dir (cli, group);
+      else
+	log_msg (LOG_ERR, "ERROR: %d, %s (%s)", resp->err->ecode,
+		 resp->err->message, resp->err->cause);
+    }
+  else
+    {
+      json_object *jobj = json_tokener_parse (resp->node->value);
+
+      if (machine_id == NULL)
+	have_lock = is_id_in_holders (jobj, get_machine_id());
+      else
+	have_lock = is_id_in_holders (jobj, machine_id);
+
+      json_object_put (jobj);
+    }
+
+  cetcd_response_release (resp);
+
+  return have_lock;
+}
+
+
 /*
   return values:
   0: success
@@ -304,6 +350,14 @@ etcd_get_lock (const char *group, const char *machine_id)
 	}
     }
   cetcd_response_release (resp);
+
+  /* Check if we have the lock already. Don't try to get it a
+     second time, deadlock possible! */
+  if (internal_etcd_own_lock (&cli, group, machine_id))
+    {
+      retval = 0;
+      goto cleanup;
+    }
 
   /* try in a loop to get a mutex with current locks lower than max locks */
   while (!have_lock)
@@ -389,50 +443,6 @@ etcd_get_lock (const char *group, const char *machine_id)
   cetcd_client_destroy (&cli);
 
   return retval;
-}
-
-/*
-  return values:
-  1: own a lock
-  0: don't own a lock
-  -1: error
-*/
-static int
-internal_etcd_own_lock (cetcd_client *cli, const char *group,
-			const char *machine_id)
-{
-  char *path = NULL;
-  int have_lock = 0;
-  cetcd_response *resp;
-
-  /* Check if the data structure for the locks exists, else create them */
-  if (asprintf (&path, "%s/%s/data", ETCD_LOCKS, group) == -1)
-    return -1;
-  resp = cetcd_get (cli, path);
-  free (path);
-  if (resp->err)
-    {
-      if (resp->err->ecode == 100)
-	create_lock_dir (cli, group);
-      else
-	log_msg (LOG_ERR, "ERROR: %d, %s (%s)", resp->err->ecode,
-		 resp->err->message, resp->err->cause);
-    }
-  else
-    {
-      json_object *jobj = json_tokener_parse (resp->node->value);
-
-      if (machine_id == NULL)
-	have_lock = is_id_in_holders (jobj, get_machine_id());
-      else
-	have_lock = is_id_in_holders (jobj, machine_id);
-
-      json_object_put (jobj);
-    }
-
-  cetcd_response_release (resp);
-
-  return have_lock;
 }
 
 
