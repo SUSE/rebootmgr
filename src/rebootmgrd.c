@@ -113,6 +113,33 @@ reboot_now (RM_CTX *ctx)
     }
 }
 
+/* Getting the lock from etcd can take a long time. Run this
+   in an extra thread, so that we don't block dbus communication. */
+static gpointer
+reboot_with_lock (gpointer user_data)
+{
+  RM_CTX *ctx = user_data;
+
+  if (debug_flag)
+    log_msg (LOG_DEBUG, "reboot with lock called");
+
+  ctx->reboot_status = RM_REBOOTSTATUS_WAITING_ETCD;
+  if (etcd_get_lock (ctx->lock_group, NULL) != 0)
+    {
+      log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
+      ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
+      return NULL;
+    }
+  reboot_now (ctx);
+  /* if we end here, reboot was canceld */
+  if (etcd_release_lock (ctx->lock_group, NULL) != 0)
+    {
+      log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
+    }
+  return NULL;
+}
+
+
 /* Called by g_timeout_add when maintenance window starts */
 static gboolean
 reboot_timer (gpointer user_data)
@@ -123,19 +150,7 @@ reboot_timer (gpointer user_data)
 	etcd_is_running()) ||
        ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK))
     {
-      ctx->reboot_status = RM_REBOOTSTATUS_WAITING_ETCD;
-      if (etcd_get_lock (ctx->lock_group, NULL) != 0)
-	{
-	  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
-	  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
-	  return FALSE;
-	}
-      reboot_now (ctx);
-      /* if we end here, reboot was canceld */
-      if (etcd_release_lock (ctx->lock_group, NULL) != 0)
-	{
-	  log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
-	}
+      g_thread_new ("do reboot lock thread", &reboot_with_lock, ctx);
     }
   else
     reboot_now (ctx);
@@ -192,15 +207,17 @@ initialize_timer (RM_CTX *ctx)
     g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, ctx);
 }
 
-static gpointer
-do_reboot (gpointer user_data)
+static void
+do_reboot (RM_CTX *ctx)
 {
-  RM_CTX *ctx = user_data;
-
   ctx->reboot_status = RM_REBOOTSTATUS_REQUESTED;
 
   if (ctx->reboot_order == RM_REBOOTORDER_FORCED)
-    reboot_now (ctx);
+    {
+      if (debug_flag)
+	log_msg (LOG_DEBUG, "Forced reboot requested");
+      reboot_now (ctx);
+    }
 
   switch (ctx->reboot_strategy)
     {
@@ -213,16 +230,9 @@ do_reboot (gpointer user_data)
 	{
 	  if (ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK ||
 	      etcd_is_running())
-	    {
-	      ctx->reboot_status = RM_REBOOTSTATUS_WAITING_ETCD;
-	      if (etcd_get_lock (ctx->lock_group, NULL) != 0)
-		{
-		  log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
-		  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
-		  return NULL;
-		}
-	    }
-	  reboot_now (ctx);
+	    g_thread_new ("do reboot lock thread", &reboot_with_lock, ctx);
+	  else
+	    reboot_now (ctx);
 	}
       break;
     case RM_REBOOTSTRATEGY_INSTANTLY:
@@ -244,7 +254,6 @@ do_reboot (gpointer user_data)
 	       ctx->reboot_strategy);
       break;
     }
-  return NULL;
 }
 
 static DBusMessage *
@@ -290,7 +299,7 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
       if (ctx->reboot_status > 0)
 	log_msg (LOG_INFO, "Reboot already in progress, ignored");
       else
-	g_thread_new ("do reboot thread", do_reboot, ctx);
+	do_reboot (ctx);
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_CANCEL))
