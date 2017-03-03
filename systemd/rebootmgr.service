@@ -1,5 +1,9 @@
 [Unit]
 Description=Reboot Manager
+After=etcd.service
+After=network.target
+After=network-online.target
+Wants=network-online.target
 Documentation=man:rebootmgrd(8) man:rebootmgrctl(1)
 
 [Service]
