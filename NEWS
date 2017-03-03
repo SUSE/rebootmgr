@@ -2,6 +2,12 @@ rebootmgr NEWS -- history of user-visible changes.
 
 Copyright (C) 2016, 2017 Thorsten Kukuk
 
+Version 0.12
+* Rewrote reboot code to not block dbus if we wait for etcd locks [bsc#1026298]
+* Fix rebootmgr.service dependencies
+* Check input for maintenance window for correct syntax before sending
+  to the daemon [bsc#1026220]
+
 Version 0.11
 * Fix several bugs in etcd locking/unlocking
 
