@@ -29,6 +29,7 @@
 #include "util.h"
 #include "lock-etcd.h"
 #include "lock-json.h"
+#include "parse-duration.h"
 
 static void
 usage (int exit_code)
@@ -613,9 +614,22 @@ main (int argc, char **argv)
     {
       if (argc > 3)
 	{
-	  const char* start = argv[2];
-	  const char* duration = argv[3];
-	  retval = set_window (connection, start, duration);
+	  const char *start = argv[2];
+	  const char *duration = argv[3];
+	  CalendarSpec *tmp = NULL;
+
+	  if ((calendar_spec_from_string (start, &tmp)) < 0)
+	    {
+	      printf (_("Invalid time for maintenance window\n"));
+	      retval = 1;
+	    }
+	  else if (parse_duration (duration) ==  BAD_TIME)
+	    {
+	      printf (_("Invalid duration format for maintenance window\n"));
+	      retval = 1;
+	    }
+	  else
+	    retval = set_window (connection, start, duration);
 	}
       else
 	{
