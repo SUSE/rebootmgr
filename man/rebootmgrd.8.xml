@@ -95,7 +95,9 @@
 	  <para>
 	    Acquire a lock at etcd for the specified lock-group before
 	    reboot. If a maintenance window is specified, acquire the lock
-	    only during this window.
+	    only during this window. If taking the lock takes longer than the
+	    duration of the maitnenance window, the reboot is canceld and an
+	    error logged.
 	  </para>
 	</listitem>
 	</varlistentry>

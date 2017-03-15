@@ -130,6 +130,37 @@ reboot_with_lock (gpointer user_data)
       ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
       return NULL;
     }
+
+  /* check, if we are still inside the maintenance window. Else
+     cancel reboot */
+  if (ctx->maint_window_start != NULL)
+    {
+      int r;
+      usec_t curr = now(CLOCK_REALTIME);
+      usec_t next;
+      usec_t duration = ctx->maint_window_duration * USEC_PER_SEC;
+
+      /* Check, if we are inside the maintenance window. If yes, reboot now */
+      r = calendar_spec_next_usec (ctx->maint_window_start,
+				   curr - duration, &next);
+      if (r < 0)
+	{
+	  log_msg (LOG_ERR, "ERROR: Internal error converting the timer: %s",
+		   g_strerror (-r));
+	  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
+	  return NULL;
+	}
+
+      if (curr < next || curr > next + duration)
+	{
+	  /* we are outside the maintenance window, cancel */
+	  log_msg (LOG_ERR,
+		   "ERROR: getting etcd lock took too long, reboot canceld");
+	  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
+	  return NULL;
+	}
+    }
+
   reboot_now (ctx);
   /* if we end here, reboot was canceld */
   if (etcd_release_lock (ctx->lock_group, NULL) != 0)
