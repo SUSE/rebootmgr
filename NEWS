@@ -2,6 +2,10 @@ rebootmgr NEWS -- history of user-visible changes.
 
 Copyright (C) 2016, 2017 Thorsten Kukuk
 
+Version 0.13
+* Cancel reboot if we run out of the maintenance window with etcd-lock
+  [bsc#1028060]
+
 Version 0.12
 * Rewrote reboot code to not block dbus if we wait for etcd locks [bsc#1026298]
 * Fix rebootmgr.service dependencies
