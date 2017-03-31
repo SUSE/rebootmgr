@@ -97,12 +97,15 @@ save_config (RM_CTX *ctx)
   }
 
   g_key_file_set_string(key_file, RM_GROUP, "strategy", strategy_to_string(ctx->reboot_strategy, NULL));
-  char *p = spec_to_string(ctx->maint_window_start);
-  g_key_file_set_string(key_file, RM_GROUP, "window-start", p);
-  free(p);
-  p = duration_to_string(ctx->maint_window_duration);
-  g_key_file_set_string(key_file, RM_GROUP, "window-duration", p);
-  free(p);
+  if (ctx->maint_window_start != NULL)
+    {
+      char *p = spec_to_string(ctx->maint_window_start);
+      g_key_file_set_string(key_file, RM_GROUP, "window-start", p);
+      free(p);
+      p = duration_to_string(ctx->maint_window_duration);
+      g_key_file_set_string(key_file, RM_GROUP, "window-duration", p);
+      free(p);
+    }
   g_key_file_set_string (key_file, RM_GROUP, "lock-group", ctx->lock_group);
 
   error = NULL;
@@ -142,17 +145,20 @@ load_config (RM_CTX *ctx)
       str_strategy = g_key_file_get_string (key_file, RM_GROUP, "strategy", NULL);
       lock_group = g_key_file_get_string (key_file, RM_GROUP, "lock-group", NULL);
 
-      if (str_start == NULL)
-	str_start = strdup ("03:30");
-      if (str_duration == NULL)
-	str_duration = strdup ("1h");
+      if (str_start == NULL && str_duration != NULL)
+	str_duration = NULL;
       ctx->reboot_strategy = string_to_strategy(str_strategy, NULL);
-      if ((ret = calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
-	log_msg (LOG_ERR, "ERROR: cannot parse window-start (%s): %s",
-		 str_start, strerror (-ret));
-      if ((ctx->maint_window_duration = parse_duration (str_duration)) == BAD_TIME)
-	log_msg (LOG_ERR, "ERROR: cannot parse window-duration '%s'",
-		 str_duration);
+      if (str_start != NULL)
+	{
+	  if ((ret = calendar_spec_from_string (str_start,
+						&ctx->maint_window_start)) < 0)
+	    log_msg (LOG_ERR, "ERROR: cannot parse window-start (%s): %s",
+		     str_start, strerror (-ret));
+	  if ((ctx->maint_window_duration =
+	       parse_duration (str_duration)) == BAD_TIME)
+	    log_msg (LOG_ERR, "ERROR: cannot parse window-duration '%s'",
+		     str_duration);
+	}
       if (ctx->lock_group)
 	free (ctx->lock_group);
       if (lock_group == NULL)

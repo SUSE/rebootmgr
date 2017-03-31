@@ -433,9 +433,19 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_GET_MAINTWINDOW))
     {
-      char *str_start = spec_to_string(ctx->maint_window_start);
-      char *str_duration = duration_to_string(ctx->maint_window_duration);
+      char *str_start;
+      char *str_duration;
 
+      if (ctx->maint_window_start != NULL)
+	{
+	  str_start = spec_to_string(ctx->maint_window_start);
+	  str_duration = duration_to_string(ctx->maint_window_duration);
+	}
+      else
+	{
+	  str_start = strdup ("");
+	  str_duration = strdup ("");
+	}
       log_msg (LOG_DEBUG, "str_start: '%s' str_duration: '%s'",
 	       str_start, str_duration);
       /* create a reply from the message */
@@ -459,13 +469,20 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
                                  DBUS_TYPE_STRING, &str_duration,
                                  DBUS_TYPE_INVALID))
 	{
+	  if (str_start && strlen (str_start) > 0)
+	    {
+	      if ((calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
+		return reply;
 
-	  if ((calendar_spec_from_string (str_start, &ctx->maint_window_start)) < 0)
-	    return reply;
-
-	  if ((ctx->maint_window_duration = parse_duration (str_duration)) ==
-	      BAD_TIME)
-	    return reply;
+	      if ((ctx->maint_window_duration = parse_duration (str_duration)) ==
+		  BAD_TIME)
+		return reply;
+	    }
+	  else if (ctx->maint_window_start != NULL)
+	    {
+	      calendar_spec_free (ctx->maint_window_start);
+	      ctx->maint_window_start = NULL;
+	    }
 	  save_config(ctx);
 	}
     }

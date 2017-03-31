@@ -207,7 +207,10 @@ get_window (DBusConnection *connection)
   if (dbus_message_get_args (reply, &error, DBUS_TYPE_STRING, &start,
 			     DBUS_TYPE_STRING, &duration, DBUS_TYPE_INVALID))
     {
-      printf (_("Maintenance window is set to %s, lasting %s.\n"), start, duration);
+      if (start != NULL && strlen (start) > 0)
+	printf (_("Maintenance window is set to %s, lasting %s.\n"), start, duration);
+      else
+	printf (_("No maintenance window set.\n"));
     }
   else
   {
@@ -618,17 +621,21 @@ main (int argc, char **argv)
 	  const char *duration = argv[3];
 	  CalendarSpec *tmp = NULL;
 
-	  if ((calendar_spec_from_string (start, &tmp)) < 0)
+	  if (strlen (argv[2]) > 0)
 	    {
-	      printf (_("Invalid time for maintenance window\n"));
-	      retval = 1;
+
+	      if ((calendar_spec_from_string (start, &tmp)) < 0)
+		{
+		  printf (_("Invalid time for maintenance window\n"));
+		  retval = 1;
+		}
+	      else if (parse_duration (duration) ==  BAD_TIME)
+		{
+		  printf (_("Invalid duration format for maintenance window\n"));
+		  retval = 1;
+		}
 	    }
-	  else if (parse_duration (duration) ==  BAD_TIME)
-	    {
-	      printf (_("Invalid duration format for maintenance window\n"));
-	      retval = 1;
-	    }
-	  else
+	  if (retval == 0)
 	    retval = set_window (connection, start, duration);
 	}
       else
