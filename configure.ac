@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(rebootmgr, 0.15)
+AC_INIT(rebootmgr, 0.16)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/rebootmgrd.c])
 AM_CONFIG_HEADER(config.h)
@@ -45,7 +45,7 @@ AC_SUBST(SYSTEMDDIR)
 
 
 
-EXTRA_CFLAGS="-Werror -W -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -DXTSTRINGDEFINES -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef -D_FORTIFY_SOURCE=2"
+EXTRA_CFLAGS="-W -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -DXTSTRINGDEFINES -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef -D_FORTIFY_SOURCE=2"
 AC_SUBST(EXTRA_CFLAGS)
 dnl Checks for programs.
 AC_GNU_SOURCE

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Thorsten Kukuk
+/* Copyright (c) 2016, 2017, 2018 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -475,7 +475,7 @@ print_etcd_status (DBusConnection *connection)
       if (curr_locks > 0)
 	{
 	  json_object *jarray = NULL;
-	  int64_t idx;
+	  u_int64_t idx;
 
 	  printf (_("\n\tMachine ID:\n"));
 

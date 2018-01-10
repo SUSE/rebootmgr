@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Thorsten Kukuk
+/* Copyright (c) 2017, 2018 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -100,7 +100,7 @@ json_bool
 remove_id_from_holders (json_object *jobj, const char *id)
 {
   json_object *jarray = NULL;
-  int64_t idx;
+  u_int64_t idx;
   json_bool found = FALSE;
 
   if (json_object_object_get_ex (jobj, "holders", &jarray) != TRUE)
@@ -142,7 +142,7 @@ json_bool
 is_id_in_holders (json_object *jobj, const char *id)
 {
   json_object *jarray = NULL;
-  int64_t idx;
+  u_int64_t idx;
 
   if (json_object_object_get_ex (jobj, "holders", &jarray) != TRUE)
     {
