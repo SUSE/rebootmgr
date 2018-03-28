@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2016, 2017 Thorsten Kukuk
+/* Copyright (c) 2016, 2017, 2018 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -131,9 +131,10 @@ reboot_with_lock (gpointer user_data)
       return NULL;
     }
 
-  /* check, if we are still inside the maintenance window. Else
-     cancel reboot */
-  if (ctx->maint_window_start != NULL)
+  /* Check, if we are still inside the maintenance window. Else
+     cancel reboot. But only if we are not in fast mode. */
+  if (ctx->reboot_order != RM_REBOOTORDER_FAST &&
+      ctx->maint_window_start != NULL)
     {
       int r;
       usec_t curr = now(CLOCK_REALTIME);
@@ -148,7 +149,7 @@ reboot_with_lock (gpointer user_data)
 	  log_msg (LOG_ERR, "ERROR: Internal error converting the timer: %s",
 		   g_strerror (-r));
 	  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
-	  return NULL;
+	  goto reboot_canceld;
 	}
 
       if (curr < next || curr > next + duration)
@@ -157,12 +158,14 @@ reboot_with_lock (gpointer user_data)
 	  log_msg (LOG_ERR,
 		   "ERROR: getting etcd lock took too long, reboot canceld");
 	  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
-	  return NULL;
+	  goto reboot_canceld;
 	}
     }
 
   reboot_now (ctx);
-  /* if we end here, reboot was canceld */
+
+ reboot_canceld:
+  /* If we end here, reboot was canceld. Free Lock */
   if (etcd_release_lock (ctx->lock_group, NULL) != 0)
     {
       log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
