@@ -2,6 +2,10 @@ rebootmgr NEWS -- history of user-visible changes.
 
 Copyright (C) 2016, 2017, 2018 Thorsten Kukuk
 
+Version 0.17
+* Fix fast reboot with etcd lock [issues/4]
+* Release etcd lock if reboot got canceled
+
 Version 0.16
 * Remove -Werror
 * Use unsigned integers for json-c loops
