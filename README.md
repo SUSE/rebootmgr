@@ -12,3 +12,20 @@ rebootmgr supports different strategies, when a reboot should be done:
 * `best-effort` - this is the default. If etcd is running, use `etcd-lock`. If no etcd is running, but a maintenance window is specified, use `maint-window`. If no maintenance window is specified, reboot immediately (`instantly`).
 * `off` - rebootmgr continues to run, but ignores all signals to reboot. Setting the strategy to `off` does not clear the maintenance window. If rebootmgr is enabled again, it will continue to use the old specified maintenance window.
 
+## Configuration example
+
+File _/etc/rebootmgr.conf_
+```
+[rebootmgr]
+window-start=3:30
+window-duration=1h30m
+strategy=best-effort
+lock-group=default
+```
+
+## Checking if a reboot is requested
+
+```bash
+$ sudo rebootmgrctl status
+Status: Reboot not requested
+```
