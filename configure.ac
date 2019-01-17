@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(rebootmgr, 0.17)
+AC_INIT(rebootmgr, 0.18)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/rebootmgrd.c])
 AM_CONFIG_HEADER(config.h)
@@ -65,13 +65,16 @@ AC_SUBST(DBUS_LIBS)
 PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.40)
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
-PKG_CHECK_MODULES([JSON], [json-c])
-AC_SUBST(JSON_CFLAGS)
-AC_SUBST(JSON_LIBS)
 
-AC_CHECK_LIB([cetcd],[cetcd_client_init],[], [
-  AC_MSG_ERROR([unable to find the cetcd library])
-])
+AC_CHECK_LIB([cetcd],[cetcd_client_init],[ETCD_LIBS="-lcetcd"],[ETCD_LIBS=""])
+if test x"" != x"${ETCD_LIBS}"
+then
+	AC_DEFINE(USE_ETCD, 1, [Use etcd for locking])
+	AC_SUBST(ETCD_LIBS)
+	PKG_CHECK_MODULES([JSON], [json-c])
+	AC_SUBST(JSON_CFLAGS)
+	AC_SUBST(JSON_LIBS)
+fi
 
 dnl
 dnl Check for xsltproc

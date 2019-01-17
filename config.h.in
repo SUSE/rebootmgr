@@ -28,9 +28,6 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `cetcd' library (-lcetcd). */
-#undef HAVE_LIBCETCD
-
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
@@ -78,6 +75,9 @@
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
+
+/* Use etcd for locking */
+#undef USE_ETCD
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE

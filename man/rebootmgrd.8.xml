@@ -97,7 +97,8 @@
 	    reboot. If a maintenance window is specified, acquire the lock
 	    only during this window. If taking the lock takes longer than the
 	    duration of the maitnenance window, the reboot is canceld and an
-	    error logged.
+	    error logged. This option is only available if 
+	    <emphasis remap='B'>rebootmgrd</emphasis> was compiled with etcd support.
 	  </para>
 	</listitem>
 	</varlistentry>

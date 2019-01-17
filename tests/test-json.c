@@ -20,6 +20,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+
+#ifdef USE_ETCD
 #include <json-c/json.h>
 
 #include "lock-json.h"
@@ -86,5 +88,15 @@ main (void)
       retval = 1;
     }
 
-  return 0;
+  return retval;
 }
+
+#else
+
+int
+main (int argc, char *argv[])
+{
+  printf ("No etcd and json support available\n");
+  return 77;
+}
+#endif /* USE_ETCD */

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Thorsten Kukuk
+/* Copyright (c) 2017, 2019 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -16,6 +16,8 @@
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
+
+#ifdef USE_ETCD
 
 #include <stdio.h>
 #include <string.h>
@@ -663,3 +665,5 @@ etcd_is_running (void)
 
   return retval;
 }
+
+#endif /* USE_ETCD */

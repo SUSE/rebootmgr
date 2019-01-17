@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2016, 2017, 2018 Thorsten Kukuk
+/* Copyright (c) 2016, 2017, 2018, 2019 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -35,7 +35,9 @@
 #include "rebootmgr.h"
 #include "parse-duration.h"
 #include "util.h"
+#ifdef USE_ETCD
 #include "lock-etcd.h"
+#endif
 
 #define PROPERTIES_METHOD_GETALL "GetAll"
 #define PROPERTIES_METHOD_GET    "Get"
@@ -113,6 +115,7 @@ reboot_now (RM_CTX *ctx)
     }
 }
 
+#ifdef USE_ETCD
 /* Getting the lock from etcd can take a long time. Run this
    in an extra thread, so that we don't block dbus communication. */
 static gpointer
@@ -172,7 +175,7 @@ reboot_with_lock (gpointer user_data)
     }
   return NULL;
 }
-
+#endif /* USE_ETCD */
 
 /* Called by g_timeout_add when maintenance window starts */
 static gboolean
@@ -180,6 +183,7 @@ reboot_timer (gpointer user_data)
 {
   RM_CTX *ctx = user_data;
 
+#ifdef USE_ETCD
   if (((ctx->reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT &&
 	etcd_is_running()) ||
        ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK))
@@ -187,6 +191,7 @@ reboot_timer (gpointer user_data)
       g_thread_new ("do reboot lock thread", &reboot_with_lock, ctx);
     }
   else
+#endif /* USE_ETCD */
     reboot_now (ctx);
   return FALSE;
 }
@@ -262,10 +267,12 @@ do_reboot (RM_CTX *ctx)
 	initialize_timer(ctx);
       else
 	{
+#ifdef USE_ETCD
 	  if (ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK ||
 	      etcd_is_running())
 	    g_thread_new ("do reboot lock thread", &reboot_with_lock, ctx);
 	  else
+#endif /* USE_ETCD */
 	    reboot_now (ctx);
 	}
       break;
@@ -808,12 +815,14 @@ main (int argc, char **argv)
 
   load_config (ctx);
 
+#ifdef USE_ETCD
   if (etcd_is_running () &&
       etcd_own_lock (ctx->lock_group))
     {
       if (etcd_release_lock (ctx->lock_group, NULL) != 0)
 	log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
     }
+#endif /* USE_ETCD */
 
   loop = g_main_loop_new (NULL, FALSE);
 

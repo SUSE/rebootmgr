@@ -3,7 +3,7 @@
 #
 # Author: Thorsten Kukuk <kukuk@suse.de>
 #
-AUTOMAKE_OPTIONS = 1.6 foreign check-news dist-bzip2
+AUTOMAKE_OPTIONS = 1.6 foreign check-news dist-xz
 #
 SUBDIRS = lib src man dbus systemd etc tests
 

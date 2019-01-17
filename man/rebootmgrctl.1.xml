@@ -135,7 +135,8 @@
   <para><emphasis remap='B'>rebootmgrctl</emphasis> is used to
   query and configure the
   <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry>
-  process.</para>
+  process. Options regarding to <option>etcd-lock</option> are only available if 
+  <emphasis remap='B'>rebootmgrctl</emphasis> was compiled with etcd support.</para>
   </refsect1>
 
   <refsect1 id='options'><title>Options</title>

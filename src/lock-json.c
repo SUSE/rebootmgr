@@ -17,6 +17,8 @@
 #include "config.h"
 #endif
 
+#ifdef USE_ETCD
+
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -161,3 +163,5 @@ is_id_in_holders (json_object *jobj, const char *id)
 
   return FALSE;
 }
+
+#endif /* USE_ETCD */

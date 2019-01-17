@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Thorsten Kukuk
+/* Copyright (c) 2016, 2017, 2018, 2019 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -27,8 +27,10 @@
 
 #include "rebootmgr.h"
 #include "util.h"
+#ifdef USE_ETCD
 #include "lock-etcd.h"
 #include "lock-json.h"
+#endif
 #include "parse-duration.h"
 
 static void
@@ -40,16 +42,24 @@ usage (int exit_code)
   printf (_("\trebootmgrctl reboot [fast|now]\n"));
   printf (_("\trebootmgrctl cancel\n"));
   printf (_("\trebootmgrctl status [--quiet]\n"));
-  printf (_("\trebootmgrctl set-strategy best-effort|etcd-lock|maint-window|\n"));
+  printf (_("\trebootmgrctl set-strategy best-effort|%smaint-window|\n"),
+#ifdef USE_ETCD
+	  "etcd-lock|"
+#else
+	  ""
+#endif
+	  );
   printf (_("\t                   instantly|off\n"));
   printf (_("\trebootmgrctl get-strategy\n"));
   printf (_("\trebootmgrctl set-window <time> <duration>\n"));
   printf (_("\trebootmgrctl get-window\n"));
+#ifdef USE_ETCD
   printf (_("\trebootmgrctl set-group <etcd lock group>\n"));
   printf (_("\trebootmgrctl get-group\n"));
   printf (_("\trebootmgrctl set-max [--group <group>] <number>\n"));
   printf (_("\trebootmgrctl lock [--group <group>] [<machine id>]\n"));
   printf (_("\trebootmgrctl unlock [--group <group>] [<machine id>]\n"));
+#endif
   exit (exit_code);
 }
 
@@ -353,6 +363,7 @@ get_status (DBusConnection *connection)
   return status;
 }
 
+#ifdef USE_ETCD
 static const char *
 get_lock_group (DBusConnection *connection)
 {
@@ -439,7 +450,6 @@ set_lock_group (DBusConnection *connection, const char *group)
   return retval;
 }
 
-
 static void
 print_etcd_status (DBusConnection *connection)
 {
@@ -495,6 +505,7 @@ print_etcd_status (DBusConnection *connection)
       json_object_put (jobj);
     }
 }
+#endif /* USE_ETCD */
 
 int
 main (int argc, char **argv)
@@ -643,6 +654,7 @@ main (int argc, char **argv)
 	  usage(1);
 	}
     }
+#ifdef USE_ETCD
   else if (strcasecmp ("get-group", argv[1]) == 0 ||
            strcasecmp ("get_group", argv[1]) == 0)
     {
@@ -665,6 +677,7 @@ main (int argc, char **argv)
 	  usage(1);
 	}
     }
+#endif /* USE_ETCD */
   else if (strcasecmp ("cancel", argv[1]) == 0)
     retval = cancel_reboot (connection);
   else if (strcasecmp ("status", argv[1]) == 0)
@@ -685,12 +698,15 @@ main (int argc, char **argv)
 	  if (status >= 0)
 	    {
 	      printf ("Status: %s\n", status_to_string (status, NULL));
+#ifdef USE_ETCD
 	      print_etcd_status (connection);
+#endif /* USE_ETCD */
 	    }
 	  else
 	    retval = 1;
 	}
     }
+#ifdef USE_ETCD
   else if (strcasecmp ("lock", argv[1]) == 0)
     {
       const char *group;
@@ -819,6 +835,7 @@ main (int argc, char **argv)
 	    }
 	}
     }
+#endif /* USE_ETCD */
   else
     usage (1);
 

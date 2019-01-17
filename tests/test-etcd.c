@@ -20,6 +20,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifdef USE_ETCD
+
 #include "lock-etcd.h"
 
 #define ETCD_LOCKS_DEFAULT_GROUP "rebootmgr-testsuite"
@@ -67,3 +69,13 @@ main (int argc, char *argv[])
 
   return 0;
 }
+
+#else
+
+int
+main (int argc, char *argv[])
+{
+  printf ("No etcd support\n");
+  return 77;
+}
+#endif /* USE_ETCD */
