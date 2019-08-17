@@ -34,7 +34,7 @@ define html-alias
 endef
 
 rebootmgr.index.xml: make-man-index.py $(XMLS)
-	python $(srcdir)/make-man-index.py $(srcdir)/$@ $(XMLS)
+	python3 $(srcdir)/make-man-index.py $(srcdir)/$@ $(XMLS)
 
 rebootmgrd.8: rebootmgrd.8.xml
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) --xinclude --nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
