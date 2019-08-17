@@ -23,13 +23,13 @@
 #include <string.h>
 #include <libintl.h>
 #include <dbus/dbus.h>
-#include <json-c/json.h>
 
 #include "rebootmgr.h"
 #include "util.h"
 #ifdef USE_ETCD
 #include "lock-etcd.h"
 #include "lock-json.h"
+#include <json.h>
 #endif
 #include "parse-duration.h"
 
