@@ -76,6 +76,9 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* Use ECONF */
+#undef USE_ECONF
+
 /* Use etcd for locking */
 #undef USE_ETCD
 
