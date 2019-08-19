@@ -27,9 +27,9 @@
 #include "rebootmgr.h"
 #include "util.h"
 #ifdef USE_ETCD
+#include <json-c/json.h>
 #include "lock-etcd.h"
 #include "lock-json.h"
-#include <json.h>
 #endif
 #include "parse-duration.h"
 
