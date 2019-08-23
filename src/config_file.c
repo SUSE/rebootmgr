@@ -93,20 +93,31 @@ load_config (RM_CTX *ctx)
 {
   Key_File *key_file = NULL, *key_file_1 = NULL, *key_file_2 = NULL,
     *key_file_m = NULL;
+  econf_err error;
 
-  key_file_1 = econf_get_key_file ("/etc/rebootmgr.conf", "=", '#');
-  key_file_2 = econf_get_key_file ("/usr/etc/rebootmgr.conf", "=", '#');
-  if (key_file_1 == NULL && key_file_2 == NULL)
+  key_file_1 = econf_get_key_file (DISTCONFDIR"/rebootmgr.conf", "=", '#', &error);
+  if (key_file_1 == NULL)
     {
-      log_msg (LOG_ERR, "Cannot load 'rebootmgr.conf'");
+      log_msg (LOG_ERR, "Cannot load '"DISTCONFDIR"/rebootmgr.conf': %s",
+	       econf_errString(error));
       return;
     }
-  else if (key_file_1 != NULL && key_file_2 != NULL)
+
+  key_file_2 = econf_get_key_file (SYSCONFDIR"/rebootmgr.conf", "=", '#', &error);
+  if (key_file_2 == NULL)
     {
-      key_file_m = econf_merge_key_files (key_file_2, key_file_1);
+      log_msg (LOG_ERR, "Cannot load '"SYSCONFDIR"rebootmgr.conf': %s",
+	       econf_errString(error));
+      return;
+    }
+
+  if (key_file_1 != NULL && key_file_2 != NULL)
+    {
+      key_file_m = econf_merge_key_files (key_file_1, key_file_2, &error);
       if (key_file_m == NULL)
 	{
-	  log_msg (LOG_ERR, "Cannot merge 'rebootmgr.conf'");
+	  log_msg (LOG_ERR, "Cannot merge 'rebootmgr.conf': %s",
+		   econf_errString(error));
 	  return;
 	}
       key_file = key_file_m;
@@ -156,7 +167,7 @@ load_config (RM_CTX *ctx)
       if (key_file_2)
 	econf_destroy(key_file_2);
       if (key_file_m)
-	econf_destroy_merged_file(key_file_m);
+	econf_destroy(key_file_m);
       if (str_start)
 	free (str_start);
       if (str_duration)

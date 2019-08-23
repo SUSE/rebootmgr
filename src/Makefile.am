@@ -4,13 +4,15 @@
 # Author: Thorsten Kukuk <kukuk@suse.de>
 #
 
+distconfdir = /usr/etc
 localedir = $(datadir)/locale
 introspectiondir = $(datadir)/dbus-1/interfaces
 
 CLEANFILES = *~
 
 AM_CFLAGS = -D_REENTRANT=1 $(EXTRA_CFLAGS) -DLOCALEDIR=\"$(localedir)\" \
-	-DINTROSPECTIONDIR=\"$(introspectiondir)\" -DSYSCONFDIR=\"$(sysconfdir)\"\
+	-DINTROSPECTIONDIR=\"$(introspectiondir)\" \
+	-DSYSCONFDIR=\"$(sysconfdir)\" -DDISTCONFDIR=\"$(distconfdir)\" \
 	-I$(top_srcdir)/lib ${DBUS_CFLAGS} ${GLIB_CFLAGS} ${JSON_CFLAGS} \
 	${ECONF_CFLAGS}
 
