@@ -84,7 +84,7 @@ fail:
 }
 
 #define RM_CONFIG_FILE SYSCONFDIR"/rebootmgr.conf"
-#define RM_CONFIG2_FILE "/usr/"SYSCONFDIR"/rebootmgr.conf"
+#define RM_CONFIG2_FILE DISTCONFDIR"/rebootmgr.conf"
 #define RM_GROUP "rebootmgr"
 
 #if USE_ECONF
