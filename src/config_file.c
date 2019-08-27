@@ -135,10 +135,34 @@ load_config (RM_CTX *ctx)
     {
       char *str_start = NULL, *str_duration = NULL, *str_strategy = NULL, *lock_group = NULL;
 
-      str_start = econf_getStringValue(key_file, RM_GROUP, "window-start");
-      str_duration = econf_getStringValue (key_file, RM_GROUP, "window-duration");
-      str_strategy = econf_getStringValue (key_file, RM_GROUP, "strategy");
-      lock_group = econf_getStringValue (key_file, RM_GROUP, "lock-group");
+      str_start = econf_getStringValue(key_file, RM_GROUP, "window-start", &error);
+      if (str_start == NULL && error != ECONF_NOKEY)
+	{
+	  log_msg (LOG_ERR, "ERROR (econf): cannot get key 'window-start': %s",
+		   econf_errString(error));
+	  goto out;
+	}
+      str_duration = econf_getStringValue (key_file, RM_GROUP, "window-duration", &error);
+      if (str_duration == NULL && error != ECONF_NOKEY)
+	{
+	  log_msg (LOG_ERR, "ERROR (econf): cannot get key 'window-duration': %s",
+		   econf_errString(error));
+	  goto out;
+	}
+      str_strategy = econf_getStringValue (key_file, RM_GROUP, "strategy", &error);
+      if (str_strategy == NULL && error != ECONF_NOKEY)
+	{
+	  log_msg (LOG_ERR, "ERROR (econf): cannot get key 'strategy': %s",
+		   econf_errString(error));
+	  goto out;
+	}
+      lock_group = econf_getStringValue (key_file, RM_GROUP, "lock-group", &error);
+      if (lock_group == NULL && error != ECONF_NOKEY)
+	{
+	  log_msg (LOG_ERR, "ERROR (econf): cannot get key 'lock-group': %s",
+		   econf_errString(error));
+	  goto out;
+	}
 
       if (str_start == NULL && str_duration != NULL)
 	str_duration = NULL;
@@ -162,6 +186,7 @@ load_config (RM_CTX *ctx)
 	ctx->lock_group = strdup ("default");
       else
 	ctx->lock_group = strdup (lock_group);
+    out:
       if (key_file_1)
 	econf_destroy(key_file_1);
       if (key_file_2)
