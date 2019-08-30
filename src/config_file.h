@@ -19,7 +19,11 @@
 #ifndef __CONFIG_FILE_H__
 #define __CONFIG_FILE_H__
 
-void save_config (RM_CTX *ctx);
+#define SET_STRATEGY 1
+#define SET_LOCK_GROUP 2
+#define SET_MAINT_WINDOW 3
+
+void save_config (RM_CTX *ctx, int field);
 void load_config (RM_CTX *ctx);
 char *get_file_content (const char *fname);
 

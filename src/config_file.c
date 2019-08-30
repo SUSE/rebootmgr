@@ -91,73 +91,70 @@ fail:
 void
 load_config (RM_CTX *ctx)
 {
-  Key_File *key_file = NULL, *key_file_1 = NULL, *key_file_2 = NULL,
-    *key_file_m = NULL;
+  econf_file *file = NULL, *file_1 = NULL, *file_2 = NULL,
+    *file_m = NULL;
   econf_err error;
 
-  key_file_1 = econf_get_key_file (DISTCONFDIR"/rebootmgr.conf", "=", '#', &error);
-  if (key_file_1 == NULL)
+  error = econf_readFile (&file_1, DISTCONFDIR"/rebootmgr.conf", "=", "#");
+  if (error && error != ECONF_NOFILE)
     {
       log_msg (LOG_ERR, "Cannot load '"DISTCONFDIR"/rebootmgr.conf': %s",
 	       econf_errString(error));
       return;
     }
 
-  key_file_2 = econf_get_key_file (SYSCONFDIR"/rebootmgr.conf", "=", '#', &error);
-  if (key_file_2 == NULL)
+  error = econf_readFile (&file_2, SYSCONFDIR"/rebootmgr.conf", "=", "#");
+  if (error && error != ECONF_NOFILE)
     {
       log_msg (LOG_ERR, "Cannot load '"SYSCONFDIR"rebootmgr.conf': %s",
 	       econf_errString(error));
       return;
     }
 
-  if (key_file_1 != NULL && key_file_2 != NULL)
+  if (file_1 != NULL && file_2 != NULL)
     {
-      key_file_m = econf_merge_key_files (key_file_1, key_file_2, &error);
-      if (key_file_m == NULL)
+      if ((error = econf_mergeFiles (&file_m, file_1, file_2)))
 	{
 	  log_msg (LOG_ERR, "Cannot merge 'rebootmgr.conf': %s",
 		   econf_errString(error));
 	  return;
 	}
-      key_file = key_file_m;
+      file = file_m;
     }
-  else if  (key_file_2 != NULL)
-    key_file = key_file_2;
-  else if (key_file_1 != NULL)
-    key_file = key_file_1;
+  else if  (file_2 != NULL)
+    file = file_2;
+  else if (file_1 != NULL)
+    file = file_1;
 
-  if (key_file == NULL) /* should not happen ... */
-    {
+  if (file == NULL) /* happens if  no config file exists */
       log_msg (LOG_ERR, "Cannot load 'rebootmgr.conf'");
-    }
   else
     {
       char *str_start = NULL, *str_duration = NULL, *str_strategy = NULL, *lock_group = NULL;
 
-      str_start = econf_getStringValue(key_file, RM_GROUP, "window-start", &error);
-      if (str_start == NULL && error != ECONF_NOKEY)
+      error = econf_getStringValue(file, RM_GROUP, "window-start", &str_start);
+      if (error && error != ECONF_NOKEY)
 	{
 	  log_msg (LOG_ERR, "ERROR (econf): cannot get key 'window-start': %s",
 		   econf_errString(error));
 	  goto out;
 	}
-      str_duration = econf_getStringValue (key_file, RM_GROUP, "window-duration", &error);
-      if (str_duration == NULL && error != ECONF_NOKEY)
+      error = econf_getStringValue (file, RM_GROUP, "window-duration", &str_duration);
+      if (error && error != ECONF_NOKEY)
 	{
 	  log_msg (LOG_ERR, "ERROR (econf): cannot get key 'window-duration': %s",
 		   econf_errString(error));
 	  goto out;
 	}
-      str_strategy = econf_getStringValue (key_file, RM_GROUP, "strategy", &error);
-      if (str_strategy == NULL && error != ECONF_NOKEY)
+      error = econf_getStringValue (file, RM_GROUP, "strategy", &str_strategy);
+      if (error && error != ECONF_NOKEY)
 	{
 	  log_msg (LOG_ERR, "ERROR (econf): cannot get key 'strategy': %s",
 		   econf_errString(error));
 	  goto out;
 	}
-      lock_group = econf_getStringValue (key_file, RM_GROUP, "lock-group", &error);
-      if (lock_group == NULL && error != ECONF_NOKEY)
+      error = econf_getStringValue (file, RM_GROUP, "lock-group", &lock_group);
+      if (error && error != ECONF_NOKEY)
 	{
 	  log_msg (LOG_ERR, "ERROR (econf): cannot get key 'lock-group': %s",
 		   econf_errString(error));
@@ -187,12 +184,12 @@ load_config (RM_CTX *ctx)
       else
 	ctx->lock_group = strdup (lock_group);
     out:
-      if (key_file_1)
-	econf_destroy(key_file_1);
-      if (key_file_2)
-	econf_destroy(key_file_2);
-      if (key_file_m)
-	econf_destroy(key_file_m);
+      if (file_1)
+	econf_free(file_1);
+      if (file_2)
+	econf_free(file_2);
+      if (file_m)
+	econf_free(file_m);
       if (str_start)
 	free (str_start);
       if (str_duration)
@@ -206,50 +203,75 @@ load_config (RM_CTX *ctx)
 
 
 void
-save_config (RM_CTX *ctx)
+save_config (RM_CTX *ctx, int field)
 {
-#if 0
-  GKeyFile *key_file;
-  GError *error;
+  econf_file *file;
+  econf_err error;
 
-  key_file = g_key_file_new ();
-  error = NULL;
-
-  if (!g_key_file_load_from_file (key_file, RM_CONFIG_FILE,
-                                  G_KEY_FILE_KEEP_COMMENTS |
-                                  G_KEY_FILE_KEEP_TRANSLATIONS,
-                                  &error))
-  {
-    log_msg (LOG_ERR, "Cannot load '"RM_CONFIG_FILE"': %s", error->message);
-    g_error_free(error);
-  }
-
-  g_key_file_set_string(key_file, RM_GROUP, "strategy", strategy_to_string(ctx->reboot_strategy, NULL));
-  if (ctx->maint_window_start != NULL)
+  error = econf_readFile (&file, SYSCONFDIR"/rebootmgr.conf", "=", "#");
+  if (error)
     {
-      char *p = spec_to_string(ctx->maint_window_start);
-      g_key_file_set_string(key_file, RM_GROUP, "window-start", p);
-      free(p);
-      p = duration_to_string(ctx->maint_window_duration);
-      g_key_file_set_string(key_file, RM_GROUP, "window-duration", p);
-      free(p);
+      if (error != ECONF_NOFILE)
+	{
+	  log_msg (LOG_ERR, "Cannot load '"SYSCONFDIR"rebootmgr.conf': %s",
+		   econf_errString(error));
+	  return;
+	}
+      else
+	{
+	  if ((error = econf_newKeyFile (&file, '=', '#')))
+	    {
+	      log_msg (LOG_ERR, "Cannot create new config file: %s",
+		       econf_errString(error));
+	      return;
+	    }
+	}
     }
-  g_key_file_set_string (key_file, RM_GROUP, "lock-group", ctx->lock_group);
 
-  error = NULL;
-  if (!g_key_file_save_to_file(key_file, RM_CONFIG_FILE, &error))
-  {
-    log_msg (LOG_ERR, "Cannot save to '"RM_CONFIG_FILE"': %s", error->message);
-    g_error_free(error);
-  }
+  switch (field)
+    {
+      char *p;
+    case SET_STRATEGY:
+      error = econf_setStringValue (file, RM_GROUP, "strategy",
+				    strategy_to_string(ctx->reboot_strategy, NULL));
+      break;
+    case SET_LOCK_GROUP:
+      error = econf_setStringValue (file, RM_GROUP, "lock-group", ctx->lock_group);
+      break;
+    case SET_MAINT_WINDOW:
+      p = spec_to_string(ctx->maint_window_start);
+      error = econf_setStringValue (file, RM_GROUP, "window-start", p);
+      free (p);
+      if (!error)
+	{
+	  p = duration_to_string(ctx->maint_window_duration);
+	  error = econf_setStringValue (file, RM_GROUP, "window-duration", p);
+	  free (p);
+	}
+      break;
+    default:
+      log_msg (LOG_ERR, "Error writing config file, unknown field %i", field);
+      econf_free (file);
+      return;
+    }
 
-  g_key_file_free (key_file);
-#endif
+  if (error)
+    {
+      log_msg (LOG_ERR, "Error setting variable: %s\n", econf_errString(error));
+      econf_free (file);
+      return;
+    }
+
+  if ((error = econf_writeFile(file, SYSCONFDIR"/", "rebootmgr.conf")))
+    log_msg (LOG_ERR, "Error writing "SYSCONFDIR"/rebootmgr.conf: %s",
+	     econf_errString(error));
+
+  econf_free (file);
 }
 
 #else
 void
-save_config (RM_CTX *ctx)
+save_config (RM_CTX *ctx, int fields __attribute__((unused)))
 {
   GKeyFile *key_file;
   GError *error;

@@ -368,7 +368,7 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	      if (debug_flag)
 		log_msg (LOG_DEBUG, "reboot_strategy changed");
 	      ctx->reboot_strategy = strategy;
-	      save_config (ctx);
+	      save_config (ctx, SET_STRATEGY);
 	    }
 	}
     }
@@ -409,7 +409,7 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 		free (ctx->lock_group);
 	      ctx->lock_group = strdup (group);
 	    }
-	  save_config (ctx);
+	  save_config (ctx, SET_LOCK_GROUP);
 	}
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
@@ -493,7 +493,7 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	      calendar_spec_free (ctx->maint_window_start);
 	      ctx->maint_window_start = NULL;
 	    }
-	  save_config(ctx);
+	  save_config(ctx, SET_MAINT_WINDOW);
 	}
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,

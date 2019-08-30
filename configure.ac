@@ -56,6 +56,9 @@ AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_PROG_LN_S
 
+dnl Check for gettid wrapper
+AC_CHECK_FUNC(gettid, [AC_DEFINE(HAVE_GETTID, 1, [Define to 1 if gettid() is available])])
+
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 

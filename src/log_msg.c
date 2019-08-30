@@ -25,6 +25,8 @@
 #include "log_msg.h"
 
 #include <sys/syscall.h>
+
+#ifndef HAVE_GETTID
 #ifdef __NR_gettid
 static pid_t
 gettid (void)
@@ -38,6 +40,7 @@ gettid (void)
     return getpid ();
 }
 #endif
+#endif /* ! HAVE_GETTID */
 
 int debug_flag = 0;
 int logfile_flag = 0;
