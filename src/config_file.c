@@ -205,7 +205,7 @@ load_config (RM_CTX *ctx)
 void
 save_config (RM_CTX *ctx, int field)
 {
-  econf_file *file;
+  econf_file *file = NULL;
   econf_err error;
 
   error = econf_readFile (&file, SYSCONFDIR"/rebootmgr.conf", "=", "#");
