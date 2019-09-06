@@ -104,7 +104,7 @@ static void test_next(const char *input, const char *new_tz, usec_t after, usec_
         tzset();
 }
 
-int main(int argc, char* argv[]) {
+int main(void) {
         CalendarSpec *c;
 
         test_one("Sat,Thu,Mon-Wed,Sat-Sun", "Mon-Thu,Sat,Sun *-*-* 00:00:00");

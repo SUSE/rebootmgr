@@ -42,11 +42,6 @@ fi
 AC_SUBST(TMPFILESDIR)
 AC_SUBST(SYSTEMDDIR)
 
-
-
-
-EXTRA_CFLAGS="-W -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -DXTSTRINGDEFINES -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef -D_FORTIFY_SOURCE=2"
-AC_SUBST(EXTRA_CFLAGS)
 dnl Checks for programs.
 AC_GNU_SOURCE
 AC_PROG_CC
@@ -55,6 +50,33 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_PROG_LN_S
+
+dnl enable additional compiler checks
+AC_ARG_ENABLE([compiler-checks],
+    AS_HELP_STRING([--enable-compiler-checks],[enables additional compiler checks, not for production]))
+
+if test x"$enable_compiler_checks" = x"yes" ; then
+   CFLAGS_CHECKS="-Wall -O2 -fsanitize=address -fno-omit-frame-pointer -g"
+   LDFLAGS_CHECKS="-fsanitize=address"
+fi
+
+dnl enable additional compiler warnings
+AC_ARG_ENABLE([compiler-warnings],
+    AS_HELP_STRING([--enable-compiler-warnings],[enables additional compiler warnings]))
+
+if test x"$enable_compiler_warnings" = x"yes" ; then
+   if test x"$enable_compiler_checks" = x"yes" ; then
+      AC_MSG_ERROR([Conflicting options: --enable-compiler-warnings cannot be used together with --eanble-compiler-checks])
+   fi
+   CFLAGS_WARNINGS="-O2 -g -Werror -W -Wall -DXTSTRINGDEFINES -D_FORTIFY_SOURCE=2 -fstack-protector-strong -funwind-tables -fasynchronous-unwind-tables -fstack-clash-protection -Werror=return-type -flto=8 -Wbad-function-cast -Wcast-align -Wcast-qual -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef"
+   LDFLAGS_WARNINGS=""
+fi
+
+AC_SUBST(CFLAGS_CHECKS)
+AC_SUBST(LDFLAGS_CHECKS)
+AC_SUBST(CFLAGS_WARNINGS)
+AC_SUBST(LDFLAGS_WARNINGS)
+
 
 dnl Check for gettid wrapper
 AC_CHECK_FUNC(gettid, [AC_DEFINE(HAVE_GETTID, 1, [Define to 1 if gettid() is available])])

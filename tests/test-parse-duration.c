@@ -19,7 +19,7 @@
 #include "parse-duration.h"
 
 int
-main (int argc, char* argv[])
+main (void)
 {
   assert (parse_duration ("1h30s") == 3630);
   assert (parse_duration ("1:00") == 3600);

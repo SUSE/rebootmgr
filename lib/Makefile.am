@@ -6,7 +6,7 @@
 
 noinst_LIBRARIES = libcalendarspec.a
 
-AM_CFLAGS = -D_REENTRANT=1 #$(EXTRA_CFLAGS)
+AM_CFLAGS = -D_REENTRANT=1 $(CFLAGS_CHECKS) #$(EXTRA_CFLAGS)
 
 CLEANFILES = *~ test-calendarspec.log test-parse-duration.log \
 	test-suite.log test-calendarspec.trs test-parse-duration.trs

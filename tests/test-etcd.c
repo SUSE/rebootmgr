@@ -27,7 +27,7 @@
 #define ETCD_LOCKS_DEFAULT_GROUP "rebootmgr-testsuite"
 
 int
-main (int argc, char *argv[])
+main (void)
 {
   if (!etcd_is_running())
     {
@@ -73,7 +73,7 @@ main (int argc, char *argv[])
 #else
 
 int
-main (int argc, char *argv[])
+main (void)
 {
   printf ("No etcd support\n");
   return 77;
