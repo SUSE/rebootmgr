@@ -105,7 +105,7 @@ load_config (RM_CTX *ctx)
   error = econf_readFile (&file_2, SYSCONFDIR"/rebootmgr.conf", "=", "#");
   if (error && error != ECONF_NOFILE)
     {
-      log_msg (LOG_ERR, "Cannot load '"SYSCONFDIR"rebootmgr.conf': %s",
+      log_msg (LOG_ERR, "Cannot load '"SYSCONFDIR"/rebootmgr.conf': %s",
 	       econf_errString(error));
       return;
     }
@@ -125,7 +125,7 @@ load_config (RM_CTX *ctx)
   else if (file_1 != NULL)
     file = file_1;
 
-  if (file == NULL) /* happens if  no config file exists */
+  if (file == NULL) /* happens if no config file exists */
       log_msg (LOG_ERR, "Cannot load 'rebootmgr.conf'");
   else
     {
