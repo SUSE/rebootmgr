@@ -63,6 +63,11 @@ get_file_content(const char *fname)
 
   buf = (char*)malloc(sizeof(char)*(size_t)st.st_size+1);
 
+  if(buf == NULL){
+    log_msg( LOG_INFO, "buf malloc failed in :%s\n",__func__);
+    goto fail;
+  }
+
   if ((size = read(fd, buf, (size_t)st.st_size)) < 0) {
     log_msg( LOG_INFO, "read() failed: %m");
     goto fail;
@@ -77,8 +82,9 @@ fail:
     close(fd);
   }
 
-  free(buf);
-
+  if(buf){
+    free(buf);
+  }
   return NULL;
 
 }
