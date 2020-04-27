@@ -1,6 +1,9 @@
 rebootmgr NEWS -- history of user-visible changes.
 
-Copyright (C) 2016-2019 Thorsten Kukuk
+Copyright (C) 2016-2020 Thorsten Kukuk
+
+Version 1.0
+* Rewrite rebootmgrd to use timer_* functions instead of glib
 
 Version 0.20.1
 * Added a memory allocation check
