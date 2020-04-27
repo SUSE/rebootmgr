@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Thorsten Kukuk
+/* Copyright (c) 2017, 2020 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -94,7 +94,7 @@ main (void)
 #else
 
 int
-main (int argc, char *argv[])
+main (void)
 {
   printf ("No etcd and json support available\n");
   return 77;

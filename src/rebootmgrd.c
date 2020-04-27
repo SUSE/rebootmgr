@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2016, 2017, 2018, 2019 Thorsten Kukuk
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -18,6 +18,7 @@
 #include "config.h"
 #endif
 
+#include <pthread.h>
 #include <errno.h>
 #include <getopt.h>
 #include <libintl.h>
@@ -25,10 +26,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
+#include <time.h>
 
-#include <glib.h>
 #include <dbus/dbus.h>
-#include <dbus/dbus-glib-lowlevel.h>
 
 #include "config_file.h"
 #include "log_msg.h"
@@ -43,21 +44,26 @@
 #define PROPERTIES_METHOD_GET    "Get"
 #define PROPERTIES_METHOD_SET    "Set"
 
+static RM_CTX *ctx;
+static pthread_mutex_t mutex_ctx = PTHREAD_MUTEX_INITIALIZER;
+
 static int
-create_context (RM_CTX **ctx)
+create_context (void)
 {
-  if ((*ctx = calloc(1, sizeof(RM_CTX))) == NULL)
+  pthread_mutex_lock (&mutex_ctx);
+  if ((ctx = calloc(1, sizeof(RM_CTX))) == NULL)
     return 0;
 
-  **ctx = (RM_CTX) {RM_REBOOTSTRATEGY_BEST_EFFORT, 0,
-		    RM_REBOOTORDER_STANDARD, 0, 0, NULL, 3600, NULL};
-  (*ctx)->lock_group = strdup ("default");
+  *ctx = (RM_CTX) {RM_REBOOTSTRATEGY_BEST_EFFORT, 0,
+		   RM_REBOOTORDER_STANDARD, 0, 0, NULL, 3600, NULL, NULL};
+  ctx->lock_group = strdup ("default");
+  pthread_mutex_unlock (&mutex_ctx);
 
   return 1;
 }
 
 static int
-destroy_context (RM_CTX *ctx)
+destroy_context (void)
 {
   if (ctx == NULL)
     {
@@ -65,11 +71,21 @@ destroy_context (RM_CTX *ctx)
       return 0;
     }
 
+  pthread_mutex_lock (&mutex_ctx);
+  if (ctx->connection && dbus_connection_get_is_connected (ctx->connection))
+    {
+      DBusError error;
+
+      dbus_bus_release_name (ctx->connection, RM_DBUS_NAME, &error);
+      dbus_connection_unref (ctx->connection);
+    }
   if (ctx->maint_window_start != NULL)
     calendar_spec_free (ctx->maint_window_start);
   if (ctx->lock_group != NULL)
     free (ctx->lock_group);
   free (ctx);
+  pthread_mutex_unlock (&mutex_ctx);
+
   return 1;
 }
 
@@ -94,44 +110,50 @@ print_error (void)
 }
 
 static void
-reboot_now (RM_CTX *ctx)
+reboot_now (void)
 {
+  pthread_mutex_lock (&mutex_ctx);
   if (ctx->temp_off)
-    return;
+    {
+      pthread_mutex_unlock (&mutex_ctx);
+      return;
+    }
 
   if (ctx->reboot_status > 0)
     {
       if (!debug_flag)
 	{
+	  pthread_mutex_unlock (&mutex_ctx);
 	  log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
 	  if (execl ("/usr/bin/systemctl", "systemctl", "reboot", NULL) == -1)
-	    log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %s",
-		     g_strerror (errno));
+	    log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %m");
 	}
       else
 	log_msg (LOG_DEBUG, "systemctl reboot called!");
 
       ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
     }
+    pthread_mutex_unlock (&mutex_ctx);
 }
 
 #ifdef USE_ETCD
 /* Getting the lock from etcd can take a long time. Run this
    in an extra thread, so that we don't block dbus communication. */
-static gpointer
-reboot_with_lock (gpointer user_data)
+static void
+reboot_with_lock (void)
 {
-  RM_CTX *ctx = user_data;
-
   if (debug_flag)
     log_msg (LOG_DEBUG, "reboot with lock called");
+
+  pthread_mutex_lock (&mutex_ctx);
 
   ctx->reboot_status = RM_REBOOTSTATUS_WAITING_ETCD;
   if (etcd_get_lock (ctx->lock_group, NULL) != 0)
     {
-      log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot");
+      log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot.");
       ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
-      return NULL;
+      pthread_mutex_unlock (&mutex_ctx);
+      return;
     }
 
   /* Check, if we are still inside the maintenance window. Else
@@ -150,7 +172,7 @@ reboot_with_lock (gpointer user_data)
       if (r < 0)
 	{
 	  log_msg (LOG_ERR, "ERROR: Internal error converting the timer: %s",
-		   g_strerror (-r));
+		   strerror (-r));
 	  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
 	  goto reboot_canceld;
 	}
@@ -164,58 +186,103 @@ reboot_with_lock (gpointer user_data)
 	  goto reboot_canceld;
 	}
     }
+  pthread_mutex_unlock (&mutex_ctx);
 
-  reboot_now (ctx);
+  reboot_now ();
+
+  pthread_mutex_lock (&mutex_ctx);
 
  reboot_canceld:
   /* If we end here, reboot was canceld. Free Lock */
   if (etcd_release_lock (ctx->lock_group, NULL) != 0)
-    {
-      log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
-    }
-  return NULL;
+    log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd");
+
+  pthread_mutex_unlock (&mutex_ctx);
 }
 #endif /* USE_ETCD */
 
-/* Called by g_timeout_add when maintenance window starts */
-static gboolean
-reboot_timer (gpointer user_data)
+/* Check which reboot method and forward to that function */
+/* Called by timer_create as new thread */
+static void
+reboot_timer (sigval_t RM_UNUSED(user_data))
 {
-  RM_CTX *ctx = user_data;
+  if (debug_flag)
+    log_msg (LOG_DEBUG, "reboot_timer called");
 
 #ifdef USE_ETCD
+  /* XXX lock mutex ... */
   if (((ctx->reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT &&
 	etcd_is_running()) ||
        ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK))
     {
-      g_thread_new ("do reboot lock thread", &reboot_with_lock, ctx);
+      reboot_with_lock ();
     }
   else
 #endif /* USE_ETCD */
-    reboot_now (ctx);
-  return FALSE;
+    reboot_now ();
+}
+
+/* Create a new timer thread, which calls '_function' after
+   specified seconds */
+static timer_t
+create_timer (time_t seconds, void (*_function) (sigval_t))
+{
+  timer_t timer_id;
+
+  /* Create timer */
+  struct sigevent se;
+  se.sigev_notify = SIGEV_THREAD;
+  se.sigev_value.sival_ptr = NULL;
+  se.sigev_notify_function = _function;
+  se.sigev_notify_attributes = NULL;
+  if (timer_create(CLOCK_REALTIME, &se, &timer_id) == -1)
+    {
+      log_msg (LOG_ERR, "ERROR: Could not create timer: %m");
+      return 0;
+    }
+
+  /* activate timer */
+  struct itimerspec its;
+  its.it_value.tv_sec = seconds;
+  its.it_value.tv_nsec = 0;
+  its.it_interval.tv_sec = 0;
+  its.it_interval.tv_nsec = 0;
+  if (timer_settime (timer_id, 0, &its, NULL) == -1)
+    {
+      log_msg (LOG_ERR, "ERROR: setting the timer failed: %m");
+      timer_delete (timer_id);
+      return 0;
+    }
+
+  return timer_id;
 }
 
 static void
-initialize_timer (RM_CTX *ctx)
+initialize_timer (void)
 {
   int r;
   usec_t curr = now(CLOCK_REALTIME);
   usec_t next;
-  usec_t duration = ctx->maint_window_duration * USEC_PER_SEC;
+  usec_t duration;
+
+  pthread_mutex_lock (&mutex_ctx);
+
+  duration = ctx->maint_window_duration * USEC_PER_SEC;
 
   /* Check, if we are inside the maintenance window. If yes, reboot now */
   r = calendar_spec_next_usec (ctx->maint_window_start, curr - duration, &next);
   if (r < 0)
     {
-      log_msg (LOG_ERR, "Internal error converting the timer: %s",
-	       g_strerror (-r));
+      log_msg (LOG_ERR, "ERROR: Internal error converting the timer: %s",
+	       strerror (-r));
+      pthread_mutex_unlock (&mutex_ctx);
       return;
     }
   if (curr > next && curr < next + duration)
     {
       /* we are inside the maintenance window, reboot */
-      reboot_timer (ctx);
+      pthread_mutex_unlock (&mutex_ctx);
+      reboot_timer ((sigval_t) 0);
       return;
     }
 
@@ -223,8 +290,9 @@ initialize_timer (RM_CTX *ctx)
   r = calendar_spec_next_usec (ctx->maint_window_start, curr, &next);
   if (r < 0)
     {
-      log_msg (LOG_ERR, "Internal error converting the timer: %s",
-	       g_strerror (-r));
+      log_msg (LOG_ERR, "ERROR: Internal error converting the timer: %s",
+	       strerror (-r));
+      pthread_mutex_unlock (&mutex_ctx);
       return;
     }
 
@@ -242,20 +310,31 @@ initialize_timer (RM_CTX *ctx)
     }
 
   ctx->reboot_status = RM_REBOOTSTATUS_WAITING_WINDOW;
+  if (ctx->reboot_timer_id != 0)
+    timer_delete(ctx->reboot_timer_id);
+
   ctx->reboot_timer_id =
-    g_timeout_add ((next-curr)/USEC_PER_MSEC, reboot_timer, ctx);
+    create_timer ((next - curr) / USEC_PER_SEC, reboot_timer);
+
+  pthread_mutex_unlock (&mutex_ctx);
 }
 
+
+/* system is requestion a reboot via dbus interface */
 static void
-do_reboot (RM_CTX *ctx)
+do_reboot (void)
 {
+  pthread_mutex_lock (&mutex_ctx);
+
   ctx->reboot_status = RM_REBOOTSTATUS_REQUESTED;
 
   if (ctx->reboot_order == RM_REBOOTORDER_FORCED)
     {
       if (debug_flag)
 	log_msg (LOG_DEBUG, "Forced reboot requested");
-      reboot_now (ctx);
+      pthread_mutex_unlock (&mutex_ctx);
+      reboot_now ();
+      return;
     }
 
   switch (ctx->reboot_strategy)
@@ -264,26 +343,40 @@ do_reboot (RM_CTX *ctx)
     case RM_REBOOTSTRATEGY_ETCD_LOCK:
       if (ctx->maint_window_start != NULL &&
 	  ctx->reboot_order != RM_REBOOTORDER_FAST)
-	initialize_timer(ctx);
+	{
+	  pthread_mutex_unlock (&mutex_ctx);
+	  initialize_timer();
+	  return;
+	}
       else
 	{
+	  pthread_mutex_unlock (&mutex_ctx);
 #ifdef USE_ETCD
 	  if (ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK ||
 	      etcd_is_running())
-	    g_thread_new ("do reboot lock thread", &reboot_with_lock, ctx);
+	    reboot_with_lock ();
 	  else
 #endif /* USE_ETCD */
-	    reboot_now (ctx);
+	    reboot_now ();
+	  return;
 	}
       break;
     case RM_REBOOTSTRATEGY_INSTANTLY:
-      reboot_now (ctx);
+      pthread_mutex_unlock (&mutex_ctx);
+      reboot_now ();
+      return;
       break;
     case RM_REBOOTSTRATEGY_MAINT_WINDOW:
       if (ctx->reboot_order == RM_REBOOTORDER_FAST ||
 	  ctx->maint_window_start == NULL)
-	reboot_now(ctx);
-      initialize_timer(ctx);
+	{
+	  pthread_mutex_unlock (&mutex_ctx);
+	  reboot_now ();
+	  return;
+	}
+      pthread_mutex_unlock (&mutex_ctx);
+      initialize_timer ();
+      return;
       break;
     case RM_REBOOTSTRATEGY_OFF:
       ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
@@ -295,13 +388,17 @@ do_reboot (RM_CTX *ctx)
 	       ctx->reboot_strategy);
       break;
     }
+  pthread_mutex_unlock (&mutex_ctx);
 }
 
+
 static DBusMessage *
-handle_native_iface (RM_CTX *ctx, DBusMessage *message)
+handle_native_iface (DBusMessage *message)
 {
   DBusError err;
   DBusMessage *reply = 0;
+
+  /* XXX lock ctx access */
 
   reply = dbus_message_new_method_return (message);
 
@@ -331,7 +428,7 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
 	    }
 	  else
 	    {
-	      log_msg (LOG_ERR, "Unknown reboot order (%i), ignore reboot command",
+	      log_msg (LOG_ERR, "ERROR: Unknown reboot order (%i), ignore reboot command",
 		       order);
 	      return reply;
 	    }
@@ -340,14 +437,18 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
       if (ctx->reboot_status > 0)
 	log_msg (LOG_INFO, "Reboot already in progress, ignored");
       else
-	do_reboot (ctx);
+	do_reboot ();
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_CANCEL))
     {
       log_msg (LOG_INFO, "Reboot canceld");
-      if (ctx->reboot_status > 0 && ctx->reboot_timer_id > 0)
-	g_source_remove (ctx->reboot_timer_id);
+      if (ctx->reboot_status > 0 && ctx->reboot_timer_id)
+	{
+	  /* delete timer */
+	  if (timer_delete (ctx->reboot_timer_id) == -1)
+	    log_msg (LOG_ERR, "ERROR: deleting timer failed: %m");
+	}
       ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
       ctx->reboot_timer_id = 0;
     }
@@ -512,6 +613,7 @@ handle_native_iface (RM_CTX *ctx, DBusMessage *message)
   return reply;
 }
 
+
 static DBusMessage *
 handle_introspect_request (DBusMessage *msg)
 {
@@ -527,6 +629,7 @@ handle_introspect_request (DBusMessage *msg)
   free(content);
   return reply;
 }
+
 
 /* This is just a stub implementation, and we don't announce it in the xml file
  * but without it, d-feet does fails when trying to query a method */
@@ -545,30 +648,30 @@ handle_properties_iface (DBusMessage *msg)
   return reply;
 }
 
+
 /* vtable implementation: handles messages and calls respective C functions */
 static DBusHandlerResult
 handle_message (DBusConnection *connection, DBusMessage *message,
-		void *user)
+		void *RM_UNUSED(user))
 {
-  RM_CTX *ctx = user;
   DBusMessage *reply = 0;
   const char* iface = dbus_message_get_interface(message);
 
-  if (dbus_message_is_method_call(message, DBUS_INTERFACE_INTROSPECTABLE,
-				  "Introspect"))
+  if (dbus_message_is_method_call (message, DBUS_INTERFACE_INTROSPECTABLE,
+				   "Introspect"))
     {
       /* Handle Introspection request */
-      reply = handle_introspect_request(message);
+      reply = handle_introspect_request (message);
     }
   else if (strcmp(iface, DBUS_INTERFACE_PROPERTIES) == 0)
     {
       /* Stub implementation for property requests */
-      reply = handle_properties_iface(message);
+      reply = handle_properties_iface (message);
     }
   else if (strcmp(iface, RM_DBUS_INTERFACE) == 0)
     {
       /* Handle requests to our own interfaces  */
-      reply = handle_native_iface(ctx, message);
+      reply = handle_native_iface (message);
     }
 
   if (reply)
@@ -576,7 +679,7 @@ handle_message (DBusConnection *connection, DBusMessage *message,
       /* send the reply && flush the connection */
       if (!dbus_connection_send (connection, reply, NULL))
 	{
-	  log_msg (LOG_ERR, "Out of memory!");
+	  log_msg (LOG_ERR, "ERROR: Out of memory");
 	  return DBUS_HANDLER_RESULT_NEED_MEMORY;
 	}
       dbus_message_unref(reply);
@@ -584,19 +687,19 @@ handle_message (DBusConnection *connection, DBusMessage *message,
   return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static int dbus_init (RM_CTX*);
 
-static gboolean
-dbus_reconnect (gpointer user_data)
+static int dbus_init (void);
+
+static void
+dbus_reconnect (sigval_t RM_UNUSED(user_data))
 {
-  RM_CTX* ctx = user_data;
-  gboolean status;
+  int status;
 
-  status = dbus_init (ctx);
-  if (debug_flag)
-    log_msg (LOG_DEBUG, "Reconnect %s",
-	     status ? "successful" : "failed");
-  return !status;
+  status = dbus_init ();
+  if (status < 1)
+    log_msg (LOG_ERR, "ERROR: Reconnect to dbus failed");
+  else
+    log_msg (LOG_INFO, "Reconnect to dbus was successful");
 }
 
 static DBusHandlerResult
@@ -612,8 +715,7 @@ dbus_filter (DBusConnection *connection, DBusMessage *message,
       log_msg (LOG_INFO, "Lost connection to D-Bus");
       dbus_connection_unref (connection);
       connection = NULL;
-      /* g_timeout_add (1000, dbus_reconnect, NULL); */
-      g_timeout_add_seconds (1, dbus_reconnect, NULL);
+      create_timer (1, dbus_reconnect);
       handled = DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -627,7 +729,7 @@ dbus_filter (DBusConnection *connection, DBusMessage *message,
   0: error
 */
 static int
-dbus_init (RM_CTX *ctx)
+dbus_init ()
 {
   DBusConnection *connection = NULL;
   DBusError error;
@@ -637,7 +739,7 @@ dbus_init (RM_CTX *ctx)
   connection = dbus_bus_get (DBUS_BUS_SYSTEM, &error);
   if (connection == NULL || dbus_error_is_set (&error))
     {
-      log_msg (LOG_ERR, "Connection to D-BUS system message bus failed: %s.",
+      log_msg (LOG_ERR, "ERROR: Connection to D-BUS system message bus failed: %s",
                error.message);
       dbus_error_free (&error);
       connection = NULL;
@@ -648,7 +750,7 @@ dbus_init (RM_CTX *ctx)
 					     RM_DBUS_NAME, &error);
   if (dbus_error_is_set (&error))
     {
-      log_msg (LOG_ERR, "DBus Error: %s", error.message);
+      log_msg (LOG_ERR, "ERROR: DBus failure: %s", error.message);
       dbus_error_free (&error);
       goto out;
     }
@@ -664,7 +766,7 @@ dbus_init (RM_CTX *ctx)
 			       DBUS_NAME_FLAG_DO_NOT_QUEUE, &error);
       if (dbus_error_is_set (&error))
 	{
-	  log_msg (LOG_ERR, "Error requesting a bus name: %s", error.message);
+	  log_msg (LOG_ERR, "ERROR: DBus failure requesting a bus name: %s", error.message);
 	  dbus_error_free (&error);
 	  return 0;
 	}
@@ -676,7 +778,7 @@ dbus_init (RM_CTX *ctx)
 	}
       else
 	{
-	  log_msg (LOG_ERR, "Failed to reserve name %s", RM_DBUS_NAME);
+	  log_msg (LOG_ERR, "ERROR: Failed to reserve name %s", RM_DBUS_NAME);
 	  return 0;
 	}
     }
@@ -688,7 +790,7 @@ dbus_init (RM_CTX *ctx)
 	unless somebody stole this name from you, so better to choose a correct bus
 	name
       */
-      log_msg (LOG_ERR, "%s is already reserved", RM_DBUS_NAME);
+      log_msg (LOG_ERR, "ERROR: %s is already reserved", RM_DBUS_NAME);
       return 1;
     }
 
@@ -698,7 +800,7 @@ dbus_init (RM_CTX *ctx)
 		      &error);
   if (dbus_error_is_set (&error))
     {
-      log_msg (LOG_ERR, "Error adding match for dbus interface, %s: %s",
+      log_msg (LOG_ERR, "ERROR: Failure adding match for dbus interface, %s: %s",
 	       error.name, error.message);
 
       dbus_error_free (&error);
@@ -717,7 +819,7 @@ dbus_init (RM_CTX *ctx)
 
   if (dbus_error_is_set (&error))
     {
-      log_msg (LOG_ERR, "Error adding match for rebootmgrd interface, %s: %s",
+      log_msg (LOG_ERR, "ERROR: Failure adding match for rebootmgrd interface, %s: %s",
 	       error.name, error.message);
       dbus_error_free (&error);
       dbus_connection_unref (connection);
@@ -735,10 +837,12 @@ dbus_init (RM_CTX *ctx)
   vtable.message_function = handle_message;
 
   if (!dbus_connection_register_object_path(connection, RM_DBUS_PATH,
-					    &vtable, ctx))
-    log_msg(LOG_ERR, "Failed to register object path");
+					    &vtable, NULL))
+    log_msg(LOG_ERR, "ERROR: Failed to register object path");
 
-  dbus_connection_setup_with_g_main (connection, NULL);
+  pthread_mutex_lock (&mutex_ctx);
+  ctx->connection = connection;
+  pthread_mutex_unlock (&mutex_ctx);
 
   return 1;
 
@@ -760,9 +864,6 @@ dbus_init (RM_CTX *ctx)
 int
 main (int argc, char **argv)
 {
-  GMainLoop *loop;
-  RM_CTX *ctx;
-
   while (1)
     {
       int c;
@@ -807,12 +908,13 @@ main (int argc, char **argv)
       return 1;
     }
 
-  if (!create_context (&ctx))
+  if (!create_context ())
     {
-      log_msg (LOG_ERR, "Could not initialize context");
+      log_msg (LOG_ERR, "ERROR: Could not initialize context");
       return -1;
     }
 
+  pthread_mutex_lock (&mutex_ctx);
   load_config (ctx);
 
 #ifdef USE_ETCD
@@ -820,19 +922,30 @@ main (int argc, char **argv)
       etcd_own_lock (ctx->lock_group))
     {
       if (etcd_release_lock (ctx->lock_group, NULL) != 0)
-	log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd!");
+	log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd");
     }
 #endif /* USE_ETCD */
+  pthread_mutex_unlock (&mutex_ctx);
 
-  loop = g_main_loop_new (NULL, FALSE);
-
-  if (dbus_init (ctx) != 1)
+  if (dbus_init () != 1)
     return 1;
 
-  g_main_loop_run (loop);
+  while (true)
+    {
+      while (dbus_connection_read_write_dispatch (ctx->connection, -1))
+	; // empty loop body
 
-  if (!destroy_context(ctx))
-    log_msg(LOG_ERR, "Could not destroy context");
+      if (dbus_connection_get_is_connected (ctx->connection))
+	break;
+      else
+	{
+	  if (dbus_init () != 1)
+	    return 1;
+	}
+    }
+
+  if (!destroy_context ())
+    log_msg (LOG_ERR, "ERROR: Could not destroy context");
 
   return 0;
 }

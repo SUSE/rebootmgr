@@ -84,12 +84,7 @@ AC_CHECK_FUNC(gettid, [AC_DEFINE(HAVE_GETTID, 1, [Define to 1 if gettid() is ava
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 
-PKG_CHECK_MODULES(DBUS, dbus-glib-1 >= 0.60)
-AC_SUBST(DBUS_CFLAGS)
-AC_SUBST(DBUS_LIBS)
-PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.40)
-AC_SUBST(GLIB_CFLAGS)
-AC_SUBST(GLIB_LIBS)
+PKG_CHECK_MODULES(DBUS, dbus-1 >= 0.60)
 PKG_CHECK_MODULES(ECONF, libeconf, [AC_DEFINE([USE_ECONF], [1], [Use ECONF])],[AC_DEFINE([USE_ECONF], [0], [Use ECONF])])
 AC_SUBST(ECONF_CFLAGS)
 AC_SUBST(ECONF_LIBS)

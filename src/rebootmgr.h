@@ -38,7 +38,7 @@
 
 #define RM_UNUSED(x) UNUSED_ ## x __attribute__((unused))
 
-#include <glib.h>
+#include <dbus/dbus.h>
 #include "calendarspec.h"
 
 typedef enum RM_RebootOrder {
@@ -72,10 +72,11 @@ typedef struct {
   RM_RebootStatus reboot_status;
   int reboot_order;
   int temp_off;
-  guint reboot_timer_id;
+  timer_t  reboot_timer_id;
   CalendarSpec *maint_window_start;
   time_t maint_window_duration;
   char *lock_group;
+  DBusConnection *connection;
 } RM_CTX;
 
 #endif /* _REBOOTMGR_H_ */
