@@ -1,32 +1,7 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* Define to 1 if translation of program messages to the user's native
-   language is requested. */
-#undef ENABLE_NLS
-
-/* Define to 1 if you have the Mac OS X function CFLocaleCopyCurrent in the
-   CoreFoundation framework. */
-#undef HAVE_CFLOCALECOPYCURRENT
-
-/* Define to 1 if you have the Mac OS X function CFPreferencesCopyAppValue in
-   the CoreFoundation framework. */
-#undef HAVE_CFPREFERENCESCOPYAPPVALUE
-
-/* Define if the GNU dcgettext() function is already present or preinstalled.
-   */
-#undef HAVE_DCGETTEXT
-
-/* Define to 1 if you have the `dngettext' function. */
-#undef HAVE_DNGETTEXT
-
-/* Define if the GNU gettext() function is already present or preinstalled. */
-#undef HAVE_GETTEXT
-
 /* Define to 1 if gettid() is available */
 #undef HAVE_GETTID
-
-/* Define if you have the iconv() function and it works. */
-#undef HAVE_ICONV
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -79,9 +54,6 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
-/* Use ECONF */
-#undef USE_ECONF
-
 /* Use etcd for locking */
 #undef USE_ETCD
 
@@ -119,16 +91,6 @@
 
 /* Define to 1 if you need to in order for `stat' and other things to work. */
 #undef _POSIX_SOURCE
-
-#ifdef ENABLE_NLS
-#include <locale.h>
-#include <libintl.h>
-#define _(msgid) gettext(msgid)
-#define N_(msgid) msgid
-#else
-#define _(msgid) (msgid)
-#define N_(msgid) msgid
-#endif /* ENABLE_NLS */
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

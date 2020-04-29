@@ -85,11 +85,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 
 PKG_CHECK_MODULES(DBUS, dbus-1 >= 0.60)
-PKG_CHECK_MODULES(ECONF, libeconf, [AC_DEFINE([USE_ECONF], [1], [Use ECONF])],[AC_DEFINE([USE_ECONF], [0], [Use ECONF])])
-AC_SUBST(ECONF_CFLAGS)
-AC_SUBST(ECONF_LIBS)
-
-
+PKG_CHECK_MODULES(ECONF, libeconf)
 
 AC_CHECK_LIB([cetcd],[cetcd_client_init],[ETCD_LIBS="-lcetcd"],[ETCD_LIBS=""])
 if test x"" != x"${ETCD_LIBS}"
