@@ -22,4 +22,5 @@ jobs:
     - name: make check
       run: make check
     - name: make distcheck
+      run: touch ChangeLog
       run: make distcheck
