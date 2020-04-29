@@ -4,6 +4,7 @@ Copyright (C) 2016-2020 Thorsten Kukuk
 
 Version 1.0
 * Rewrite rebootmgrd to use timer_* functions instead of glib
+* Only libeconf is supported for configuration file management
 
 Version 0.20.1
 * Added a memory allocation check
