@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: install dbus-1 devel
+      run: sudo apt-get install -y libdbus-1-dev
     - name: autogen.sh
       run: ./autogen.sh
     - name: configure
