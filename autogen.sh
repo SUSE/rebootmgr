@@ -1,5 +1,7 @@
 #!/bin/sh -x
 
+set -e
+
 aclocal -I m4
 autoheader
 #libtoolize --force --automake --copy
