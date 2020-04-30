@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(rebootmgr, 1.0)
+AC_INIT(rebootmgr, 1.1)
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/rebootmgrd.c])
 AM_CONFIG_HEADER(config.h)
@@ -24,20 +24,13 @@ dnl If we use /usr as prefix, use /usr/share/man for manual pages
         fi
 fi
 
-if test ${libexecdir} = '${exec_prefix}/libexec'
+if test "${exec_prefix}" = "NONE"
 then
-  libexecdir='${exec_prefix}/lib'
-  if test "${exec_prefix}" = "NONE"
-  then
-    TMPFILESDIR=${prefix}/lib/tmpfiles.d
-    SYSTEMDDIR=${prefix}/lib/systemd/system
-  else
-    TMPFILESDIR=${exec_prefix}/lib/tmpfiles.d
-    SYSTEMDDIR=${exec_prefix}/lib/systemd/system
-  fi
+  TMPFILESDIR=${prefix}/lib/tmpfiles.d
+  SYSTEMDDIR=${prefix}/lib/systemd/system
 else
-  TMPFILESDIR=${libexecdir}/tmpfiles.d
-  SYSTEMDDIR=${libexecdir}/systemd/system
+  TMPFILESDIR=${exec_prefix}/lib/tmpfiles.d
+  SYSTEMDDIR=${exec_prefix}/lib/systemd/system
 fi
 AC_SUBST(TMPFILESDIR)
 AC_SUBST(SYSTEMDDIR)
