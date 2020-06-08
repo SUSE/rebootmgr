@@ -53,7 +53,7 @@ tests/test-etcd
 tests/test-*.log
 tests/test-*.trs
 tests/test-suite.log
-
+man/__pycache__/
 
 # tar archive
 rebootmgr-*.tar.*

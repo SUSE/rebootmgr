@@ -2,6 +2,9 @@ rebootmgr NEWS -- history of user-visible changes.
 
 Copyright (C) 2016-2020 Thorsten Kukuk
 
+Version 1.2
+* rebootmgr depends on dbus and not the network
+
 Version 1.1
 * Handle systemd and tmpfiles.d directory correctly
 
