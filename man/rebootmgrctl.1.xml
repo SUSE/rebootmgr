@@ -3,7 +3,7 @@
 "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 
 <!--  \-*\- nroff \-*\- -->
-<!--  Copyright 2017 Thorsten Kukuk &lt;kukuk@suse.de&gt; -->
+<!--  Copyright 2017, 2020 Thorsten Kukuk &lt;kukuk@suse.de&gt; -->
 
 <!--  This file is part of rebootmgr. -->
 
@@ -135,7 +135,7 @@
   <para><emphasis remap='B'>rebootmgrctl</emphasis> is used to
   query and configure the
   <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry>
-  process. Options regarding to <option>etcd-lock</option> are only available if 
+  process. Options regarding to <option>etcd-lock</option> are only available if
   <emphasis remap='B'>rebootmgrctl</emphasis> was compiled with etcd support.</para>
   </refsect1>
 
@@ -165,8 +165,8 @@
 	<para>Prints if the rebootmgrd is running and active or not. With the
 	<optional>--quiet</optional> option,
 	<command>rebootmgrctl</command> does not print any output, but returns
-	<literal>1</literal> if <command>rebootmgrd</command> is running or
-	<literal>0</literal> if not.</para>
+	<literal>0</literal> if <command>rebootmgrd</command> is running or
+	<literal>1</literal> if not.</para>
       </listitem>
     </varlistentry>
 
