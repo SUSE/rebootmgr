@@ -696,7 +696,7 @@ dbus_reconnect (sigval_t RM_UNUSED(user_data))
   int status;
 
   status = dbus_init ();
-  if (status < 1)
+  if (status < 0)
     log_msg (LOG_ERR, "ERROR: Reconnect to dbus failed");
   else
     log_msg (LOG_INFO, "Reconnect to dbus was successful");
@@ -725,8 +725,8 @@ dbus_filter (DBusConnection *connection, DBusMessage *message,
 /*
   init dbus
   return value:
-  1: success
-  0: error
+  0: success
+  -1: error
 */
 static int
 dbus_init ()
@@ -768,7 +768,7 @@ dbus_init ()
 	{
 	  log_msg (LOG_ERR, "ERROR: DBus failure requesting a bus name: %s", error.message);
 	  dbus_error_free (&error);
-	  return 0;
+	  return -1;
 	}
       if ( request_name_reply == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER )
 	{
@@ -779,7 +779,7 @@ dbus_init ()
       else
 	{
 	  log_msg (LOG_ERR, "ERROR: Failed to reserve name %s", RM_DBUS_NAME);
-	  return 0;
+	  return -1;
 	}
     }
   else
@@ -791,7 +791,7 @@ dbus_init ()
 	name
       */
       log_msg (LOG_ERR, "ERROR: %s is already reserved", RM_DBUS_NAME);
-      return 1;
+      return -1;
     }
 
   dbus_bus_add_match (connection, "type='signal',"
@@ -844,20 +844,20 @@ dbus_init ()
   ctx->connection = connection;
   pthread_mutex_unlock (&mutex_ctx);
 
-  return 1;
+  return 0;
 
  out:
   if (connection)
     {
       dbus_bus_release_name (connection, RM_DBUS_NAME, &error);
       dbus_connection_unref (connection);
-      return 0;
+      return -1;
     }
   else
     {
       if (debug_flag)
 	log_msg (LOG_DEBUG, "No connection possible");
-      return 0;
+      return -1;
     }
 }
 
@@ -927,7 +927,7 @@ main (int argc, char **argv)
 #endif /* USE_ETCD */
   pthread_mutex_unlock (&mutex_ctx);
 
-  if (dbus_init () != 1)
+  if (dbus_init () != 0)
     return 1;
 
   while (true)
@@ -939,7 +939,7 @@ main (int argc, char **argv)
 	break;
       else
 	{
-	  if (dbus_init () != 1)
+	  if (dbus_init () != 0)
 	    return 1;
 	}
     }
