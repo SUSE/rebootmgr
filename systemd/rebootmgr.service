@@ -10,7 +10,6 @@ Type=dbus
 BusName=org.opensuse.RebootMgr
 ExecStart=/usr/sbin/rebootmgrd
 Restart=on-failure
-KillMode=none
 
 [Install]
 WantedBy=multi-user.target

@@ -125,8 +125,22 @@ reboot_now (void)
 	{
 	  pthread_mutex_unlock (&mutex_ctx);
 	  log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
-	  if (execl ("/usr/bin/systemctl", "systemctl", "reboot", NULL) == -1)
-	    log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %m");
+	  pid_t pid = fork();
+
+	  if (pid < 0)
+	    {
+	      log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %m");
+	    }
+	  else if (pid == 0)
+	    {
+	      if (execl ("/usr/bin/systemctl", "systemctl", "reboot",
+			 NULL) == -1)
+		{
+		  log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %m");
+		  exit (1);
+		}
+	      exit (0);
+	    }
 	}
       else
 	log_msg (LOG_DEBUG, "systemctl reboot called!");
