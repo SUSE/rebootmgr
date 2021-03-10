@@ -1,6 +1,9 @@
 rebootmgr NEWS -- history of user-visible changes.
 
-Copyright (C) 2016-2020 Thorsten Kukuk
+Copyright (C) 2016-2021 Thorsten Kukuk
+
+Version 1.3.1
+* Install dbus config below /usr/share/dbus-1, not /etc/dbus-1
 
 Version 1.3
 * Fix documentation of is-active return  value [bsc#1173484]
