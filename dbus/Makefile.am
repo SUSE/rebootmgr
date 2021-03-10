@@ -1,8 +1,8 @@
 #
-# Copyright (c) 2016 Thorsten Kukuk <kukuk@suse.de>
+# Copyright (c) 2016, 2021 Thorsten Kukuk <kukuk@suse.de>
 #
 
-busconfigdir = $(sysconfdir)/dbus-1/system.d
+busconfigdir = $(datadir)/dbus-1/system.d
 introspectiondir = $(datadir)/dbus-1/interfaces
 
 busconfig_DATA = org.opensuse.RebootMgr.conf
