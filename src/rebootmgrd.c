@@ -232,8 +232,9 @@ initialize_timer (void)
       return;
     }
 
-  /* XXX we should a random time between 0 and duration to not reboot
+  /* Add a random delay between 0 and duration to not reboot
      everything at the beginning of the maintenance window */
+  next = next + ((usec_t)rand() * USEC_PER_SEC) % duration;
 
   if (debug_flag)
     {
