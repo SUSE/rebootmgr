@@ -36,9 +36,6 @@
 #include "rebootmgr.h"
 #include "parse-duration.h"
 #include "util.h"
-#ifdef USE_ETCD
-#include "lock-etcd.h"
-#endif
 
 #define PROPERTIES_METHOD_GETALL "GetAll"
 #define PROPERTIES_METHOD_GET    "Get"
@@ -150,71 +147,6 @@ reboot_now (void)
     pthread_mutex_unlock (&mutex_ctx);
 }
 
-#ifdef USE_ETCD
-/* Getting the lock from etcd can take a long time. Run this
-   in an extra thread, so that we don't block dbus communication. */
-static void
-reboot_with_lock (void)
-{
-  if (debug_flag)
-    log_msg (LOG_DEBUG, "reboot with lock called");
-
-  pthread_mutex_lock (&mutex_ctx);
-
-  ctx->reboot_status = RM_REBOOTSTATUS_WAITING_ETCD;
-  if (etcd_get_lock (ctx->lock_group, NULL) != 0)
-    {
-      log_msg (LOG_ERR, "ERROR: etcd_get_lock failed, abort reboot.");
-      ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
-      pthread_mutex_unlock (&mutex_ctx);
-      return;
-    }
-
-  /* Check, if we are still inside the maintenance window. Else
-     cancel reboot. But only if we are not in fast mode. */
-  if (ctx->reboot_order != RM_REBOOTORDER_FAST &&
-      ctx->maint_window_start != NULL)
-    {
-      int r;
-      usec_t curr = now(CLOCK_REALTIME);
-      usec_t next;
-      usec_t duration = ctx->maint_window_duration * USEC_PER_SEC;
-
-      /* Check, if we are inside the maintenance window. If yes, reboot now */
-      r = calendar_spec_next_usec (ctx->maint_window_start,
-				   curr - duration, &next);
-      if (r < 0)
-	{
-	  log_msg (LOG_ERR, "ERROR: Internal error converting the timer: %s",
-		   strerror (-r));
-	  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
-	  goto reboot_canceld;
-	}
-
-      if (curr < next || curr > next + duration)
-	{
-	  /* we are outside the maintenance window, cancel */
-	  log_msg (LOG_ERR,
-		   "ERROR: getting etcd lock took too long, reboot canceld");
-	  ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
-	  goto reboot_canceld;
-	}
-    }
-  pthread_mutex_unlock (&mutex_ctx);
-
-  reboot_now ();
-
-  pthread_mutex_lock (&mutex_ctx);
-
- reboot_canceld:
-  /* If we end here, reboot was canceld. Free Lock */
-  if (etcd_release_lock (ctx->lock_group, NULL) != 0)
-    log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd");
-
-  pthread_mutex_unlock (&mutex_ctx);
-}
-#endif /* USE_ETCD */
-
 /* Check which reboot method and forward to that function */
 /* Called by timer_create as new thread */
 static void
@@ -223,16 +155,6 @@ reboot_timer (sigval_t RM_UNUSED(user_data))
   if (debug_flag)
     log_msg (LOG_DEBUG, "reboot_timer called");
 
-#ifdef USE_ETCD
-  /* XXX lock mutex ... */
-  if (((ctx->reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT &&
-	etcd_is_running()) ||
-       ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK))
-    {
-      reboot_with_lock ();
-    }
-  else
-#endif /* USE_ETCD */
     reboot_now ();
 }
 
@@ -354,7 +276,6 @@ do_reboot (void)
   switch (ctx->reboot_strategy)
     {
     case RM_REBOOTSTRATEGY_BEST_EFFORT:
-    case RM_REBOOTSTRATEGY_ETCD_LOCK:
       if (ctx->maint_window_start != NULL &&
 	  ctx->reboot_order != RM_REBOOTORDER_FAST)
 	{
@@ -365,13 +286,7 @@ do_reboot (void)
       else
 	{
 	  pthread_mutex_unlock (&mutex_ctx);
-#ifdef USE_ETCD
-	  if (ctx->reboot_strategy == RM_REBOOTSTRATEGY_ETCD_LOCK ||
-	      etcd_is_running())
-	    reboot_with_lock ();
-	  else
-#endif /* USE_ETCD */
-	    reboot_now ();
+	  reboot_now ();
 	  return;
 	}
       break;
@@ -930,15 +845,6 @@ main (int argc, char **argv)
 
   pthread_mutex_lock (&mutex_ctx);
   load_config (ctx);
-
-#ifdef USE_ETCD
-  if (etcd_is_running () &&
-      etcd_own_lock (ctx->lock_group))
-    {
-      if (etcd_release_lock (ctx->lock_group, NULL) != 0)
-	log_msg (LOG_ERR, "ERROR: cannot remove old reboot lock from etcd");
-    }
-#endif /* USE_ETCD */
   pthread_mutex_unlock (&mutex_ctx);
 
   if (dbus_init () != 0)

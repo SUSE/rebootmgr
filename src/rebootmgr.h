@@ -56,7 +56,6 @@ typedef enum RM_RebootStrategy {
 			            maintenance window, else instantly */
   RM_REBOOTSTRATEGY_INSTANTLY,	 /* reboot instantly */
   RM_REBOOTSTRATEGY_MAINT_WINDOW,/* reboot only during maintenance window */
-  RM_REBOOTSTRATEGY_ETCD_LOCK,   /* acquire etcd lock before reboot */
   RM_REBOOTSTRATEGY_OFF          /* don't reboot */
 } RM_RebootStrategy;
 
@@ -64,7 +63,6 @@ typedef enum RM_RebootStatus {
   RM_REBOOTSTATUS_NOT_REQUESTED = 0,
   RM_REBOOTSTATUS_REQUESTED,
   RM_REBOOTSTATUS_WAITING_WINDOW,
-  RM_REBOOTSTATUS_WAITING_ETCD
 } RM_RebootStatus;
 
 typedef struct {

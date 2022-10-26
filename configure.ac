@@ -80,16 +80,6 @@ AC_C_CONST
 PKG_CHECK_MODULES(DBUS, dbus-1 >= 0.60)
 PKG_CHECK_MODULES(ECONF, libeconf)
 
-AC_CHECK_LIB([cetcd],[cetcd_client_init],[ETCD_LIBS="-lcetcd"],[ETCD_LIBS=""])
-if test x"" != x"${ETCD_LIBS}"
-then
-	AC_DEFINE(USE_ETCD, 1, [Use etcd for locking])
-	AC_SUBST(ETCD_LIBS)
-	PKG_CHECK_MODULES(JSON, json-c >= 0.13)
-	AC_SUBST(JSON_CFLAGS)
-	AC_SUBST(JSON_LIBS)
-fi
-
 dnl
 dnl Check for xsltproc
 dnl

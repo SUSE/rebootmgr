@@ -26,11 +26,6 @@
 
 #include "rebootmgr.h"
 #include "util.h"
-#ifdef USE_ETCD
-#include <json-c/json.h>
-#include "lock-etcd.h"
-#include "lock-json.h"
-#endif
 #include "parse-duration.h"
 
 static void
@@ -42,24 +37,10 @@ usage (int exit_code)
   printf (_("\trebootmgrctl reboot [fast|now]\n"));
   printf (_("\trebootmgrctl cancel\n"));
   printf (_("\trebootmgrctl status [--quiet]\n"));
-  printf (_("\trebootmgrctl set-strategy best-effort|%smaint-window|\n"),
-#ifdef USE_ETCD
-	  "etcd-lock|"
-#else
-	  ""
-#endif
-	  );
-  printf (_("\t                   instantly|off\n"));
+  printf (_("\trebootmgrctl set-strategy best-effort|maint-window|instantly|off\n"));
   printf (_("\trebootmgrctl get-strategy\n"));
   printf (_("\trebootmgrctl set-window <time> <duration>\n"));
   printf (_("\trebootmgrctl get-window\n"));
-#ifdef USE_ETCD
-  printf (_("\trebootmgrctl set-group <etcd lock group>\n"));
-  printf (_("\trebootmgrctl get-group\n"));
-  printf (_("\trebootmgrctl set-max [--group <group>] <number>\n"));
-  printf (_("\trebootmgrctl lock [--group <group>] [<machine id>]\n"));
-  printf (_("\trebootmgrctl unlock [--group <group>] [<machine id>]\n"));
-#endif
   exit (exit_code);
 }
 
@@ -363,150 +344,6 @@ get_status (DBusConnection *connection)
   return status;
 }
 
-#ifdef USE_ETCD
-static const char *
-get_lock_group (DBusConnection *connection)
-{
-  DBusError error;
-  DBusMessage *message, *reply;
-  const char *group;
-  message = dbus_message_new_method_call (RM_DBUS_NAME,
-					  RM_DBUS_PATH,
-					  RM_DBUS_INTERFACE,
-					  RM_DBUS_METHOD_GET_LOCKGROUP);
-  if (message == NULL)
-    {
-      fprintf (stderr, _("Out of memory!\n"));
-      return NULL;
-    }
-
-  dbus_error_init (&error);
-  /* send message and get a handle for a reply */
-  if ((reply = dbus_connection_send_with_reply_and_block (connection, message,
-							  -1, &error)) == NULL)
-    {
-      if (dbus_error_is_set (&error))
-	{
-	  fprintf (stderr, _("Error: %s\n"), error.message);
-	  dbus_error_free (&error);
-	}
-      else
-	fprintf (stderr, _("Out of memory!\n"));
-
-      dbus_message_unref (message);
-
-      return NULL;
-    }
-
-  /* read the parameters */
-  if (!dbus_message_get_args (reply, &error, DBUS_TYPE_STRING, &group,
-			     DBUS_TYPE_INVALID))
-  {
-    if (dbus_error_is_set (&error))
-    {
-      fprintf (stderr, _("Error reading arguments: %s\n"),
-          error.message);
-      dbus_error_free (&error);
-    }
-    else
-      fprintf (stderr, _("Unknown error reading arguments\n"));
-
-    dbus_message_unref (reply);
-    return NULL;
-  }
-
-  /* free reply and close connection */
-  dbus_message_unref (reply);
-
-  return group;
-}
-
-static int
-set_lock_group (DBusConnection *connection, const char *group)
-{
-  DBusMessage *message;
-  int retval = 0;
-  message = dbus_message_new_method_call (RM_DBUS_NAME,
-					  RM_DBUS_PATH,
-					  RM_DBUS_INTERFACE,
-					  RM_DBUS_METHOD_SET_LOCKGROUP);
-  if (message == NULL)
-    {
-      fprintf (stderr, _("Out of memory!\n"));
-      return 1;
-    }
-
-  dbus_message_append_args (message, DBUS_TYPE_STRING, &group,
-			    DBUS_TYPE_INVALID);
-
-  /* Send the call */
-  if (dbus_connection_send (connection, message, NULL) == FALSE)
-    {
-      fprintf (stderr, _("Out of memory!\n"));
-      retval = 1;
-    }
-  dbus_message_unref (message);
-
-  return retval;
-}
-
-static void
-print_etcd_status (DBusConnection *connection)
-{
-  int strategy = get_strategy (connection);
-
-  if ((strategy == RM_REBOOTSTRATEGY_ETCD_LOCK ||
-       strategy == RM_REBOOTSTRATEGY_BEST_EFFORT) &&
-      etcd_is_running ())
-    {
-      uint64_t max_locks, curr_locks;
-      json_object *jobj;
-      char *data;
-      const char *lock_group = get_lock_group (connection);
-
-      if (lock_group == NULL)
-	return;
-      printf (_("Etcd locks:\n"));
-      printf (_("\tReboot group: %s\n"), lock_group);
-
-      data = etcd_get_data_value (lock_group);
-      if (data == NULL)
-	return;
-
-      jobj = json_tokener_parse (data);
-      free (data);
-      if (jobj == NULL)
-	return;
-      max_locks = get_max_locks (jobj);
-      curr_locks = get_curr_locks (jobj);
-      printf (_("\tAvailable: %"PRId64"\n"), max_locks - curr_locks);
-      printf (_("\tMax: %"PRIu64"\n"), max_locks);
-
-      if (curr_locks > 0)
-	{
-	  json_object *jarray = NULL;
-	  u_int64_t idx;
-
-	  printf (_("\n\tMachine ID:\n"));
-
-	  if (json_object_object_get_ex (jobj, "holders", &jarray) != TRUE)
-	    goto cleanup;
-
-	  for (idx = 0 ; idx < json_object_array_length (jarray) ; idx++ )
-	    {
-	      json_object *entry = json_object_array_get_idx (jarray , idx );
-	      const char *val = json_object_get_string (entry);
-
-	      printf ("\t%s\n", val);
-	    }
-	}
-
-    cleanup:
-      json_object_put (jobj);
-    }
-}
-#endif /* USE_ETCD */
-
 int
 main (int argc, char **argv)
 {
@@ -654,30 +491,6 @@ main (int argc, char **argv)
 	  usage(1);
 	}
     }
-#ifdef USE_ETCD
-  else if (strcasecmp ("get-group", argv[1]) == 0 ||
-           strcasecmp ("get_group", argv[1]) == 0)
-    {
-      const char *group = get_lock_group (connection);
-      if (group == NULL)
-	retval = 1;
-      else
-	printf ("Etcd lock group is set to %s\n", group);
-    }
-  else if (strcasecmp ("set-group", argv[1]) == 0 ||
-           strcasecmp ("set_group", argv[1]) == 0)
-    {
-      if (argc > 2)
-	{
-	  const char* group = argv[2];
-	  retval = set_lock_group (connection, group);
-	}
-      else
-	{
-	  usage(1);
-	}
-    }
-#endif /* USE_ETCD */
   else if (strcasecmp ("cancel", argv[1]) == 0)
     retval = cancel_reboot (connection);
   else if (strcasecmp ("status", argv[1]) == 0)
@@ -696,146 +509,11 @@ main (int argc, char **argv)
       else
 	{
 	  if (status >= 0)
-	    {
-	      printf ("Status: %s\n", status_to_string (status, NULL));
-#ifdef USE_ETCD
-	      print_etcd_status (connection);
-#endif /* USE_ETCD */
-	    }
+	    printf ("Status: %s\n", status_to_string (status, NULL));
 	  else
 	    retval = 1;
 	}
     }
-#ifdef USE_ETCD
-  else if (strcasecmp ("lock", argv[1]) == 0)
-    {
-      const char *group;
-      const char *machine_id = NULL;
-
-      if (argc > 3)
-	{
-	  if (strcmp (argv[2], "-g") == 0 ||
-	      strcmp (argv[2], "--group") == 0)
-	    group = argv[3];
-	  else
-	    group = get_lock_group (connection);
-
-	  if (argc > 4)
-	    machine_id = argv[4];
-	}
-      else
-	{
-	  group = get_lock_group (connection);
-	  if (argc > 2)
-	    machine_id = argv[2];
-	}
-
-      if (group == NULL)
-	retval = 1;
-      else
-	{
-	  retval = etcd_get_lock (group, machine_id);
-	  if (retval != 0)
-	    fprintf (stderr, _("Error getting lock from etcd!\n"));
-	  else
-	    {
-	      if (machine_id)
-		printf (_("Got lock from etcd for machine with ID %s\n"), machine_id);
-	      else
-		printf (_("Got lock from etcd for local machine\n"));
-	    }
-	}
-    }
-  else if (strcasecmp ("unlock", argv[1]) == 0)
-    {
-      const char *group;
-      const char *machine_id = NULL;
-
-      if (argc > 3)
-	{
-	  if (strcmp (argv[2], "-g") == 0 ||
-	      strcmp (argv[2], "--group") == 0)
-	    group = argv[3];
-	  else
-	    group = get_lock_group (connection);
-
-	  if (argc > 4)
-	    machine_id = argv[4];
-	}
-      else
-	{
-	  group = get_lock_group (connection);
-	  if (argc > 2)
-	    machine_id = argv[2];
-	}
-
-      if (group == NULL)
-	retval = 1;
-      else
-	{
-	  retval = etcd_release_lock (group, machine_id);
-	  if (retval != 0)
-	    fprintf (stderr, _("Error releasing lock from etcd!\n"));
-	  else
-	    {
-	      if (machine_id)
-		printf (_("Released lock from etcd for machine with ID %s\n"), machine_id);
-	      else
-		printf (_("Released lock from etcd for local machine\n"));
-	    }
-	}
-    }
-  else if (strcasecmp ("set-max", argv[1]) == 0)
-    {
-      const char *group;
-      int64_t max_locks = 0;
-
-      if (argc > 3)
-	{
-	  if (strcmp (argv[2], "-g") == 0 ||
-	      strcmp (argv[2], "--group") == 0)
-	    group = argv[3];
-	  else
-	    group = get_lock_group (connection);
-
-	  if (argc > 4)
-	    max_locks = atol (argv[4]); /* XXX */
-	}
-      else
-	{
-	  group = get_lock_group (connection);
-	  if (argc > 2)
-	    max_locks = atol (argv[2]); /* XXX */
-	}
-
-      if (group == NULL || max_locks <= 0)
-	retval = 1;
-      else
-	{
-	  int64_t old_max = -1;
-	  char *data = etcd_get_data_value (group);
-	  if (data != NULL)
-	    {
-	      json_object *jobj = json_tokener_parse (data);
-	      free (data);
-	      if (jobj != NULL)
-	        old_max = get_max_locks (jobj);
-	    }
-
-	  retval = etcd_set_max_locks (group, max_locks);
-	  if (retval != 0)
-	    fprintf (stderr, _("Error setting max locks at etcd!\n"));
-	  else
-	    {
-	      if (old_max > 0)
-                printf (_("Old: %"PRId64"\n"), old_max);
-              else
-                printf (_("Old: -\n"));
-	      printf (_("New: %"PRId64"\n"), max_locks);
-	    }
-	}
-    }
-#endif /* USE_ETCD */
   else
     usage (1);
 

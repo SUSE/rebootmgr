@@ -16,15 +16,12 @@ AM_CFLAGS = -D_REENTRANT=1 -DLOCALEDIR=\"$(localedir)\" \
 	-I$(top_srcdir)/lib ${DBUS_CFLAGS} ${JSON_CFLAGS} \
 	${ECONF_CFLAGS} ${CFLAGS_WARNINGS} ${CFLAGS_CHECKS}
 
-noinst_HEADERS = rebootmgr.h log_msg.h config_file.h util.h \
-	lock-json.h lock-etcd.h
+noinst_HEADERS = rebootmgr.h log_msg.h config_file.h util.h
 sbin_PROGRAMS = rebootmgrd rebootmgrctl
 
-rebootmgrd_SOURCES = rebootmgrd.c log_msg.c config_file.c util.c \
-		lock-json.c lock-etcd.c
-rebootmgrd_LDADD = -L../lib -lcalendarspec ${DBUS_LIBS} ${JSON_LIBS} \
-		${ETCD_LIBS} ${ECONF_LIBS} -lrt -lpthread ${LDFLAGS_CHECKS}
-rebootmgrctl_SOURCES = rebootmgrctl.c util.c lock-etcd.c lock-json.c log_msg.c
-rebootmgrctl_LDADD = -L../lib -lcalendarspec ${DBUS_LIBS} ${JSON_LIBS} \
-		     ${ETCD_LIBS} ${LDFLAGS_CHECKS}
+rebootmgrd_SOURCES = rebootmgrd.c log_msg.c config_file.c util.c 
+rebootmgrd_LDADD = -L../lib -lcalendarspec ${DBUS_LIBS} \
+		${ECONF_LIBS} -lrt -lpthread ${LDFLAGS_CHECKS}
+rebootmgrctl_SOURCES = rebootmgrctl.c util.c log_msg.c
+rebootmgrctl_LDADD = -L../lib -lcalendarspec ${DBUS_LIBS} ${LDFLAGS_CHECKS}
 

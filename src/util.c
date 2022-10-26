@@ -71,9 +71,6 @@ string_to_strategy(const char *str_strategy, int *error)
   else if (strcasecmp (str_strategy, "maint_window") == 0 ||
      strcasecmp (str_strategy, "maint-window") == 0)
     return RM_REBOOTSTRATEGY_MAINT_WINDOW;
-  else if (strcasecmp (str_strategy, "etcd-lock") == 0 ||
-           strcasecmp (str_strategy, "etcd_lock") == 0)
-    return RM_REBOOTSTRATEGY_ETCD_LOCK;
   else if (strcasecmp (str_strategy, "off") == 0)
     return RM_REBOOTSTRATEGY_OFF;
 
@@ -97,8 +94,6 @@ status_to_string(RM_RebootStatus status, int *error)
       return "Reboot requested";
     case RM_REBOOTSTATUS_WAITING_WINDOW:
       return "Reboot requested, waiting for maintenance window";
-    case RM_REBOOTSTATUS_WAITING_ETCD:
-      return "Reboot requested, waiting for etcd lock";
     default:
       if (error)
 	*error=1;
@@ -118,8 +113,6 @@ strategy_to_string(RM_RebootStrategy strategy, int *error)
     return "instantly";
   case RM_REBOOTSTRATEGY_MAINT_WINDOW:
     return "maint_window";
-  case RM_REBOOTSTRATEGY_ETCD_LOCK:
-    return "etcd-lock";
   case RM_REBOOTSTRATEGY_OFF:
     return "off";
   case RM_REBOOTSTRATEGY_UNKNOWN:

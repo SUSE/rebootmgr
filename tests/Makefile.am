@@ -8,15 +8,11 @@ AM_CFLAGS = -D_REENTRANT=1 -I$(top_srcdir)/lib -I$(top_srcdir)/src \
 	    ${CFLAGS_CHECKS} ${CFLAGS_WARNINGS}
 
 CLEANFILES = *~ test-calendarspec.log test-parse-duration.log \
-	test-suite.log test-calendarspec.trs test-parse-duration.trs \
-	test-etcd.log test-etcd.trs test-json.log test-json.trs
+	test-suite.log test-calendarspec.trs test-parse-duration.trs
 
-noinst_PROGRAMS = test-calendarspec test-parse-duration test-json test-etcd
+noinst_PROGRAMS = test-calendarspec test-parse-duration
 test_calendarspec_LDADD = ../lib/libcalendarspec.a ${LDFLAGS_CHECKS}
 test_parse_duration_LDADD = ../lib/libcalendarspec.a
-test_json_LDADD = ../src/lock-json.o ../src/log_msg.o ${JSON_LIBS}
-test_etcd_LDADD = ../src/lock-json.o ../src/lock-etcd.o ../src/log_msg.o \
-		  ${JSON_LIBS} ${ETCD_LIBS} ${LIBS} ${LDFLAGS_CHECKS}
 
-TESTS = test-calendarspec test-parse-duration test-json test-etcd
+TESTS = test-calendarspec test-parse-duration
 EXTRA_DIST = ${TESTS}
