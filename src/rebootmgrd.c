@@ -52,8 +52,7 @@ create_context (void)
     return 0;
 
   *ctx = (RM_CTX) {RM_REBOOTSTRATEGY_BEST_EFFORT, 0,
-		   RM_REBOOTORDER_STANDARD, 0, 0, NULL, 3600, NULL, NULL};
-  ctx->lock_group = strdup ("default");
+		   RM_REBOOTORDER_STANDARD, 0, 0, NULL, 3600, NULL};
   pthread_mutex_unlock (&mutex_ctx);
 
   return 1;
@@ -78,8 +77,6 @@ destroy_context (void)
     }
   if (ctx->maint_window_start != NULL)
     calendar_spec_free (ctx->maint_window_start);
-  if (ctx->lock_group != NULL)
-    free (ctx->lock_group);
   free (ctx);
   pthread_mutex_unlock (&mutex_ctx);
 
@@ -420,38 +417,6 @@ handle_native_iface (DBusMessage *message)
       else
 	dbus_message_append_args (reply, DBUS_TYPE_UINT32,
 				  &ctx->reboot_strategy, DBUS_TYPE_INVALID);
-    }
-  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
-					RM_DBUS_METHOD_SET_LOCKGROUP))
-    {
-      const char *group = NULL;
-
-      if (dbus_message_get_args (message, NULL, DBUS_TYPE_STRING,
-				 &group, DBUS_TYPE_INVALID))
-	{
-	  if (debug_flag)
-	    log_msg (LOG_DEBUG, "set-group called");
-	  if (group != NULL &&
-	      strcmp (ctx->lock_group, group))
-	    {
-	      if (debug_flag)
-		log_msg (LOG_DEBUG, "lock group changed to %s", group);
-	      if (ctx->lock_group != NULL)
-		free (ctx->lock_group);
-	      ctx->lock_group = strdup (group);
-	    }
-	  save_config (ctx, SET_LOCK_GROUP);
-	}
-    }
-  else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
-					RM_DBUS_METHOD_GET_LOCKGROUP))
-    {
-      if (debug_flag)
-	log_msg (LOG_DEBUG, "get-group called");
-
-      /* create a reply from the message */
-      dbus_message_append_args (reply, DBUS_TYPE_STRING,
-				&ctx->lock_group, DBUS_TYPE_INVALID);
     }
   else if (dbus_message_is_method_call (message, RM_DBUS_INTERFACE,
 					RM_DBUS_METHOD_STATUS))

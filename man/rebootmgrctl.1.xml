@@ -82,7 +82,6 @@
 	<arg choice='plain'>set-strategy</arg>
       <group choice='plain'>
 	<arg choice='plain'>best-effort</arg>
-	<arg choice='plain'>etcd-lock</arg>
 	<arg choice='plain'>maint-window</arg>
 	<arg choice='plain'>instantly</arg>
 	<arg choice='plain'>off</arg>
@@ -94,15 +93,6 @@
     </cmdsynopsis>
     <cmdsynopsis>
       <command>rebootmgrctl</command>
-      <arg choice='plain'>set-group</arg>
-      <arg choice='plain'><replaceable>group</replaceable></arg>
-    </cmdsynopsis>
-    <cmdsynopsis>
-      <command>rebootmgrctl</command>
-      <arg choice='plain'>get-group</arg>
-    </cmdsynopsis>
-    <cmdsynopsis>
-      <command>rebootmgrctl</command>
       <arg choice='plain'>set-window</arg>
       <arg choice='plain'><replaceable>time</replaceable></arg>
       <arg choice='plain'><replaceable>duration</replaceable></arg>
@@ -111,32 +101,13 @@
       <command>rebootmgrctl</command>
       <arg choice='plain'>get-window</arg>
     </cmdsynopsis>
-    <cmdsynopsis>
-      <command>rebootmgrctl</command>
-      <arg choice='plain'>set-max</arg>
-      <arg choice='opt'>--group <replaceable>group</replaceable></arg>
-      <arg choice='plain'><replaceable>number</replaceable></arg>
-    </cmdsynopsis>
-    <cmdsynopsis>
-      <command>rebootmgrctl</command>
-      <arg choice='plain'>lock</arg>
-      <arg choice='opt'>--group <replaceable>group</replaceable></arg>
-      <arg choice='opt'><replaceable>machine-id</replaceable></arg>
-    </cmdsynopsis>
-    <cmdsynopsis>
-      <command>rebootmgrctl</command>
-      <arg choice='plain'>unlock</arg>
-      <arg choice='opt'>--group <replaceable>group</replaceable></arg>
-      <arg choice='opt'><replaceable>machine-id</replaceable></arg>
-    </cmdsynopsis>
   </refsynopsisdiv>
 
   <refsect1 id='description'><title>Description</title>
   <para><emphasis remap='B'>rebootmgrctl</emphasis> is used to
   query and configure the
   <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry>
-  process. Options regarding to <option>etcd-lock</option> are only available if
-  <emphasis remap='B'>rebootmgrctl</emphasis> was compiled with etcd support.</para>
+  process.</para>
   </refsect1>
 
   <refsect1 id='options'><title>Options</title>
@@ -175,10 +146,9 @@
       <listitem>
 	<para>
 	  Tells rebootmgr to schedule a reboot. With
-	  the <optional>now</optional> option, a forced reboot is done, no lock
-	  from <command>etcd</command> is requested and a set maintenance
-	  window is ignored. With the <optional>fast</optional> option, a lock
-	  from <command>etcd</command> is requested if needed, but a defined
+	  the <optional>now</optional> option, a forced reboot is done
+	  and a maintenance window is ignored.
+	  With the <optional>fast</optional> option a defined
 	  maintenance window is ignored.
 	</para>
       </listitem>
@@ -187,9 +157,8 @@
     <varlistentry>
       <term><option>status</option> <optional>--quiet</optional></term>
       <listitem>
-	<para>Prints the current status of <command>rebootmgrd</command>,
-	including current data structure stored in etcd if available. With the
-	<optional>--quiet</optional> option,
+	<para>Prints the current status of <command>rebootmgrd</command>.
+	With the <optional>--quiet</optional> option,
 	<command>rebootmgrctl</command> does not print any output, but returns
 	the current reboot status as return value. Valid values are:
 	</para>
@@ -218,20 +187,12 @@
 	      </para>
 	    </listitem>
 	  </varlistentry>
-	  <varlistentry>
-	    <term>3</term>
-	    <listitem>
-	      <para>
-		Reboot requested, waiting for etcd lock.
-	      </para>
-	    </listitem>
-	  </varlistentry>
 	</variablelist>
       </listitem>
     </varlistentry>
 
     <varlistentry>
-      <term><option>set-strategy</option> best-effort|etcd-lock|maint-window|instantly|off</term>
+      <term><option>set-strategy</option> best-effort|maint-window|instantly|off</term>
       <listitem>
 	<para>
 	  A new strategy to reboot the machine is set and written into
@@ -242,24 +203,11 @@
 	    <term>best-effort</term>
 	    <listitem>
 	      <para>
-		This is the default strategy. If <command>etcd</command> is
-		running, <option>etcd-lock</option> is used. If no
-		<command>etcd</command> is running, but a maintenance window
+		This is the default strategy. If a maintenance window
 		is specified, the strategy will be
 		<option>maint-window</option>. If no maintenance window is
 		specified, the machine is immediately rebooted
 		(<option>instantly</option>).
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>etcd-lock</term>
-	    <listitem>
-	      <para>
-		A lock at <command>etcd</command> for the specified
-		<option>lock-group</option> will be acquired before reboot. If
-		a maintenance window is specified, the lock is only acquired
-		during this window.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -278,8 +226,8 @@
 	    <listitem>
 	      <para>
 		Other services will be informed that a reboot will
-		happen. Reboot will be done without getting any locks or
-		waiting for a maintenance window.
+		happen. Reboot will be done without waiting for a
+		maintenance window.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -326,70 +274,6 @@
       <listitem>
 	<para>
 	  The currently set maintenance window will be printed.
-	</para>
-      </listitem>
-    </varlistentry>
-
-    <varlistentry>
-      <term><option>set-group</option>
-      <replaceable>etcd-lock-group</replaceable></term>
-      <listitem>
-	<para>
-	  Set's the group, to which this machine belongs to get a reboot lock
-	  from <command>etcd</command>.
-	</para>
-      </listitem>
-    </varlistentry>
-
-    <varlistentry>
-      <term><option>get-group</option></term>
-      <listitem>
-	<para>
-	  The currently set lock group for <command>etcd</command>.
-	</para>
-      </listitem>
-    </varlistentry>
-
-    <varlistentry>
-      <term><option>set-max</option>
-      <optional>--group <replaceable>group</replaceable></optional>
-      <replaceable>number</replaceable></term>
-      <listitem>
-	<para>
-	  Set the maximal number of hosts in a group, which are allowed to
-	  reboot at the same time.
-	</para>
-      </listitem>
-    </varlistentry>
-
-    <varlistentry>
-      <term><option>lock</option>
-      <optional>--group <replaceable>group</replaceable></optional>
-      <optional><replaceable>machine-id</replaceable></optional></term>
-      <listitem>
-	<para>
-	  Lock a machine. If no <varname>group</varname> is specified, the
-	  local default group will be used. If no
-	  <varname>machine-id</varname> is specified, the local machine will
-	  be locked.
-	</para>
-	<para>
-	  The machine-id is a network wide, unique ID. Per default the ID from
-	  <filename>/etc/machine-id</filename> is used.
-	</para>
-      </listitem>
-    </varlistentry>
-
-    <varlistentry>
-      <term><option>unlock</option>
-      <optional>--group <replaceable>group</replaceable></optional>
-      <optional><replaceable>machine-id</replaceable></optional></term>
-      <listitem>
-	<para>
-	  Unlock a machine. If no <varname>group</varname> is specified, the
-	  local default group will be used. If no
-	  <varname>machine-id</varname> is specified, the local machine will
-	  be unlocked.
 	</para>
       </listitem>
     </varlistentry>

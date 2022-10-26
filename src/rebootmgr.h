@@ -27,8 +27,6 @@
 #define RM_DBUS_METHOD_GET_STRATEGY	"GetStrategy"
 #define RM_DBUS_METHOD_SET_MAINTWINDOW "SetMaintenanceWindow"
 #define RM_DBUS_METHOD_GET_MAINTWINDOW "GetMaintenanceWindow"
-#define RM_DBUS_METHOD_SET_LOCKGROUP	"SetLockGroup"
-#define RM_DBUS_METHOD_GET_LOCKGROUP	"GetLockGroup"
 #define RM_DBUS_METHOD_TEMPORARY_OFF "TemporaryOff"
 #define RM_DBUS_METHOD_TEMPORARY_ON "TemporaryON"
 
@@ -44,16 +42,14 @@
 typedef enum RM_RebootOrder {
   RM_REBOOTORDER_UNKNOWN = 0,
   RM_REBOOTORDER_STANDARD, /* Follow normal reboot strategy */
-  RM_REBOOTORDER_FAST,     /* Ignore maintenance window, but
-			      get locks first */
+  RM_REBOOTORDER_FAST,     /* Ignore maintenance window */
   RM_REBOOTORDER_FORCED    /* Reboot immediately, without
                               waiting for maintenance window */
 } RM_RebootOrder;
 
 typedef enum RM_RebootStrategy {
   RM_REBOOTSTRATEGY_UNKNOWN = 0,
-  RM_REBOOTSTRATEGY_BEST_EFFORT, /* etcd-lock if available, else
-			            maintenance window, else instantly */
+  RM_REBOOTSTRATEGY_BEST_EFFORT, /* maintenance window, else instantly */
   RM_REBOOTSTRATEGY_INSTANTLY,	 /* reboot instantly */
   RM_REBOOTSTRATEGY_MAINT_WINDOW,/* reboot only during maintenance window */
   RM_REBOOTSTRATEGY_OFF          /* don't reboot */
@@ -73,7 +69,6 @@ typedef struct {
   timer_t  reboot_timer_id;
   CalendarSpec *maint_window_start;
   time_t maint_window_duration;
-  char *lock_group;
   DBusConnection *connection;
 } RM_CTX;
 

@@ -96,21 +96,6 @@
 	</listitem>
       </varlistentry>
 
-      <varlistentry>
-        <term><varname>lock-group=</varname></term>
-        <listitem>
-	  <para>
-	    This option is only used in conjuction with
-	    <filename>etcd</filename> locking.
-	    To avoid that all machines running the same services reboots at
-	    the same time, they can be grouped into classes and only a
-	    specified number of machines in the same group are allowed to
-	    reboot at the same time. The standard group name is
-	    <literal>default</literal>.
-          </para>
-	</listitem>
-      </varlistentry>
-
     </variablelist>
   </refsect1>
 
@@ -122,9 +107,7 @@
 
       <para>
 	In this example, the machine will reboot between 03:30 and 05:00
-	o'clock in the morning. If an etcd is running, rebootmgrd will obtain a
-	lock for the group <literal>etcd_cluster</literal> before the reboot is
-	done.
+	o'clock in the morning.
       </para>
 
       <para><filename>/etc/rebootmgr.conf</filename>:</para>
@@ -134,7 +117,6 @@
 	window-start=03:30
 	window-duration=1h30m
 	strategy=best-effort
-	lock-group=etcd_cluster
       </programlisting>
     </example>
 

@@ -77,8 +77,8 @@
 	<listitem>
 	  <para>
 	    When the signal arrives other services will be informed
-	    that we plan to reboot and do the reboot without getting any locks
-	    or waiting for a maintenance window.
+	    that we plan to reboot and do the reboot without waiting
+	    for a maintenance window.
 	  </para>
 	</listitem>
 	</varlistentry>
@@ -90,25 +90,12 @@
 	  </para>
 	</listitem>
 	</varlistentry>
-	<varlistentry><term>etcd-lock</term>
-	<listitem>
-	  <para>
-	    Acquire a lock at etcd for the specified lock-group before
-	    reboot. If a maintenance window is specified, acquire the lock
-	    only during this window. If taking the lock takes longer than the
-	    duration of the maitnenance window, the reboot is canceld and an
-	    error logged. This option is only available if 
-	    <emphasis remap='B'>rebootmgrd</emphasis> was compiled with etcd support.
-	  </para>
-	</listitem>
-	</varlistentry>
 	<varlistentry><term>best-effort</term>
 	<listitem>
 	  <para>
-	    This is the default. If etcd is running, use etcd-lock. If no etcd
-	    is running, but a maintenance window is specified, use
-	    maint-window. If no maintenance window is specified, reboot
-	    immediately (instantly).
+	    This is the default. IF a maintenance window is specified,
+	    use maint-window. If no maintenance window is specified,
+	    reboot immediately (instantly).
 	  </para>
 	</listitem>
 	</varlistentry>
@@ -131,105 +118,6 @@
 	This changes will be written to the configuration file and survive the
 	next reboot.
       </para>
-    </refsect2>
-    <refsect2>
-      <title>Locking via etcd</title>
-      <para>
-	To make sure that not all machines reboot at the same time, the
-	machines can be sorted into groups and the number of machines of a
-	group which are allowed to reboot at the same time can be configured
-	and controlled via <command>etcd</command>. So you can create a group
-	<literal>etcd_server</literal>, which contains all machines running
-	etcd, and specify that only one etcd server is allowed to reboot at one
-	time. And a second group <literal>worker</literal>, in
-	which a higher number of machines are allowed to reboot at the same
-	time.
-      </para>
-      <para>
-	The etcd path to the directory containing data for a group is:
-	<literal>/opensuse.org/rebootmgr/locks/&lt;group&gt;/</literal>. This
-	directory contains two variables: <literal>mutex</literal>, which is
-	by default <literal>0</literal> and can be set via
-	atomic_compare_and_swap to <literal>1</literal> to make sure that only
-	one machine has write access, and a variable <literal>data</literal>
-	containing the following json structure:
-      </para>
-      <programlisting>
-	{
-	  "max":1,
-	  "holders":[]
-	}
-      </programlisting>
-      <para>
-	<literal>holders</literal> will contain a unique ID of the machines
-	holding a lock. As unique ID the machine ID from
-	<filename>/etc/machine-id</filename> is used.
-      </para>
-      <para>
-	So a record containing two locks out of 10 possible would look like:
-      </para>
-      <programlisting>
-	{
-	  "max":10,
-	  "holders":[
-	    "3cb8c701b4d3474d99a7e88b31dd3439",
-	    "71c8efe539b280af2fe09b3b5771345e"
-	  ]
-	}
-      </programlisting>
-      <para>
-	A typical work-flow of a client which tries to reboot would look like:
-      </para>
-      <itemizedlist>
-	<listitem>
-	  <para>
-	    check, that there are free locks, else watch the data variable
-	    until it changes
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    get the mutex
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    add our machine ID to the list of machine holding a lock
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    release the mutex
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    reboot
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    on boot, check if we hold a lock. If yes:
-	  </para>
-	  <itemizedlist>
-	    <listitem>
-	      <para>
-		get the mutex
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		remove the machine ID from the list
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		release the mutex
-	      </para>
-	    </listitem>
-	  </itemizedlist>
-	</listitem>
-      </itemizedlist>
     </refsect2>
   </refsect1>
 
@@ -255,23 +143,6 @@
       </listitem>
     </varlistentry>
   </variablelist>
-  </refsect1>
-
-  <refsect1>
-    <title>Environment</title>
-
-    <variablelist>
-      <varlistentry>
-        <term><varname>ETCD_SERVERS</varname></term>
-        <listitem>
-	  <para>
-	    This environment variable contains a list of URLs of
-	    <command>etcd</command> servers. If this variable is not set,
-	    <literal>http://127.0.0.1:2379</literal> is used.
-          </para>
-	</listitem>
-      </varlistentry>
-    </variablelist>
   </refsect1>
 
   <refsect1 id='see_also'>

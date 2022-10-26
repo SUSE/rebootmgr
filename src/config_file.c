@@ -130,7 +130,7 @@ load_config (RM_CTX *ctx)
       log_msg (LOG_ERR, "Cannot load 'rebootmgr.conf'");
   else
     {
-      char *str_start = NULL, *str_duration = NULL, *str_strategy = NULL, *lock_group = NULL;
+      char *str_start = NULL, *str_duration = NULL, *str_strategy = NULL;
 
       error = econf_getStringValue(file, RM_GROUP, "window-start", &str_start);
       if (error && error != ECONF_NOKEY)
@@ -153,13 +153,6 @@ load_config (RM_CTX *ctx)
 		   econf_errString(error));
 	  goto out;
 	}
-      error = econf_getStringValue (file, RM_GROUP, "lock-group", &lock_group);
-      if (error && error != ECONF_NOKEY)
-	{
-	  log_msg (LOG_ERR, "ERROR (econf): cannot get key 'lock-group': %s",
-		   econf_errString(error));
-	  goto out;
-	}
 
       if (str_start == NULL && str_duration != NULL)
 	str_duration = NULL;
@@ -177,12 +170,6 @@ load_config (RM_CTX *ctx)
 	    log_msg (LOG_ERR, "ERROR: cannot parse window-duration '%s'",
 		     str_duration);
 	}
-      if (ctx->lock_group)
-	free (ctx->lock_group);
-      if (lock_group == NULL)
-	ctx->lock_group = strdup ("default");
-      else
-	ctx->lock_group = strdup (lock_group);
     out:
       if (file_1)
 	econf_free(file_1);
@@ -196,8 +183,6 @@ load_config (RM_CTX *ctx)
 	free (str_duration);
       if (str_strategy)
 	free (str_strategy);
-      if (lock_group)
-	free (lock_group);
     }
 }
 
@@ -234,9 +219,6 @@ save_config (RM_CTX *ctx, int field)
     case SET_STRATEGY:
       error = econf_setStringValue (file, RM_GROUP, "strategy",
 				    strategy_to_string(ctx->reboot_strategy, NULL));
-      break;
-    case SET_LOCK_GROUP:
-      error = econf_setStringValue (file, RM_GROUP, "lock-group", ctx->lock_group);
       break;
     case SET_MAINT_WINDOW:
       p = spec_to_string(ctx->maint_window_start);

@@ -36,16 +36,6 @@
       <arg name="strategy" type="u" direction="out"/>
     </method>
 
-    <!-- set lock group for etcd -->
-    <method name="SetLockGroup">
-      <arg name="group" type="s" direction="in"/>
-    </method>
-
-    <!-- get lock group for etcd -->
-    <method name="GetLockGroup">
-      <arg name="group" type="s" direction="out"/>
-    </method>
-
     <!-- triggers a reboot -->
     <method name="Reboot">
       <arg name="order" type="u" direction="in"/>
