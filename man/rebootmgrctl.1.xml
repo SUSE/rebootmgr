@@ -261,7 +261,7 @@
       <listitem>
 	<para>
 	  Set's the maintenance window. The format of <varname>time</varname>
-	  is the same as described in  <citerefentry
+	  is a calendar event described in <citerefentry
 	  project='systemd'><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>.
 	  The format of <varname>duration</varname> is
           <literal>[XXh][YYm]</literal>.
