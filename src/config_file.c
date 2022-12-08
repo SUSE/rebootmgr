@@ -155,7 +155,10 @@ load_config (RM_CTX *ctx)
 	}
 
       if (str_start == NULL && str_duration != NULL)
-	str_duration = NULL;
+	{
+	  free (str_duration);
+	  str_duration = NULL;
+	}
       ctx->reboot_strategy = string_to_strategy(str_strategy, NULL);
       if (str_start != NULL)
 	{
