@@ -115,7 +115,7 @@
 	<citerefentry><refentrytitle>rebootmgr.conf</refentrytitle><manvolnum>5</manvolnum></citerefentry>
 	and adjusted at runtime via
 	<citerefentry><refentrytitle>rebootmgrctl</refentrytitle><manvolnum>1</manvolnum></citerefentry>.
-	This changes will be written to the configuration file and survive the
+	These changes will be written to the configuration file and survive the
 	next reboot.
       </para>
     </refsect2>
