@@ -41,10 +41,13 @@
 
 typedef enum RM_RebootOrder {
   RM_REBOOTORDER_UNKNOWN = 0,
-  RM_REBOOTORDER_STANDARD, /* Follow normal reboot strategy */
-  RM_REBOOTORDER_FAST,     /* Ignore maintenance window */
-  RM_REBOOTORDER_FORCED    /* Reboot immediately, without
-                              waiting for maintenance window */
+  RM_REBOOTORDER_STANDARD,   /* Follow normal reboot strategy */
+  RM_REBOOTORDER_FAST,       /* Ignore maintenance window */
+  RM_REBOOTORDER_FORCED,     /* Reboot immediately, without
+                                waiting for maintenance window */
+  RM_REBOOTORDER_SOFT,       /* Soft reboot with normal reboot strategy */
+  RM_REBOOTORDER_SOFT_FAST,  /* Immediate soft-reboot */
+  RM_REBOOTORDER_SOFT_FORCED /* Forced immediate reboot */
 } RM_RebootOrder;
 
 typedef enum RM_RebootStrategy {

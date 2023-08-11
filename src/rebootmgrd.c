@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Thorsten Kukuk
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2023 Thorsten Kukuk
    Author: Thorsten Kukuk <kukuk@suse.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -104,7 +104,7 @@ print_error (void)
 }
 
 static void
-reboot_now (void)
+reboot_now (int soft_reboot)
 {
   pthread_mutex_lock (&mutex_ctx);
   if (ctx->temp_off)
@@ -127,17 +127,34 @@ reboot_now (void)
 	    }
 	  else if (pid == 0)
 	    {
-	      if (execl ("/usr/bin/systemctl", "systemctl", "reboot",
-			 NULL) == -1)
+	      if (soft_reboot)
 		{
-		  log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %m");
-		  exit (1);
+		  if (execl ("/usr/bin/systemctl", "systemctl", "soft-reboot",
+			     NULL) == -1)
+		    {
+		      log_msg (LOG_ERR, "Calling /usr/bin/systemctl soft-reboot failed: %m");
+		      exit (1);
+		    }
+		}
+	      else
+		{
+		  if (execl ("/usr/bin/systemctl", "systemctl", "reboot",
+			     NULL) == -1)
+		    {
+		      log_msg (LOG_ERR, "Calling /usr/bin/systemctl reboot failed: %m");
+		      exit (1);
+		    }
 		}
 	      exit (0);
 	    }
 	}
       else
-	log_msg (LOG_DEBUG, "systemctl reboot called!");
+	{
+	  if (soft_reboot)
+	    log_msg (LOG_DEBUG, "systemctl soft-reboot called!");
+	  else
+	    log_msg (LOG_DEBUG, "systemctl reboot called!");
+	}
 
       ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
     }
@@ -147,25 +164,25 @@ reboot_now (void)
 /* Check which reboot method and forward to that function */
 /* Called by timer_create as new thread */
 static void
-reboot_timer (sigval_t RM_UNUSED(user_data))
+reboot_timer (sigval_t soft_reboot)
 {
   if (debug_flag)
     log_msg (LOG_DEBUG, "reboot_timer called");
 
-    reboot_now ();
+    reboot_now (soft_reboot.sival_int);
 }
 
 /* Create a new timer thread, which calls '_function' after
    specified seconds */
 static timer_t
-create_timer (time_t seconds, void (*_function) (sigval_t))
+create_timer (time_t seconds, int soft_reboot, void (*_function) (sigval_t))
 {
   timer_t timer_id;
 
   /* Create timer */
   struct sigevent se;
   se.sigev_notify = SIGEV_THREAD;
-  se.sigev_value.sival_ptr = NULL;
+  se.sigev_value.sival_int = soft_reboot;
   se.sigev_notify_function = _function;
   se.sigev_notify_attributes = NULL;
   if (timer_create(CLOCK_REALTIME, &se, &timer_id) == -1)
@@ -191,7 +208,7 @@ create_timer (time_t seconds, void (*_function) (sigval_t))
 }
 
 static void
-initialize_timer (void)
+initialize_timer (int soft_reboot)
 {
   int r;
   usec_t curr = now(CLOCK_REALTIME);
@@ -215,7 +232,7 @@ initialize_timer (void)
     {
       /* we are inside the maintenance window, reboot */
       pthread_mutex_unlock (&mutex_ctx);
-      reboot_timer ((sigval_t) 0);
+      reboot_timer ((sigval_t) soft_reboot);
       return;
     }
 
@@ -248,7 +265,7 @@ initialize_timer (void)
     timer_delete(ctx->reboot_timer_id);
 
   ctx->reboot_timer_id =
-    create_timer ((next - curr) / USEC_PER_SEC, reboot_timer);
+    create_timer ((next - curr) / USEC_PER_SEC, soft_reboot, reboot_timer);
 
   pthread_mutex_unlock (&mutex_ctx);
 }
@@ -262,47 +279,52 @@ do_reboot (void)
 
   ctx->reboot_status = RM_REBOOTSTATUS_REQUESTED;
 
-  if (ctx->reboot_order == RM_REBOOTORDER_FORCED)
+  if (ctx->reboot_order == RM_REBOOTORDER_FORCED ||
+      ctx->reboot_order == RM_REBOOTORDER_SOFT_FORCED)
     {
       if (debug_flag)
 	log_msg (LOG_DEBUG, "Forced reboot requested");
       pthread_mutex_unlock (&mutex_ctx);
-      reboot_now ();
+      reboot_now (ctx->reboot_order == RM_REBOOTORDER_SOFT);
       return;
     }
+
+  int soft_reboot = ctx->reboot_order == RM_REBOOTORDER_SOFT || ctx->reboot_order == RM_REBOOTORDER_SOFT_FAST || ctx->reboot_order == RM_REBOOTORDER_SOFT_FORCED;
 
   switch (ctx->reboot_strategy)
     {
     case RM_REBOOTSTRATEGY_BEST_EFFORT:
       if (ctx->maint_window_start != NULL &&
-	  ctx->reboot_order != RM_REBOOTORDER_FAST)
+	  ctx->reboot_order != RM_REBOOTORDER_FAST &&
+	  ctx->reboot_order != RM_REBOOTORDER_SOFT_FAST)
 	{
 	  pthread_mutex_unlock (&mutex_ctx);
-	  initialize_timer();
+	  initialize_timer(soft_reboot);
 	  return;
 	}
       else
 	{
 	  pthread_mutex_unlock (&mutex_ctx);
-	  reboot_now ();
+	  reboot_now (soft_reboot);
 	  return;
 	}
       break;
     case RM_REBOOTSTRATEGY_INSTANTLY:
       pthread_mutex_unlock (&mutex_ctx);
-      reboot_now ();
+      reboot_now (soft_reboot);
       return;
       break;
     case RM_REBOOTSTRATEGY_MAINT_WINDOW:
       if (ctx->reboot_order == RM_REBOOTORDER_FAST ||
+	  ctx->reboot_order == RM_REBOOTORDER_SOFT_FAST ||
 	  ctx->maint_window_start == NULL)
 	{
 	  pthread_mutex_unlock (&mutex_ctx);
-	  reboot_now ();
+	  reboot_now (soft_reboot);
 	  return;
 	}
       pthread_mutex_unlock (&mutex_ctx);
-      initialize_timer ();
+      initialize_timer (soft_reboot);
       return;
       break;
     case RM_REBOOTSTRATEGY_OFF:
@@ -352,6 +374,21 @@ handle_native_iface (DBusMessage *message)
 	    {
 	      if (debug_flag)
 		log_msg (LOG_DEBUG, "Reboot now");
+	    }
+	  else 	  if (order == RM_REBOOTORDER_SOFT)
+	    {
+	      if (debug_flag)
+		log_msg (LOG_DEBUG, "Soft reboot at next possible time");
+	    }
+	  else if (order == RM_REBOOTORDER_SOFT_FAST)
+	    {
+	      if (debug_flag)
+		log_msg (LOG_DEBUG, "Soft reboot as fast as possible");
+	    }
+	  else if (order == RM_REBOOTORDER_SOFT_FORCED)
+	    {
+	      if (debug_flag)
+		log_msg (LOG_DEBUG, "Soft reboot now");
 	    }
 	  else
 	    {
@@ -610,7 +647,7 @@ dbus_filter (DBusConnection *connection, DBusMessage *message,
       log_msg (LOG_INFO, "Lost connection to D-Bus");
       dbus_connection_unref (connection);
       connection = NULL;
-      create_timer (1, dbus_reconnect);
+      create_timer (1, 0, dbus_reconnect);
       handled = DBUS_HANDLER_RESULT_HANDLED;
     }
 

@@ -3,7 +3,7 @@
 "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 
 <!--  \-*\- nroff \-*\- -->
-<!--  Copyright 2017, 2020 Thorsten Kukuk &lt;kukuk@suse.de&gt; -->
+<!--  Copyright 2017, 2020, 2023 Thorsten Kukuk &lt;kukuk@suse.de&gt; -->
 
 <!--  This file is part of rebootmgr. -->
 
@@ -63,6 +63,14 @@
     <cmdsynopsis>
       <command>rebootmgrctl</command>
       <arg choice='plain'>reboot</arg>
+      <group choice='opt'>
+	<arg choice='plain'>fast</arg>
+	<arg choice='plain'>now</arg>
+      </group>
+    </cmdsynopsis>
+    <cmdsynopsis>
+      <command>rebootmgrctl</command>
+      <arg choice='plain'>soft-reboot</arg>
       <group choice='opt'>
 	<arg choice='plain'>fast</arg>
 	<arg choice='plain'>now</arg>
@@ -145,9 +153,23 @@
       <term><option>reboot</option> <optional>fast|now</optional></term>
       <listitem>
 	<para>
-	  Tells rebootmgr to schedule a reboot. With
+	  Tells rebootmgrd to schedule a reboot. With
 	  the <optional>now</optional> option, a forced reboot is done
 	  and a maintenance window is ignored.
+	  With the <optional>fast</optional> option a defined
+	  maintenance window is ignored.
+	</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>soft-reboot</option> <optional>fast|now</optional></term>
+      <listitem>
+	<para>
+	  Tells rebootmgrd to schedule a soft-reboot (see
+	  <citerefentry project='systemd'><refentrytitle>systemd-soft-reboot.service</refentrytitle><manvolnum>8</manvolnum></citerefentry>).
+	  With the <optional>now</optional> option, a forced soft-reboot is
+	  done and a maintenance window is ignored.
 	  With the <optional>fast</optional> option a defined
 	  maintenance window is ignored.
 	</para>
@@ -284,7 +306,8 @@
   <refsect1 id='see_also'>
     <title>See Also</title>
     <para>
-      <citerefentry project='systemd'><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>
+      <citerefentry project='systemd'><refentrytitle>systemd.time</refentrytitle><manvolnum>7</manvolnum></citerefentry>,
+      <citerefentry project='systemd'><refentrytitle>systemd-soft-reboot.service</refentrytitle><manvolnum>8</manvolnum></citerefentry>
     </para>
   </refsect1>
 </refentry>

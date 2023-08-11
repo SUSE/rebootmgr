@@ -419,6 +419,21 @@ main (int argc, char **argv)
 	}
       retval = trigger_reboot (connection, order);
     }
+  else if (strcasecmp ("soft-reboot", argv[1]) == 0)
+    {
+      RM_RebootOrder order = RM_REBOOTORDER_SOFT;
+
+      if (argc > 2)
+	{
+	  if (strcasecmp ("fast", argv[2]) == 0)
+	    order = RM_REBOOTORDER_SOFT_FAST;
+	  else if (strcasecmp ("now", argv[2]) == 0)
+	    order = RM_REBOOTORDER_SOFT_FORCED;
+	  else
+	    usage (1);
+	}
+      retval = trigger_reboot (connection, order);
+    }
   else if (strcasecmp ("set-strategy", argv[1]) == 0 ||
 	   strcasecmp ("set_strategy", argv[1]) == 0)
     {
