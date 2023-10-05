@@ -35,6 +35,7 @@ usage (int exit_code)
   printf (_("\trebootmgrctl --help|--version\n"));
   printf (_("\trebootmgrctl is-active [--quiet]\n"));
   printf (_("\trebootmgrctl reboot [fast|now]\n"));
+  printf (_("\trebootmgrctl soft-reboot [fast|now]\n"));
   printf (_("\trebootmgrctl cancel\n"));
   printf (_("\trebootmgrctl status [--quiet]\n"));
   printf (_("\trebootmgrctl set-strategy best-effort|maint-window|instantly|off\n"));

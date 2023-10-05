@@ -375,7 +375,7 @@ handle_native_iface (DBusMessage *message)
 	      if (debug_flag)
 		log_msg (LOG_DEBUG, "Reboot now");
 	    }
-	  else 	  if (order == RM_REBOOTORDER_SOFT)
+	  else if (order == RM_REBOOTORDER_SOFT)
 	    {
 	      if (debug_flag)
 		log_msg (LOG_DEBUG, "Soft reboot at next possible time");
