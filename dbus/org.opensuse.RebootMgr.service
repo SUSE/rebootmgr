@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=org.opensuse.RebootMgr
+Exec=/usr/sbin/rebootmgrd
+User=root
+SystemdService=rebootmgr.service
