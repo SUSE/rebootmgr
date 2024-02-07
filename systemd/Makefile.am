@@ -3,7 +3,10 @@
 #
 
 systemddir = @SYSTEMDDIR@
+tmpfilesdir = @TMPFILESDIR@
 
 systemd_DATA = rebootmgr.service
+
+tmpfiles_DATA = soft-reboot-cleanup.conf
 
 EXTRA_DIST = $(DATA)
