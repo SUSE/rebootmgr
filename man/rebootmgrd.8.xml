@@ -54,6 +54,7 @@
       <command>/usr/sbin/rebootmgrd</command>
       <group choice='opt'>
       <arg choice='plain'>--debug</arg>
+      <arg choice='plain'>--verbose</arg>
       <arg choice='plain'>--help</arg>
       <arg choice='plain'>--version</arg>
       </group>
@@ -128,6 +129,12 @@
       <listitem>
 	<para>Log additional informations during runtime. A real reboot is not
 	done in debug mode.</para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term><option>--verbose</option></term>
+      <listitem>
+        <para>Log additional informations about requested reboots.</para>
       </listitem>
     </varlistentry>
     <varlistentry>

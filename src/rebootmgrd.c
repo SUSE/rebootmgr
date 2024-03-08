@@ -41,6 +41,9 @@
 #define PROPERTIES_METHOD_GET    "Get"
 #define PROPERTIES_METHOD_SET    "Set"
 
+static int verbose_flag = 0;
+static int log_type = LOG_DEBUG;
+
 static RM_CTX *ctx;
 static pthread_mutex_t mutex_ctx = PTHREAD_MUTEX_INITIALIZER;
 
@@ -88,7 +91,9 @@ print_help (void)
 {
   fputs (_("rebootmgrd - reboot following a specified strategy\n\n"), stdout);
 
-  fputs (_("  -d,--debug   Log debug output\n"),
+  fputs (_("  -d,--debug     Debug mode, no reboot done\n"),
+         stdout);
+  fputs (_("  -v,--verbose   Verbose logging\n"),
          stdout);
   fputs (_("  -?, --help     Give this help list\n"), stdout);
   fputs (_("      --version  Print program version\n"), stdout);
@@ -118,7 +123,10 @@ reboot_now (int soft_reboot)
       if (!debug_flag)
 	{
 	  pthread_mutex_unlock (&mutex_ctx);
-	  log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
+	  if (soft_reboot)
+	    log_msg (LOG_INFO, "rebootmgr: soft-reboot triggered now!");
+	  else
+	    log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
 	  pid_t pid = fork();
 
 	  if (pid < 0)
@@ -250,12 +258,12 @@ initialize_timer (int soft_reboot)
      everything at the beginning of the maintenance window */
   next = next + ((usec_t)rand() * USEC_PER_SEC) % duration;
 
-  if (debug_flag)
+  if (debug_flag || verbose_flag)
     {
       char buf[FORMAT_TIMESTAMP_MAX];
       int64_t in_secs = (next - curr) / USEC_PER_SEC;
 
-      log_msg (LOG_DEBUG,
+      log_msg (log_type,
 	       "Reboot in %i seconds at %s", in_secs,
 	       format_timestamp(buf, sizeof(buf), next));
     }
@@ -282,8 +290,8 @@ do_reboot (void)
   if (ctx->reboot_order == RM_REBOOTORDER_FORCED ||
       ctx->reboot_order == RM_REBOOTORDER_SOFT_FORCED)
     {
-      if (debug_flag)
-	log_msg (LOG_DEBUG, "Forced reboot requested");
+      if (debug_flag || verbose_flag)
+	log_msg (log_type, "Forced reboot requested");
       pthread_mutex_unlock (&mutex_ctx);
       reboot_now (ctx->reboot_order == RM_REBOOTORDER_SOFT);
       return;
@@ -362,33 +370,33 @@ handle_native_iface (DBusMessage *message)
 	{
 	  if (order == RM_REBOOTORDER_STANDARD)
 	    {
-	      if (debug_flag)
-		log_msg (LOG_DEBUG, "Reboot at next possible time");
+	      if (debug_flag || verbose_flag)
+		log_msg (log_type, "Reboot at next possible time requested");
 	    }
 	  else if (order == RM_REBOOTORDER_FAST)
 	    {
-	      if (debug_flag)
-		log_msg (LOG_DEBUG, "Reboot as fast as possible");
+	      if (debug_flag || verbose_flag)
+		log_msg (log_type, "Fast reboot requested");
 	    }
 	  else if (order == RM_REBOOTORDER_FORCED)
 	    {
-	      if (debug_flag)
-		log_msg (LOG_DEBUG, "Reboot now");
+	      if (debug_flag || verbose_flag)
+		log_msg (log_type, "Immediate reboot requested");
 	    }
 	  else if (order == RM_REBOOTORDER_SOFT)
 	    {
-	      if (debug_flag)
-		log_msg (LOG_DEBUG, "Soft reboot at next possible time");
+	      if (debug_flag || verbose_flag)
+		log_msg (log_type, "Soft reboot at next possible time requested");
 	    }
 	  else if (order == RM_REBOOTORDER_SOFT_FAST)
 	    {
-	      if (debug_flag)
-		log_msg (LOG_DEBUG, "Soft reboot as fast as possible");
+	      if (debug_flag || verbose_flag)
+		log_msg (log_type, "Fast soft reboot requested");
 	    }
 	  else if (order == RM_REBOOTORDER_SOFT_FORCED)
 	    {
-	      if (debug_flag)
-		log_msg (LOG_DEBUG, "Soft reboot now");
+	      if (debug_flag || verbose_flag)
+		log_msg (log_type, "Immediate soft reboot requested");
 	    }
 	  else
 	    {
@@ -803,7 +811,8 @@ main (int argc, char **argv)
       static struct option long_options[] =
 	{
 	  {"debug", no_argument, NULL, 'd'},
-	  {"version", no_argument, NULL, 'v'},
+	  {"verbose", no_argument, NULL, 'v'},
+	  {"version", no_argument, NULL, '\255'},
 	  {"usage", no_argument, NULL, '?'},
 	  {"help", no_argument, NULL, 'h'},
 	  {NULL, 0, NULL, '\0'}
@@ -817,12 +826,17 @@ main (int argc, char **argv)
         {
         case 'd':
 	  debug_flag = 1;
+	  log_type = LOG_DEBUG;
 	  break;
 	case '?':
 	case 'h':
           print_help ();
           return 0;
 	case 'v':
+	  verbose_flag = 1;
+	  log_type = LOG_INFO;
+	  break;
+	case '\255':
 	  fprintf (stdout, "rebootmgrd (%s) %s\n", PACKAGE, VERSION);
           return 0;
         default:
