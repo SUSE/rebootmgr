@@ -127,6 +127,7 @@ reboot_now (int soft_reboot)
 	    log_msg (LOG_INFO, "rebootmgr: soft-reboot triggered now!");
 	  else
 	    log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
+
 	  pid_t pid = fork();
 
 	  if (pid < 0)
@@ -146,8 +147,11 @@ reboot_now (int soft_reboot)
 		}
 	      else
 		{
-		  if (execl ("/usr/bin/systemctl", "systemctl", "reboot",
-			     NULL) == -1)
+		  char envar1[] = "SYSTEMCTL_SKIP_AUTO_SOFT_REBOOT=1";
+		  char *env[] = {envar1, NULL};
+
+		  if (execle ("/usr/bin/systemctl", "systemctl", "reboot",
+			      NULL, env) == -1)
 		    {
 		      log_msg (LOG_ERR, "Calling /usr/bin/systemctl reboot failed: %m");
 		      exit (1);
