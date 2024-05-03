@@ -4,37 +4,16 @@
 # Author: Thorsten Kukuk <kukuk@suse.de>
 #
 
-CLEANFILES = $(MANS) $(DATA) rebootmgr.index.xml
+CLEANFILES = $(MANS) $(DATA)
 
-EXTRA_DIST = $(MANS) $(XMLS) $(DATA) custom-html.xsl \
-	make-man-index.py xml_helper.py rebootmgr.index.xml
+EXTRA_DIST = $(MANS) $(XMLS) $(DATA)
 
 man_MANS = rebootmgrd.8 rebootmgr.service.8 org.opensuse.RebootMgr.conf.8 \
 	rebootmgrctl.1 rebootmgr.conf.5
-noinst_DATA = rebootmgrd.8.html rebootmgr.service.8.html \
-	org.opensuse.RebootMgr.conf.8.html rebootmgrctl.1.html \
-	rebootmgr.conf.5.html rebootmgr.index.html
 
 XMLS = rebootmgrd.8.xml rebootmgrctl.1.xml rebootmgr.conf.5.xml
 
-XSLTPROC_FLAGS_HTML = \
-	--nonet \
-	--xinclude \
-        --stringparam man.authors.section.enabled 0 \
-        --stringparam man.copyright.section.enabled 0 \
-	--stringparam package.name $(PACKAGE) \
-	--stringparam package.version $(VERSION) \
-	--stringparam chunker.output.encoding UTF-8 \
-	$(srcdir)/custom-html.xsl
-
 if ENABLE_REGENERATE_MAN
-
-define html-alias
-        $(LN_S) -f $(notdir $<) $@
-endef
-
-rebootmgr.index.xml: make-man-index.py $(XMLS)
-	python3 $(srcdir)/make-man-index.py $(srcdir)/$@ $(XMLS)
 
 rebootmgr.service.8: rebootmgrd.8
 org.opensuse.RebootMgr.conf.8: rebootmgrd.8
@@ -42,28 +21,10 @@ org.opensuse.RebootMgr.conf.8: rebootmgrd.8
 rebootmgrd.8: rebootmgrd.8.xml
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) --xinclude --nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
 
-rebootmgrd.8.html: rebootmgrd.8.xml custom-html.xsl
-	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) $(XSLTPROC_FLAGS_HTML) $<
-
-org.opensuse.RebootMgr.conf.8.html: rebootmgrd.8.html
-	$(html-alias)
-
-rebootmgr.service.8.html: rebootmgrd.8.html
-	$(html-alias)
-
 rebootmgrctl.1: rebootmgrctl.1.xml
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) --xinclude --nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
 
-rebootmgrctl.1.html: rebootmgrctl.1.xml custom-html.xsl
-	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) $(XSLTPROC_FLAGS_HTML) $<
-
 rebootmgr.conf.5: rebootmgr.conf.5.xml
 	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) --xinclude --nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
-
-rebootmgr.conf.5.html: rebootmgr.conf.5.xml
-	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) $(XSLTPROC_FLAGS_HTML) $<
-
-rebootmgr.index.html: rebootmgr.index.xml
-	$(XSLTPROC) -o $(srcdir)/$@ --path $(srcdir) $(XSLTPROC_FLAGS_HTML) $<
 
 endif
