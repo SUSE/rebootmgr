@@ -291,17 +291,17 @@ do_reboot (void)
 
   ctx->reboot_status = RM_REBOOTSTATUS_REQUESTED;
 
+  int soft_reboot = ctx->reboot_order == RM_REBOOTORDER_SOFT || ctx->reboot_order == RM_REBOOTORDER_SOFT_FAST || ctx->reboot_order == RM_REBOOTORDER_SOFT_FORCED;
+
   if (ctx->reboot_order == RM_REBOOTORDER_FORCED ||
       ctx->reboot_order == RM_REBOOTORDER_SOFT_FORCED)
     {
       if (debug_flag || verbose_flag)
 	log_msg (log_type, "Forced reboot requested");
       pthread_mutex_unlock (&mutex_ctx);
-      reboot_now (ctx->reboot_order == RM_REBOOTORDER_SOFT);
+      reboot_now (soft_reboot);
       return;
     }
-
-  int soft_reboot = ctx->reboot_order == RM_REBOOTORDER_SOFT || ctx->reboot_order == RM_REBOOTORDER_SOFT_FAST || ctx->reboot_order == RM_REBOOTORDER_SOFT_FORCED;
 
   switch (ctx->reboot_strategy)
     {
