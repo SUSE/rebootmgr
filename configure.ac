@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(rebootmgr, 2.4)
+AC_INIT([rebootmgr],[2.4])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/rebootmgrd.c])
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_PREFIX_DEFAULT(/usr)
 AC_SUBST(PACKAGE)
@@ -36,9 +36,8 @@ AC_SUBST(TMPFILESDIR)
 AC_SUBST(SYSTEMDDIR)
 
 dnl Checks for programs.
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
-AC_ISC_POSIX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
@@ -96,5 +95,6 @@ JH_CHECK_XML_CATALOG([http://docbook.sourceforge.net/release/xsl/current/manpage
                 [DocBook XSL Stylesheets], [], enable_man=no)
 AM_CONDITIONAL(ENABLE_REGENERATE_MAN, test x$enable_man != xno)
 
-AC_OUTPUT([Makefile lib/Makefile src/Makefile man/Makefile dbus/Makefile \
+AC_CONFIG_FILES([Makefile lib/Makefile src/Makefile man/Makefile dbus/Makefile \
 	systemd/Makefile etc/Makefile tests/Makefile])
+AC_OUTPUT
