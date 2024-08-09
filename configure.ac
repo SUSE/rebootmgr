@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([rebootmgr],[2.4])
+AC_INIT([rebootmgr],[2.5])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/rebootmgrd.c])
 AC_CONFIG_HEADERS([config.h])
