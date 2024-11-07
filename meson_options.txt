@@ -1,0 +1,13 @@
+option('man', type: 'feature', value: 'auto',
+       description: 'Generate and install manual pages')
+option('xml-catalog', type: 'string',
+       description: 'xml catalog path')
+option('docbook-rng',
+       type: 'string',
+       value: 'http://docbook.org/xml/4.5/rng/docbook.rng',
+       description: 'RNG file for checking XML files')
+option('man-stylesheet',
+       type: 'string',
+       value: 'http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl',
+       description: 'man stylesheet path')
+

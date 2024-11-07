@@ -14,9 +14,7 @@
    You should have received a copy of the GNU General Public License along
    with this program; if not, see <http://www.gnu.org/licenses/>. */
 
-#if defined(HAVE_CONFIG_H)
 #include "config.h"
-#endif
 
 #include <pthread.h>
 #include <errno.h>
@@ -181,7 +179,7 @@ reboot_timer (sigval_t soft_reboot)
   if (debug_flag)
     log_msg (LOG_DEBUG, "reboot_timer called");
 
-    reboot_now (soft_reboot.sival_int);
+  reboot_now (soft_reboot.sival_int);
 }
 
 /* Create a new timer thread, which calls '_function' after

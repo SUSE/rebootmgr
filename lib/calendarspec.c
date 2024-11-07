@@ -19,9 +19,7 @@
   along with systemd; If not, see <http://www.gnu.org/licenses/>.
 ***/
 
-#if defined(HAVE_CONFIG_H)
 #include "config.h"
-#endif
 
 #include <assert.h>
 #include <errno.h>

@@ -13,9 +13,7 @@
    You should have received a copy of the GNU General Public License along
    with this program; if not, see <http://www.gnu.org/licenses/>. */
 
-#if defined(HAVE_CONFIG_H)
 #include "config.h"
-#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -95,10 +93,10 @@ load_config (RM_CTX *ctx)
     *file_m = NULL;
   econf_err error;
 
-  error = econf_readFile (&file_1, DISTCONFDIR"/rebootmgr.conf", "=", "#");
+  error = econf_readFile (&file_1, CONFIGDIR"/rebootmgr.conf", "=", "#");
   if (error && error != ECONF_NOFILE)
     {
-      log_msg (LOG_ERR, "Cannot load '"DISTCONFDIR"/rebootmgr.conf': %s",
+      log_msg (LOG_ERR, "Cannot load '"CONFIGDIR"/rebootmgr.conf': %s",
 	       econf_errString(error));
       return;
     }
