@@ -6,11 +6,9 @@ echo 'BEGIN OF BUILD ENVIRONMENT INFORMATION'
 uname -a |head -1
 libc="$(ldd /bin/sh |sed -n 's|^[^/]*\(/[^ ]*/libc\.so[^ ]*\).*|\1|p' |head -1)"
 $libc |head -1
-$CC --version |head -1
+gcc --version |head -1
 meson --version |head -1
 ninja --version |head -1
-kver="$(printf '%s\n%s\n' '#include <linux/version.h>' 'LINUX_VERSION_CODE' | $CC -E -P -)"
-printf 'kernel-headers %s.%s.%s\n' $((kver/65536)) $((kver/256%256)) $((kver%256))
 echo 'END OF BUILD ENVIRONMENT INFORMATION'
 
 mkdir build
