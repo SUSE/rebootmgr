@@ -3,6 +3,7 @@
 opts='-Doptimization=2 -Dwerror=true'
 
 echo 'BEGIN OF BUILD ENVIRONMENT INFORMATION'
+cat /etc/os-release
 uname -a |head -1
 libc="$(ldd /bin/sh |sed -n 's|^[^/]*\(/[^ ]*/libc\.so[^ ]*\).*|\1|p' |head -1)"
 $libc |head -1
