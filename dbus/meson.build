@@ -1,7 +1,12 @@
+
+prog_xmllint = find_program(
+  'xmllint',
+  disabler: true,
+)
+
 foreach man: [['org.opensuse.RebootMgr.xml']]
 
   run_command([prog_xmllint,
-               '--nonet',
                '--noout',
                '--valid',
                man],

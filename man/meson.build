@@ -1,14 +1,35 @@
 
+feature_man = get_option('man')
+enable_man = not feature_man.disabled()
+if enable_man
+  prog_xsltproc = find_program(
+    'xsltproc',
+    required: feature_man,
+    disabler: true,
+  )
+  prog_xmlcatalog = find_program(
+    'xmlcatalog',
+    required: feature_man,
+    disabler: true,
+  )
+  xml_catalog = get_option('xml-catalog')
+
+  man_stylesheet = get_option('man-stylesheet')
+  have = run_command(
+    [prog_xmlcatalog, '--noout', xml_catalog, man_stylesheet],
+    check: feature_man.enabled()
+  ).returncode() == 0
+  if not have
+    man_stylesheet = disabler()
+  endif
+else
+  prog_xsltproc = disabler()
+  prog_xmlcatalog = disabler()
+  man_stylesheet = disabler()
+endif
+
 foreach man: [['rebootmgr.conf.5'], ['rebootmgrctl.1'], ['rebootmgrd.8']]
   xml = man[0] + '.xml'
-
-  run_command([prog_xmllint,
-               '--nonet',
-               '--noout',
-               '--xinclude',
-               '--relaxng', docbook_rng,
-               xml],
-              check: true)
 
   custom_target(man[0],
     input: xml,
@@ -25,4 +46,3 @@ foreach man: [['rebootmgr.conf.5'], ['rebootmgrctl.1'], ['rebootmgrd.8']]
     install_tag: 'man',
   )
 endforeach
-

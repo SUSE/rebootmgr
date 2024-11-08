@@ -95,62 +95,6 @@ executable('rebootmgrd',
 
 subdir('etc')
 subdir('systemd')
-
-feature_man = get_option('man')
-
-prog_xmllint = find_program(
-  'xmllint',
-  required: feature_man,
-  disabler: true,
-)
-
-enable_man = not feature_man.disabled()
-if enable_man
-  prog_xsltproc = find_program(
-    'xsltproc',
-    required: feature_man,
-    disabler: true,
-  )
-  prog_xmllint = find_program(
-    'xmllint',
-    required: feature_man,
-    disabler: true,
-  )
-  prog_xmlcatalog = find_program(
-    'xmlcatalog',
-    required: feature_man,
-    disabler: true,
-  )
-  xml_catalog = get_option('xml-catalog')
-  if xml_catalog == ''
-    xml_catalog = '/etc/xml/catalog'
-  endif
-
-  docbook_rng = get_option('docbook-rng')
-  have = run_command(
-    [prog_xmlcatalog, '--noout', xml_catalog, docbook_rng],
-    check: feature_man.enabled()
-  ).returncode() == 0
-  if not have
-    docbook_rng = disabler()
-  endif
-
-  man_stylesheet = get_option('man-stylesheet')
-  have = run_command(
-    [prog_xmlcatalog, '--noout', xml_catalog, man_stylesheet],
-    check: feature_man.enabled()
-  ).returncode() == 0
-  if not have
-    man_stylesheet = disabler()
-  endif
-else
-  prog_xsltproc = disabler()
-  prog_xmllint = disabler()
-  prog_xmlcatalog = disabler()
-  docbook_rng = disabler()
-  man_stylesheet = disabler()
-endif
-
 subdir('dbus')
 subdir('man')
 
