@@ -2,6 +2,9 @@ rebootmgr NEWS -- history of user-visible changes.
 
 Copyright (C) 2016-2024 Thorsten Kukuk
 
+Version 2.6
+* Switch to meson as build environment
+
 Version 2.5
 * tmpfiles.d/soft-reboot-cleanup.conf got moved to aaa_base
 
