@@ -1,0 +1,22 @@
+name: meson build & test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install dbus-1 and libeconf devel
+      run: sudo apt-get install -y libdbus-1-dev libeconf-dev
+    - uses: actions/checkout@v3
+    - uses: BSFishy/meson-build@v1.0.3
+      with:
+        action: build
+        options: --verbose
+        meson-version: 0.61.4
+    - uses: BSFishy/meson-build@v1.0.3
+      with:
+        action: test
+        options: --verbose
+        meson-version: 0.61.4
