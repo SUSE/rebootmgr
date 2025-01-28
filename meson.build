@@ -10,16 +10,16 @@ project(
   		  'default_library=static',
 		  'b_pie=true',
                   'b_lto=true',
-		  'warning_level=3',],
+                  'c_std=gnu23',
+		  'warning_level=2',],
   license : ['GPL-2.0-only', 'LGPL-2.1-or-later'],
-  version : '2.6',
+  version : '3.0',
 )
 
 fs = import('fs')
 pkg = import('pkgconfig')
 
 cc = meson.get_compiler('c')
-inc = include_directories('lib')
 
 add_project_arguments(['-D_GNU_SOURCE=1',
 		       '-DXTSTRINGDEFINES',
@@ -37,7 +37,6 @@ possible_cc_flags = [
 		  '-Wcast-align',
 		  '-Wcast-qual',
                   '-Wformat-security',
-		  '-Winline',
 		  '-Wmissing-declarations',
 		  '-Wmissing-prototypes',
 		  '-Wnested-externs',
@@ -56,47 +55,42 @@ tmpfilesdir = join_paths(prefixdir, 'lib/tmpfiles.d')
 localedir = join_paths(prefixdir, get_option('localedir'))
 bindir = join_paths(prefixdir, get_option('bindir'))
 sbindir = join_paths(prefixdir, get_option('sbindir'))
+libexecdir = join_paths(prefixdir, get_option('libexecdir'))
 sysconfdir = join_paths('/', get_option('sysconfdir'))
 mandir = join_paths(prefixdir, get_option('mandir'))
-busconfigdir = join_paths(prefixdir, get_option('datadir'), 'dbus-1/system.d')
-introspectiondir = join_paths(prefixdir, get_option('datadir'), 'dbus-1/interfaces')
+datadir = join_paths(prefixdir, get_option('datadir'))
 configdir = join_paths(prefixdir, get_option('datadir'), meson.project_name())
 
-libeconf = dependency('libeconf', version : '>=0.7.4')
-libdbus_1 = dependency('dbus-1')
+inc = include_directories(['lib/calendarspec', 'lib/common', 'src', '.'])
 
-libcalendarspec_c = ['lib/calendarspec.c', 'lib/parse-duration.c',
-		  'lib/time-util.c']
+subdir('lib')
 
-rebootmgrctl_c = ['src/rebootmgrctl.c', 'src/util.c', 'src/log_msg.c']
-rebootmgrd_c = ['src/rebootmgrd.c', 'src/log_msg.c', 'src/config_file.c',
-	     'src/util.c']
+libeconf = dependency('libeconf', version : '>=0.7.5')
+libsystemd = dependency('libsystemd', version : '>=257')
 
-libcalendarspec_a = static_library(
-  'libcalendarspec',
-  libcalendarspec_c,
-  install : false)
+rebootmgrctl_c = ['src/rebootmgrctl.c']
+rebootmgrd_c = ['src/rebootmgrd.c', 'src/varlink-org.openSUSE.rebootmgr.c']
 
 executable('rebootmgrctl',
            rebootmgrctl_c,
            include_directories : inc,
-           dependencies : [libeconf, libdbus_1],
-	   link_with : [libcalendarspec_a],
+           dependencies : [libeconf, libsystemd],
+           link_with : [libcommon_a, libcalendarspec_a],
            install : true,
 	   install_dir: bindir)
 
 executable('rebootmgrd',
            rebootmgrd_c,
            include_directories : inc,
-           dependencies : [libeconf, libdbus_1],
-	   link_with : [libcalendarspec_a],
+           dependencies : [libeconf, libsystemd],
+	   link_with : [libcommon_a, libcalendarspec_a],
            install : true,
-	   install_dir: sbindir)
+	   install_dir: libexecdir)
 
 subdir('etc')
 subdir('systemd')
-subdir('dbus')
 subdir('man')
+subdir('shell-completion/bash')
 
 # Unit tests
 subdir('tests')
@@ -106,8 +100,8 @@ conf.set_quoted('VERSION', meson.project_version())
 conf.set_quoted('PACKAGE', meson.project_name())
 conf.set_quoted('LOCALEDIR', localedir)
 conf.set_quoted('SYSCONFDIR', sysconfdir)
+conf.set_quoted('DATADIR', datadir)
 conf.set_quoted('CONFIGDIR', configdir)
-conf.set_quoted('INTROSPECTIONDIR', introspectiondir)
 
 config_h = configure_file(
   output : 'config.h',

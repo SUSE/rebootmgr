@@ -1,0 +1,25 @@
+name: openSUSE build & test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: registry.opensuse.org/opensuse/tumbleweed:latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install devel packages
+      run: |
+        zypper ref
+        zypper --non-interactive in --no-recommends meson gcc libeconf-devel systemd-devel docbook-xsl-stylesheets
+
+    - name: Setup meson
+      run: meson setup build -Db_sanitize=address,undefined
+
+    - name: Compile code
+      run: cd build && meson compile
+
+    - name: Run tests
+      run: cd build && meson test

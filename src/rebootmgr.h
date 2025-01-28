@@ -13,42 +13,19 @@
    You should have received a copy of the GNU General Public License along
    with this program; if not, see <http://www.gnu.org/licenses/>. */
 
-#ifndef _REBOOTMGR_H_
-#define _REBOOTMGR_H_
+#pragma once
 
-#define RM_DBUS_NAME		 "org.opensuse.RebootMgr"
-#define RM_DBUS_INTERFACE	 "org.opensuse.RebootMgr"
-#define RM_DBUS_PATH_SERVER	 "/"
-#define RM_DBUS_PATH      	"/org/opensuse/RebootMgr"
-#define RM_DBUS_METHOD_REBOOT     "Reboot"
-#define RM_DBUS_METHOD_STATUS 		"Status"
-#define RM_DBUS_METHOD_CANCEL 		"Cancel"
-#define RM_DBUS_METHOD_SET_STRATEGY	"SetStrategy"
-#define RM_DBUS_METHOD_GET_STRATEGY	"GetStrategy"
-#define RM_DBUS_METHOD_SET_MAINTWINDOW "SetMaintenanceWindow"
-#define RM_DBUS_METHOD_GET_MAINTWINDOW "GetMaintenanceWindow"
-#define RM_DBUS_METHOD_TEMPORARY_OFF "TemporaryOff"
-#define RM_DBUS_METHOD_TEMPORARY_ON "TemporaryON"
-
-#ifndef _
-#define _(String) gettext (String)
-#endif
-
-#define RM_UNUSED(x) UNUSED_ ## x __attribute__((unused))
-
-#include <dbus/dbus.h>
+#include <systemd/sd-event.h>
 #include "calendarspec.h"
 
-typedef enum RM_RebootOrder {
-  RM_REBOOTORDER_UNKNOWN = 0,
-  RM_REBOOTORDER_STANDARD,   /* Follow normal reboot strategy */
-  RM_REBOOTORDER_FAST,       /* Ignore maintenance window */
-  RM_REBOOTORDER_FORCED,     /* Reboot immediately, without
-                                waiting for maintenance window */
-  RM_REBOOTORDER_SOFT,       /* Soft reboot with normal reboot strategy */
-  RM_REBOOTORDER_SOFT_FAST,  /* Immediate soft-reboot */
-  RM_REBOOTORDER_SOFT_FORCED /* Forced immediate reboot */
-} RM_RebootOrder;
+#define RM_VARLINK_SOCKET_DIR   "/run/rebootmgr"
+#define RM_VARLINK_SOCKET       RM_VARLINK_SOCKET_DIR"/rebootmgrd.socket"
+
+typedef enum RM_RebootMethod {
+  RM_REBOOTMETHOD_UNKNOWN = 0,
+  RM_REBOOTMETHOD_HARD, /* Normal hard/full reboot */
+  RM_REBOOTMETHOD_SOFT, /* systemd soft-reboot, only userland */
+} RM_RebootMethod;
 
 typedef enum RM_RebootStrategy {
   RM_REBOOTSTRATEGY_UNKNOWN = 0,
@@ -65,14 +42,14 @@ typedef enum RM_RebootStatus {
 } RM_RebootStatus;
 
 typedef struct {
-  RM_RebootStrategy reboot_strategy;
   RM_RebootStatus reboot_status;
-  int reboot_order;
-  int temp_off;
-  timer_t  reboot_timer_id;
+  RM_RebootMethod reboot_method;
+  RM_RebootStrategy reboot_strategy;
   CalendarSpec *maint_window_start;
   time_t maint_window_duration;
-  DBusConnection *connection;
+  int temp_off;
+  sd_event *loop;
+  sd_event_source *timer;
+  usec_t reboot_time;
 } RM_CTX;
 
-#endif /* _REBOOTMGR_H_ */

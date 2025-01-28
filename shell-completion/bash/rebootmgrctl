@@ -1,0 +1,78 @@
+# shellcheck shell=bash
+# rebootmgrctl(1) completion                              -*- shell-script -*-
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+__contains_word () {
+    local w word=$1; shift
+    for w in "$@"; do
+        [[ $w = "$word" ]] && return
+    done
+}
+
+_rebootmgrctl () {
+    local cur prev words cword
+    local OPTS='--help --version'
+    local -A VERBS=(
+        [STANDALONE]='cancel get-strategy get-window'
+	[REBOOT]='reboot soft-reboot'
+        [STRATEGY]='set-strategy'
+	[ISACTIVE]='is-active'
+	[STATUS]='status'
+	[WINDOW]='set-window'
+	[DUMPCONFIG]='dump-config'
+    )
+    _init_completion || return
+
+    case $prev in
+        --help|--version)
+            return
+            ;;
+    esac
+
+    local subcword cmd
+    for (( subcword=1; subcword < ${#words[@]}-1; subcword++ )); do
+	[[ -z $cmd && ${words[subcword]} != -* ]] && cmd=${words[subcword]}
+    done
+
+    if [[ -z $cmd ]]; then
+        case $cur in
+            -*)
+                COMPREPLY=( $( compgen -W "$OPTS" -- "$cur" ) )
+                return
+                ;;
+            *)
+                COMPREPLY=( $( compgen -W '${VERBS[*]} ${OPTS}' -- "$cur" ) )
+                return
+                ;;
+        esac
+    fi
+
+    local comps=''
+    if __contains_word "$cmd" ${VERBS[STANDALONE]}; then
+        comps=''
+    elif __contains_word "$cmd" ${VERBS[REBOOT]}; then
+       [[ "$prev" == "$cmd" ]] && comps='now'
+    elif __contains_word "$cmd" ${VERBS[STRATEGY]}; then
+        [[ "$prev" == "$cmd" ]] && comps='best-effort maint-window instantly off'
+    elif __contains_word "$cmd" ${VERBS[ISACTIVE]}; then
+        [[ "$prev" == "$cmd" ]] && comps='--quiet'
+    elif __contains_word "$cmd" ${VERBS[STATUS]}; then
+        [[ "$prev" == "$cmd" ]] && comps='--full --quiet'
+    elif __contains_word "$cmd" ${VERBS[DUMPCONFIG]}; then
+        [[ "$prev" == "$cmd" ]] && comps='--verbose'
+    elif __contains_word "$cmd" ${VERBS[WINDOW]}; then
+	case $cword in
+	    2)
+		comps='time'
+		;;
+	    3)
+		comps='duration'
+		;;
+	esac
+    fi
+
+    COMPREPLY=( $(compgen -W '$comps' -- "$cur") )
+    return
+}
+
+complete -F _rebootmgrctl rebootmgrctl

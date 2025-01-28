@@ -1,14 +1,11 @@
 [Unit]
 Description=Reboot Manager
-Documentation=man:rebootmgrd(8) man:rebootmgrctl(1)
-Wants=dbus.service
-After=dbus.service
+Documentation=man:rebootmgrd(8) man:rebootmgrctl(1) man:rebootmgr.conf(5)
 After=local-fs.target
 
 [Service]
-Type=dbus
-BusName=org.opensuse.RebootMgr
-ExecStart=/usr/sbin/rebootmgrd --verbose
+Type=Notify
+ExecStart=/usr/libexec/rebootmgrd --verbose
 Restart=on-failure
 
 [Install]

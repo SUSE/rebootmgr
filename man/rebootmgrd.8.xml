@@ -3,7 +3,7 @@
 "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 
 <!--  \-*\- nroff \-*\- -->
-<!--  Copyright 2016, 2017 Thorsten Kukuk &lt;kukuk@suse.de&gt; -->
+<!--  Copyright 2016, 2017, 2024 Thorsten Kukuk &lt;kukuk@suse.de&gt; -->
 
 <!--  This file is part of rebootmgr. -->
 
@@ -44,14 +44,13 @@
   <refnamediv id='name'>
     <refname>rebootmgrd</refname>
     <refname>rebootmgr.service</refname>
-    <refname>org.opensuse.RebootMgr.conf</refname>
     <refpurpose>Reboot the machine during a maintenance window.</refpurpose>
   </refnamediv>
 
 <!-- body begins here -->
   <refsynopsisdiv id='synopsis'>
     <cmdsynopsis>
-      <command>/usr/sbin/rebootmgrd</command>
+      <command>/usr/libexec/rebootmgrd</command>
       <group choice='opt'>
       <arg choice='plain'>--debug</arg>
       <arg choice='plain'>--verbose</arg>
@@ -60,53 +59,51 @@
       </group>
     </cmdsynopsis>
     <para><filename>/usr/lib/systemd/system/rebootmgr.service</filename></para>
-    <para><filename>/etc/dbus-1/system.d/org.opensuse.RebootMgr.conf</filename></para>
   </refsynopsisdiv>
 
   <refsect1 id='description'>
     <title>Description</title>
     <para>To avoid that a whole cluster or a set of machines with the same task
-    reboot at the same there, <emphasis remap='B'>rebootmgrd</emphasis> reboots
+    reboot at the same time, <emphasis remap='B'>rebootmgrd</emphasis> reboots
     the machine following configured policies.</para>
     <refsect2 id='reboot_strategy_options'>
       <title>Reboot Strategies</title>
       <para>
-	rebootmgr supports different strategies, when a reboot should be done:
+	rebootmgr supports various strategies for determining when a reboot should be performed:
       </para>
       <variablelist>
 	<varlistentry><term>instantly</term>
 	<listitem>
 	  <para>
-	    When the signal arrives other services will be informed
-	    that we plan to reboot and do the reboot without waiting
-	    for a maintenance window.
+	    The reboot is carried out without waiting for a maintenance window.
 	  </para>
 	</listitem>
 	</varlistentry>
 	<varlistentry><term>maint-window</term>
 	<listitem>
 	  <para>
-	    Reboot only during a specified maintenance window. If no window is
-	    specified, reboot immediately.
+	    Reboot only during a specific maintenance window. If no maintenance window is specified, the system reboots immediately.
 	  </para>
 	</listitem>
 	</varlistentry>
 	<varlistentry><term>best-effort</term>
 	<listitem>
 	  <para>
-	    This is the default. IF a maintenance window is specified,
-	    use maint-window. If no maintenance window is specified,
-	    reboot immediately (instantly).
+	    This is the default setting. If a maintenance window is specified,
+	    <option>maint-window</option> is used. If no maintenance window is
+	    specified, the reboot takes place immediately 
+	    (<option>instantly</option>).
 	  </para>
 	</listitem>
 	</varlistentry>
 	<varlistentry><term>off</term>
 	<listitem>
 	  <para>
-	    rebootmgr continues to run, but ignores all signals to
-	    reboot. Setting the strategy to off does not clear the maintenance
-	    window. If rebootmgr is enabled again, it will continue to use the
-	    old specified maintenance window.
+	    rebootmgr continues to run, but ignores all reboot timers that expire
+	    in the meantime. The configuration file is not updated, so this option
+	    is no longer active after a reboot. When rebootmgr is reactivated, it
+	    will continue to use the old specified maintenance window and any
+	    reboot timers that are still running will no longer be ignored.
 	  </para>
 	</listitem>
 	</varlistentry>
@@ -117,7 +114,7 @@
 	and adjusted at runtime via
 	<citerefentry><refentrytitle>rebootmgrctl</refentrytitle><manvolnum>1</manvolnum></citerefentry>.
 	These changes will be written to the configuration file and survive the
-	next reboot.
+	next reboot. Except for the off strategy.
       </para>
     </refsect2>
   </refsect1>

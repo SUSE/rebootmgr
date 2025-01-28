@@ -45,8 +45,7 @@ if enable_man
   # rebootmgrd.8.xml is special, as it creates 3 files
   custom_target('rebootmgrd.8',
     input: ['rebootmgrd.8.xml'],
-    output: ['rebootmgrd.8', 'rebootmgr.service.8',
-             'org.opensuse.RebootMgr.conf.8'],
+    output: ['rebootmgrd.8', 'rebootmgr.service.8'],
     command: [prog_xsltproc,
               '-o', '@OUTPUT0@',
               '--path', meson.current_source_dir(),

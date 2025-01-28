@@ -8,4 +8,5 @@ option('man-stylesheet',
        type: 'string',
        value: 'http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl',
        description: 'man stylesheet path')
-
+option('bashcompletiondir', type : 'string',
+       description : 'directory for bash completion scripts ["no" disables]')

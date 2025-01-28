@@ -1,7 +1,7 @@
 # rebootmgr
-RebootManager is a dbus service to execute a controlled reboot after updates in a defined maintenance window.
+RebootManager is a sd-varlink service to execute a controlled reboot after updates in a defined maintenance window.
 
-If you updated a system with e.g. transactional updates or a kernel update was applied, you can tell rebootmgrd with rebootmgrctl, that the machine should be reboot at the next possible time. This can either be immediately or during a defined maintenance window or.
+If you updated a system with e.g. transactional updates or a kernel update was applied, you can tell rebootmgrd with rebootmgrctl, that the machine should be reboot at the next possible time. This can either be immediately or during a defined maintenance window. Beside a hard reboot this could also be a soft-reboot.
 
 ## Reboot Strategies
 
@@ -13,7 +13,7 @@ rebootmgr supports different strategies, when a reboot should be done:
 
 ## Configuration example
 
-File _/etc/rebootmgr.conf_
+File _/etc/rebootmgr/rebootmgr.conf_
 ```
 [rebootmgr]
 window-start=3:30
