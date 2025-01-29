@@ -1,14 +1,17 @@
 rebootmgr NEWS -- history of user-visible changes.
 
-Copyright (C) 2016-2024 Thorsten Kukuk
+Copyright (C) 2016-2025 Thorsten Kukuk
+
+Version 3.1
+* rebootmgrd: fix check if new reboot strategy is valid 
 
 Version 3.0
 * Rewrite of the interface
   * Use sd-varlink instead of dbus
   * Remove "fast" option, was meanwhile identical to "now"
-  * Configuration is now stored in /etc/rebootmgr/rebootmgr.conf
-  * Configuration Files Specification from UAPI group is followed
-  * Move rebootmgrd to /usr/libexec
+* Configuration is now stored in /etc/rebootmgr/rebootmgr.conf
+* Configuration Files Specification from UAPI group is followed
+* Move rebootmgrd to /usr/libexec
 
 Version 2.6
 * Switch to meson as build environment
