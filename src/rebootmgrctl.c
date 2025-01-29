@@ -230,7 +230,13 @@ set_strategy(RM_RebootStrategy strategy)
   if (error_id && strlen(error_id) > 0)
     {
       if (strcmp(error_id, "org.openSUSE.rebootmgr.InvalidParameter") == 0)
-	printf(_("Strategy '%i' got rejected as invalid\n"), strategy);
+	{
+	  const char *str;
+	  if (rm_strategy_to_str(strategy, &str) < 0)
+	    printf(_("Strategy '%i' got rejected as invalid\n"), strategy);
+	  else
+	    printf(_("Strategy '%s' got rejected as invalid\n"), str);
+	}
       else if (strcmp(error_id, "org.openSUSE.rebootmgr.ErrorWritingConfig") == 0)
 	printf(_("Updating configuration file failed\n"));
       else

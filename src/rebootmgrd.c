@@ -528,7 +528,7 @@ vl_method_set_strategy (sd_varlink *link, sd_json_variant *parameters,
     }
 
   if (p.strategy > RM_REBOOTSTRATEGY_UNKNOWN &&
-      p.strategy >= RM_REBOOTSTRATEGY_OFF &&
+      p.strategy <= RM_REBOOTSTRATEGY_OFF &&
       ctx->reboot_strategy != p.strategy)
     {
       /* Don't save strategy "off" */
