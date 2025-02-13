@@ -248,6 +248,19 @@ calc_reboot_time (RM_CTX *ctx, usec_t *ret)
   usec_t curr = now (CLOCK_REALTIME);
   usec_t duration = ctx->maint_window_duration * USEC_PER_SEC;
 
+  if (ctx->maint_window_start == NULL)
+    {
+      /* best-efford and maint-window mean, boot immediately if there is no
+	 maintenance window defined */
+      if (ctx->reboot_strategy == RM_REBOOTSTRATEGY_BEST_EFFORT ||
+	  ctx->reboot_strategy == RM_REBOOTSTRATEGY_MAINT_WINDOW)
+	{
+	  *ret = curr;
+	  return 0;
+	}
+      return -EINVAL;
+    }
+
   /* Check, if we are inside the maintenance window. If yes, reboot now. */
   int r = calendar_spec_next_usec (ctx->maint_window_start, curr - duration, &next);
   if (r < 0)

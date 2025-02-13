@@ -97,7 +97,7 @@ load_config(RM_CTX *ctx)
 	}
 
       CalendarSpec *new_start = NULL;
-      if (str_start != NULL)
+      if (str_start != NULL && strlen(str_start) > 0)
 	{
 	  r = calendar_spec_from_string(str_start, &new_start);
 	  if (r < 0)
@@ -109,7 +109,7 @@ load_config(RM_CTX *ctx)
 	}
 
       time_t new_duration = BAD_TIME;
-      if (str_duration != NULL)
+      if (str_duration != NULL && strlen(str_duration) > 0)
 	{
 	  if ((new_duration = parse_duration(str_duration)) == BAD_TIME)
 	    {
@@ -121,7 +121,7 @@ load_config(RM_CTX *ctx)
 
       if (new_strategy != RM_REBOOTSTRATEGY_UNKNOWN)
 	ctx->reboot_strategy = new_strategy;
-      if (new_start != NULL)
+      if (str_start != NULL || new_start != NULL)
 	{
 	  calendar_spec_free(ctx->maint_window_start);
 	  ctx->maint_window_start = new_start;

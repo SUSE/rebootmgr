@@ -410,8 +410,8 @@ get_full_status(struct status *p)
     { "RequestedMethod",           SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,    offsetof(struct status, method),                0                 },
     { "RebootTime",                SD_JSON_VARIANT_STRING,  sd_json_dispatch_string, offsetof(struct status, reboot_time),           0                 },
     { "RebootStrategy",            SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,    offsetof(struct status, strategy),              SD_JSON_MANDATORY },
-    { "MaintenanceWindowStart",    SD_JSON_VARIANT_STRING,  sd_json_dispatch_string, offsetof(struct status, maint_window_start),    SD_JSON_MANDATORY },
-    { "MaintenanceWindowDuration", SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int64,  offsetof(struct status, maint_window_duration), SD_JSON_MANDATORY },
+    { "MaintenanceWindowStart",    SD_JSON_VARIANT_STRING,  sd_json_dispatch_string, offsetof(struct status, maint_window_start),    0                 },
+    { "MaintenanceWindowDuration", SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int64,  offsetof(struct status, maint_window_duration), 0                 },
     {}
   };
   _cleanup_(sd_varlink_unrefp) sd_varlink *link = NULL;
@@ -499,6 +499,8 @@ print_full_status(void)
       printf("Start of maintenance window: %s\n", status.maint_window_start);
       printf("Duration of maintenance window: %s\n", duration_str);
     }
+  else
+    printf("Maintenance window: not set\n");
 
   return 0;
 }
