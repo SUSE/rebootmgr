@@ -456,7 +456,7 @@ vl_method_reboot(sd_varlink *link, sd_json_variant *parameters,
   ctx->reboot_status = RM_REBOOTSTATUS_REQUESTED;
 
   usec_t reboot_time;
-  if (p.force)
+  if (p.force || ctx->reboot_strategy == RM_REBOOTSTRATEGY_INSTANTLY)
       reboot_time = now(CLOCK_REALTIME);
   else
     {
