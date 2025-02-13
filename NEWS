@@ -2,6 +2,10 @@ rebootmgr NEWS -- history of user-visible changes.
 
 Copyright (C) 2016-2025 Thorsten Kukuk
 
+Version 3.2
+* rebootmgrd: fix strategy instantly
+* Fix support of unset maintenance window
+
 Version 3.1
 * rebootmgrd: fix check if new reboot strategy is valid 
 
