@@ -10,7 +10,7 @@ project(
   		  'default_library=static',
 		  'b_pie=true',
                   'b_lto=true',
-                  'c_std=gnu23',
+                  'c_std=gnu17',
 		  'warning_level=2',],
   license : ['GPL-2.0-only', 'LGPL-2.1-or-later'],
   version : '3.2',
