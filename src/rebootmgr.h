@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <systemd/sd-event.h>
 #include "calendarspec.h"
 
@@ -32,7 +33,8 @@ typedef enum RM_RebootStrategy {
   RM_REBOOTSTRATEGY_BEST_EFFORT, /* maintenance window, else instantly */
   RM_REBOOTSTRATEGY_INSTANTLY,	 /* reboot instantly */
   RM_REBOOTSTRATEGY_MAINT_WINDOW,/* reboot only during maintenance window */
-  RM_REBOOTSTRATEGY_OFF          /* don't reboot */
+  RM_REBOOTSTRATEGY_OFF,         /* don't reboot */
+  RM_REBOOTSTRATEGY_ON           /* Re-enable old strategy after off */
 } RM_RebootStrategy;
 
 typedef enum RM_RebootStatus {
@@ -47,7 +49,7 @@ typedef struct {
   RM_RebootStrategy reboot_strategy;
   CalendarSpec *maint_window_start;
   time_t maint_window_duration;
-  int temp_off;
+  bool temp_off;
   sd_event *loop;
   sd_event_source *timer;
   usec_t reboot_time;

@@ -167,16 +167,14 @@ vl_method_status (sd_varlink *link, sd_json_variant *parameters,
 
   _cleanup_(sd_json_variant_unrefp) sd_json_variant *v = NULL;
 
-  RM_RebootStatus tmp_status = ctx->reboot_status;
-  if (ctx->temp_off)
-    tmp_status = RM_REBOOTSTATUS_NOT_REQUESTED;
-
-  r = sd_json_buildo(&v, SD_JSON_BUILD_PAIR("RebootStatus", SD_JSON_BUILD_INTEGER(tmp_status)));
+  r = sd_json_buildo(&v,
+		     SD_JSON_BUILD_PAIR("RebootStatus", SD_JSON_BUILD_INTEGER(ctx->reboot_status)),
+		     SD_JSON_BUILD_PAIR("RebootDisabled", SD_JSON_BUILD_BOOLEAN(ctx->temp_off)));
   if (r == 0 && ctx->reboot_method != RM_REBOOTMETHOD_UNKNOWN)
     {
       r = sd_json_variant_merge_objectbo(&v,
-	      SD_JSON_BUILD_PAIR("RequestedMethod", SD_JSON_BUILD_INTEGER(ctx->reboot_method)),
-	      SD_JSON_BUILD_PAIR("RebootTime", SD_JSON_BUILD_STRING(format_timestamp(buf, sizeof(buf), ctx->reboot_time))));
+		SD_JSON_BUILD_PAIR("RequestedMethod", SD_JSON_BUILD_INTEGER(ctx->reboot_method)),
+		SD_JSON_BUILD_PAIR("RebootTime", SD_JSON_BUILD_STRING(format_timestamp(buf, sizeof(buf), ctx->reboot_time))));
     }
   if (r < 0)
     {
@@ -207,13 +205,10 @@ vl_method_fullstatus (sd_varlink *link, sd_json_variant *parameters,
 
   _cleanup_(sd_json_variant_unrefp) sd_json_variant *v = NULL;
 
-  RM_RebootStatus tmp_status = ctx->reboot_status;
-  if (ctx->temp_off)
-    tmp_status = RM_REBOOTSTATUS_NOT_REQUESTED;
-
   r = sd_json_buildo (&v,
-		      SD_JSON_BUILD_PAIR("RebootStatus", SD_JSON_BUILD_INTEGER(tmp_status)),
-		      SD_JSON_BUILD_PAIR("RebootStrategy", SD_JSON_BUILD_INTEGER(ctx->reboot_strategy)));
+		      SD_JSON_BUILD_PAIR("RebootStatus", SD_JSON_BUILD_INTEGER(ctx->reboot_status)),
+		      SD_JSON_BUILD_PAIR("RebootStrategy", SD_JSON_BUILD_INTEGER(ctx->reboot_strategy)),
+		      SD_JSON_BUILD_PAIR("RebootDisabled", SD_JSON_BUILD_BOOLEAN(ctx->temp_off)));
 
   if (r >= 0 && ctx->reboot_method != RM_REBOOTMETHOD_UNKNOWN)
     r = sd_json_variant_merge_objectbo(&v, SD_JSON_BUILD_PAIR("RequestedMethod", SD_JSON_BUILD_INTEGER(ctx->reboot_method)));
@@ -322,8 +317,7 @@ time_handler (sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userd
 
   if (ctx->temp_off)
     {
-      if (debug_flag)
-	log_msg (LOG_DEBUG, "Reboot temporary disabled, ignoring timer");
+      log_msg (LOG_NOTICE, "Reboot temporary disabled, ignoring timer");
       return 0;
     }
 
@@ -540,12 +534,25 @@ vl_method_set_strategy (sd_varlink *link, sd_json_variant *parameters,
       return sd_varlink_error(link, SD_VARLINK_ERROR_PERMISSION_DENIED, parameters);
     }
 
-  if (p.strategy > RM_REBOOTSTRATEGY_UNKNOWN &&
-      p.strategy <= RM_REBOOTSTRATEGY_OFF &&
-      ctx->reboot_strategy != p.strategy)
+  if (p.strategy == RM_REBOOTSTRATEGY_ON)
     {
-      /* Don't save strategy "off" */
-      if (p.strategy != RM_REBOOTSTRATEGY_OFF)
+      const char *str;
+
+      ctx->temp_off = false;
+      /* Informal log message */
+      rm_strategy_to_str(ctx->reboot_strategy, &str);
+      log_msg(LOG_INFO, "Reboots (strategy '%s') enabled again", str);
+    }
+  else if (p.strategy == RM_REBOOTSTRATEGY_OFF)
+    {
+      ctx->temp_off = true;
+      log_msg(LOG_INFO, "Reboots temporarily disabled");
+    }
+  else
+    {
+      if (p.strategy > RM_REBOOTSTRATEGY_UNKNOWN &&
+	  p.strategy < RM_REBOOTSTRATEGY_OFF &&
+	  ctx->reboot_strategy != p.strategy)
 	{
 	  r = save_config(p.strategy, NULL, 0);
 	  if (r < 0)
@@ -555,6 +562,12 @@ vl_method_set_strategy (sd_varlink *link, sd_json_variant *parameters,
 					SD_JSON_BUILD_PAIR_BOOLEAN("Success", false));
 	    }
 	}
+      else
+	{
+	  log_msg(LOG_ERR, "Reboot strategy not changed, invalid value (%i)", p.strategy);
+	  return sd_varlink_errorbo(link, "org.openSUSE.rebootmgr.InvalidParameter",
+				    SD_JSON_BUILD_PAIR_BOOLEAN("Success", false));
+	}
 
       ctx->reboot_strategy = p.strategy;
 
@@ -562,12 +575,6 @@ vl_method_set_strategy (sd_varlink *link, sd_json_variant *parameters,
       const char *str;
       rm_strategy_to_str(p.strategy, &str);
       log_msg(LOG_INFO, "Reboot strategy changed to '%s'", str);
-    }
-  else
-    {
-      log_msg(LOG_ERR, "Reboot strategy not changed, invalid value (%i)", p.strategy);
-      return sd_varlink_errorbo(link, "org.openSUSE.rebootmgr.InvalidParameter",
-				SD_JSON_BUILD_PAIR_BOOLEAN("Success", false));
     }
 
   return sd_varlink_replybo(link, SD_JSON_BUILD_PAIR_BOOLEAN("Success", true));

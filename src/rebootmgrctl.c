@@ -333,21 +333,24 @@ set_window(const char *start, const char *duration)
 }
 
 static int
-get_status(RM_RebootStatus *status, RM_RebootMethod *method, char **reboot_time)
+get_status(RM_RebootStatus *status, RM_RebootMethod *method, char **reboot_time, bool *disabled)
 {
   struct p {
     RM_RebootStatus status;
     RM_RebootMethod method;
     char *reboot_time;
+    bool temp_off;
   } p = {
     .status = RM_REBOOTSTATUS_NOT_REQUESTED,
     .method = RM_REBOOTMETHOD_UNKNOWN,
-    .reboot_time = NULL
+    .reboot_time = NULL,
+    .temp_off = false
   };
   static const sd_json_dispatch_field dispatch_table[] = {
-    { "RebootStatus",    SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,    offsetof(struct p, status),      SD_JSON_MANDATORY },
-    { "RebootTime",      SD_JSON_VARIANT_STRING,  sd_json_dispatch_string, offsetof(struct p, reboot_time), 0                 },
-    { "RequestedMethod", SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,    offsetof(struct p, method),      0                 },
+    { "RebootStatus",    SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,     offsetof(struct p, status),      SD_JSON_MANDATORY },
+    { "RebootTime",      SD_JSON_VARIANT_STRING,  sd_json_dispatch_string,  offsetof(struct p, reboot_time), 0                 },
+    { "RequestedMethod", SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,     offsetof(struct p, method),      0                 },
+    { "RebootDisabled",  SD_JSON_VARIANT_BOOLEAN, sd_json_dispatch_stdbool, offsetof(struct p, temp_off),    0                 },
     {}
   };
   _cleanup_(sd_varlink_unrefp) sd_varlink *link = NULL;
@@ -382,6 +385,8 @@ get_status(RM_RebootStatus *status, RM_RebootMethod *method, char **reboot_time)
   *method = p.method;
   if (reboot_time)
     *reboot_time = p.reboot_time;
+  if (disabled)
+    *disabled = p.temp_off;
 
   return 0;
 }
@@ -393,6 +398,7 @@ struct status {
   char *maint_window_start;
   time_t maint_window_duration;
   char *reboot_time;
+  bool temp_off;
 };
 
 static void
@@ -406,12 +412,13 @@ static int
 get_full_status(struct status *p)
 {
   static const sd_json_dispatch_field dispatch_table[] = {
-    { "RebootStatus",              SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,    offsetof(struct status, status),                SD_JSON_MANDATORY },
-    { "RequestedMethod",           SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,    offsetof(struct status, method),                0                 },
-    { "RebootTime",                SD_JSON_VARIANT_STRING,  sd_json_dispatch_string, offsetof(struct status, reboot_time),           0                 },
-    { "RebootStrategy",            SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,    offsetof(struct status, strategy),              SD_JSON_MANDATORY },
-    { "MaintenanceWindowStart",    SD_JSON_VARIANT_STRING,  sd_json_dispatch_string, offsetof(struct status, maint_window_start),    0                 },
-    { "MaintenanceWindowDuration", SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int64,  offsetof(struct status, maint_window_duration), 0                 },
+    { "RebootStatus",              SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,     offsetof(struct status, status),                SD_JSON_MANDATORY },
+    { "RequestedMethod",           SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,     offsetof(struct status, method),                0                 },
+    { "RebootTime",                SD_JSON_VARIANT_STRING,  sd_json_dispatch_string,  offsetof(struct status, reboot_time),           0                 },
+    { "RebootStrategy",            SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,     offsetof(struct status, strategy),              SD_JSON_MANDATORY },
+    { "MaintenanceWindowStart",    SD_JSON_VARIANT_STRING,  sd_json_dispatch_string,  offsetof(struct status, maint_window_start),    0                 },
+    { "MaintenanceWindowDuration", SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int64,   offsetof(struct status, maint_window_duration), 0                 },
+    { "RebootDisabled",            SD_JSON_VARIANT_BOOLEAN, sd_json_dispatch_stdbool, offsetof(struct status, temp_off),              0                 },
     {}
   };
   _cleanup_(sd_varlink_unrefp) sd_varlink *link = NULL;
@@ -470,7 +477,12 @@ print_full_status(void)
       return -1;
     }
   else
-    printf("Status: %s\n", str);
+    {
+      if (status.temp_off)
+	printf("Status: %s (reboots temporarily disabled)\n", str);
+      else
+	printf("Status: %s\n", str);
+    }
 
   if (status.reboot_time && strlen(status.reboot_time) > 0)
     printf("Reboot at: %s\n", status.reboot_time);
@@ -705,7 +717,7 @@ usage(int exit_code)
   printf(_("\trebootmgrctl soft-reboot [now]\n"));
   printf(_("\trebootmgrctl cancel\n"));
   printf(_("\trebootmgrctl status [--full|--quiet]\n"));
-  printf(_("\trebootmgrctl set-strategy best-effort|maint-window|instantly|off\n"));
+  printf(_("\trebootmgrctl set-strategy best-effort|maint-window|instantly|off|on\n"));
   printf(_("\trebootmgrctl get-strategy\n"));
   printf(_("\trebootmgrctl set-window <time> <duration>\n"));
   printf(_("\trebootmgrctl get-window\n"));
@@ -773,6 +785,7 @@ main(int argc, char **argv)
       RM_RebootStatus r_status = 0;
       RM_RebootMethod r_method = 0;
       _cleanup_(freep) char *r_time = NULL;
+      bool disabled = false;
 
       if (argc == 3)
 	{
@@ -794,7 +807,7 @@ main(int argc, char **argv)
 	}
       else
 	{
-	  int r = get_status(&r_status, &r_method, &r_time);
+	  int r = get_status(&r_status, &r_method, &r_time, &disabled);
 	  if (r < 0)
 	    retval = 1;
 	  else if (quiet)
@@ -814,7 +827,10 @@ main(int argc, char **argv)
 		    }
 		  else
 		    {
-		      printf(_("Status: %s\n"), str);
+		      if (disabled)
+			printf(_("Status: %s (reboots temporarily disabled)\n"), str);
+		      else
+			printf(_("Status: %s\n"), str);
 		      if (r_time)
 			printf(_("Scheduled for: %s\n"), r_time);
 		    }
@@ -837,7 +853,7 @@ main(int argc, char **argv)
 
       /* if we get an answer to a status request, rebootmgrd
 	 must be active */
-      int r = get_status(&r_status, &r_method, NULL);
+      int r = get_status(&r_status, &r_method, NULL, NULL);
       if (r == 0)
 	{
 	  if (quiet)

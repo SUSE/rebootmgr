@@ -82,6 +82,8 @@ rm_string_to_strategy (const char *str_strategy, RM_RebootStrategy *ret)
     *ret = RM_REBOOTSTRATEGY_MAINT_WINDOW;
   else if (strcasecmp (str_strategy, "off") == 0)
     *ret = RM_REBOOTSTRATEGY_OFF;
+  else if (strcasecmp (str_strategy, "on") == 0)
+    *ret = RM_REBOOTSTRATEGY_ON;
 
   return 0;
 }
@@ -130,6 +132,9 @@ rm_strategy_to_str (RM_RebootStrategy strategy, const char **ret)
   case RM_REBOOTSTRATEGY_OFF:
     *ret = "off";
     break;
+  case RM_REBOOTSTRATEGY_ON:
+    *ret = "on";
+    break; 
   case RM_REBOOTSTRATEGY_UNKNOWN:
     /* fall through, not a valid entry, too */
   default:

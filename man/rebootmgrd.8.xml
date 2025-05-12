@@ -91,7 +91,7 @@
 	  <para>
 	    This is the default setting. If a maintenance window is specified,
 	    <option>maint-window</option> is used. If no maintenance window is
-	    specified, the reboot takes place immediately 
+	    specified, the reboot takes place immediately
 	    (<option>instantly</option>).
 	  </para>
 	</listitem>
@@ -104,6 +104,14 @@
 	    is no longer active after a reboot. When rebootmgr is reactivated, it
 	    will continue to use the old specified maintenance window and any
 	    reboot timers that are still running will no longer be ignored.
+	  </para>
+	</listitem>
+	</varlistentry>
+	<varlistentry><term>on</term>
+	<listitem>
+	  <para>
+	    Reboots will be enabled again. Existing reboot timers will be
+	    executed again. Elapsed timers will not be restarted.
 	  </para>
 	</listitem>
 	</varlistentry>

@@ -92,6 +92,7 @@
 	<arg choice='plain'>maint-window</arg>
 	<arg choice='plain'>instantly</arg>
 	<arg choice='plain'>off</arg>
+	<arg choice='plain'>on</arg>
       </group>
     </cmdsynopsis>
     <cmdsynopsis>
@@ -215,7 +216,7 @@
     </varlistentry>
 
     <varlistentry>
-      <term><option>set-strategy</option> best-effort|maint-window|instantly|off</term>
+      <term><option>set-strategy</option> best-effort|maint-window|instantly|off|on</term>
       <listitem>
 	<para>
 	  A new strategy to reboot the machine is written in
@@ -262,6 +263,14 @@
 		old specified maintenance window and any reboot timers that
 		are still running will no longer be ignored.
 	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>on</term>
+	    <listitem>
+              <para>
+		Reboots will be enabled again.
+              </para>
 	    </listitem>
 	  </varlistentry>
 	</variablelist>
