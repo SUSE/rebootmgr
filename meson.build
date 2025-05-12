@@ -13,7 +13,7 @@ project(
                   'c_std=gnu17',
 		  'warning_level=2',],
   license : ['GPL-2.0-only', 'LGPL-2.1-or-later'],
-  version : '3.2',
+  version : '3.3',
 )
 
 fs = import('fs')
@@ -35,7 +35,6 @@ possible_cc_flags = [
 		  '-Werror=return-type',
 		  '-Wbad-function-cast',
 		  '-Wcast-align',
-		  '-Wcast-qual',
                   '-Wformat-security',
 		  '-Wmissing-declarations',
 		  '-Wmissing-prototypes',
