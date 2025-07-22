@@ -954,5 +954,9 @@ main(int argc, char **argv)
   else
     usage(1);
 
+  /* make retval positive, some functions return negative errno numbers */
+  if (retval < 0)
+    retval = -retval;
+
   return retval;
 }
