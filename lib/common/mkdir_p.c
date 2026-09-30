@@ -1,26 +1,11 @@
-//SPDX-License-Identifier: GPL-2.0-or-later
-
-/* Copyright (c) 2024 Thorsten Kukuk
-   Author: Thorsten Kukuk <kukuk@suse.com>
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License along
-   with this program; if not, see <http://www.gnu.org/licenses/>. */
+// SPDX-License-Identifier: BSD-2-Clause
 
 #include <errno.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <libgen.h>
+#include <sys/stat.h>
 
 #include "common.h"
 
@@ -39,11 +24,11 @@ mkdir_p(const char *path, mode_t mode)
 
       /* Check if the existing path is a directory */
       if (stat(path, &st) != 0)
-	return -errno;
+        return -errno;
 
       /* If not, fail with ENOTDIR */
       if (!S_ISDIR(st.st_mode))
-	return -ENOTDIR;
+        return -ENOTDIR;
 
       /* if it is a directory, return */
       return 0;
@@ -63,5 +48,9 @@ mkdir_p(const char *path, mode_t mode)
   if (r < 0)
     return r;
 
-  return mkdir(path, mode);
+  if (mkdir(path, mode) == -1)
+    return -errno;
+
+  return 0;
 }
+
