@@ -71,11 +71,21 @@ static SD_VARLINK_DEFINE_METHOD(
                 SD_VARLINK_FIELD_COMMENT("Returns the current environment block, i.e. the contents of environ[]."),
                 SD_VARLINK_DEFINE_OUTPUT(Environment, SD_VARLINK_STRING, SD_VARLINK_NULLABLE|SD_VARLINK_ARRAY));
 
-static SD_VARLINK_DEFINE_ERROR(InvalidParameter);
-static SD_VARLINK_DEFINE_ERROR(AlreadyInProgress);
+static SD_VARLINK_DEFINE_ERROR(
+		InvalidParameter,
+		SD_VARLINK_DEFINE_FIELD(Variable, SD_VARLINK_STRING, SD_VARLINK_NULLABLE),
+		SD_VARLINK_DEFINE_FIELD(Success, SD_VARLINK_BOOL, 0));
+static SD_VARLINK_DEFINE_ERROR(
+		AlreadyInProgress,
+		SD_VARLINK_DEFINE_FIELD(Method, SD_VARLINK_INT, 0),
+		SD_VARLINK_DEFINE_FIELD(Scheduled, SD_VARLINK_STRING, 0));
 static SD_VARLINK_DEFINE_ERROR(NoRebootScheduled);
-static SD_VARLINK_DEFINE_ERROR(ErrorWritingConfig);
-static SD_VARLINK_DEFINE_ERROR(InternalError);
+static SD_VARLINK_DEFINE_ERROR(
+		ErrorWritingConfig,
+		SD_VARLINK_DEFINE_FIELD(Success, SD_VARLINK_BOOL, 0));
+static SD_VARLINK_DEFINE_ERROR(
+		InternalError,
+		SD_VARLINK_DEFINE_FIELD(Success, SD_VARLINK_BOOL, SD_VARLINK_NULLABLE));
 
 SD_VARLINK_DEFINE_INTERFACE(
                 org_openSUSE_rebootmgr,
