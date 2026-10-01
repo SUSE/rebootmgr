@@ -455,9 +455,30 @@ vl_method_reboot(sd_varlink *link, sd_json_variant *parameters,
     return sd_varlink_error_invalid_parameter_name(link, "reboot");
 
   if (ctx->reboot_status != RM_REBOOTSTATUS_NOT_REQUESTED)
-    return sd_varlink_errorbo(link, "org.openSUSE.rebootmgr.AlreadyInProgress",
-			      SD_JSON_BUILD_PAIR_INTEGER("Method", ctx->reboot_method),
-			      SD_JSON_BUILD_PAIR_STRING("Scheduled", format_timestamp (time_str, sizeof (time_str), ctx->reboot_time)));
+    {
+      /* A hard reboot takes precedence over an already scheduled
+	 soft-reboot: cancel the pending soft-reboot and schedule the
+	 hard reboot instead. Every other combination keeps the
+	 currently scheduled reboot untouched. */
+      if (ctx->reboot_method == RM_REBOOTMETHOD_SOFT &&
+	  p.reboot_method == RM_REBOOTMETHOD_HARD)
+	{
+	  if (debug_flag || verbose_flag)
+	    log_msg (LOG_NOTICE, "Replacing scheduled soft-reboot with hard reboot request");
+
+	  r = sd_event_source_set_enabled (ctx->timer, SD_EVENT_OFF);
+	  if (r != 0)
+	    {
+	      log_msg (LOG_ERR, "Reboot request: disabling timer failed: %s", strerror (-r));
+	      return r;
+	    }
+	  reset_timer (ctx);
+	}
+      else
+	return sd_varlink_errorbo(link, "org.openSUSE.rebootmgr.AlreadyInProgress",
+				  SD_JSON_BUILD_PAIR_INTEGER("Method", ctx->reboot_method),
+				  SD_JSON_BUILD_PAIR_STRING("Scheduled", format_timestamp (time_str, sizeof (time_str), ctx->reboot_time)));
+    }
 
   ctx->reboot_method = p.reboot_method;
   ctx->reboot_status = RM_REBOOTSTATUS_REQUESTED;
