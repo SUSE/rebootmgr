@@ -156,8 +156,10 @@
 	  Tells rebootmgrd to schedule a reboot. With
 	  the <optional>now</optional> option, a forced reboot is done
 	  and a maintenance window is ignored.
-	  If there is already a soft-reboot scheduled, it is
-          replaced by this reboot request. Else the request is ignored.
+	  If there is already a soft-reboot scheduled, it is always
+	  replaced by this reboot request. If there is already a reboot
+	  scheduled, it is only replaced when the <optional>now</optional>
+	  option is used, otherwise this request is ignored.
 	</para>
       </listitem>
     </varlistentry>
@@ -170,8 +172,10 @@
 	  <citerefentry project='systemd'><refentrytitle>systemd-soft-reboot.service</refentrytitle><manvolnum>8</manvolnum></citerefentry>).
 	  With the <optional>now</optional> option, a forced soft-reboot is
 	  done and a maintenance window is ignored.
-	  If there is already a reboot or soft-reboot scheduled, this
-	  request is ignored.
+	  If there is already a reboot scheduled, this request is
+	  ignored. If there is already a soft-reboot scheduled, it is
+	  only replaced when the <optional>now</optional> option is used,
+	  otherwise this request is ignored.
 	</para>
       </listitem>
     </varlistentry>

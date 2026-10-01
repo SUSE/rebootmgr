@@ -456,15 +456,23 @@ vl_method_reboot(sd_varlink *link, sd_json_variant *parameters,
 
   if (ctx->reboot_status != RM_REBOOTSTATUS_NOT_REQUESTED)
     {
-      /* A hard reboot takes precedence over an already scheduled
-	 soft-reboot: cancel the pending soft-reboot and schedule the
-	 hard reboot instead. Every other combination keeps the
+      /* A hard reboot always takes precedence over an already
+	 scheduled soft-reboot. A hard or soft-reboot requested with
+	 "now" also takes precedence over an already pending reboot
+	 of the same method. Every other combination keeps the
 	 currently scheduled reboot untouched. */
-      if (ctx->reboot_method == RM_REBOOTMETHOD_SOFT &&
-	  p.reboot_method == RM_REBOOTMETHOD_HARD)
+      bool override_pending =
+	(p.reboot_method == RM_REBOOTMETHOD_HARD &&
+	 (ctx->reboot_method == RM_REBOOTMETHOD_SOFT || p.force)) ||
+	(p.reboot_method == RM_REBOOTMETHOD_SOFT &&
+	 ctx->reboot_method == RM_REBOOTMETHOD_SOFT && p.force);
+
+      if (override_pending)
 	{
 	  if (debug_flag || verbose_flag)
-	    log_msg (LOG_NOTICE, "Replacing scheduled soft-reboot with hard reboot request");
+	    log_msg (LOG_NOTICE, "Replacing pending %s with new %s request",
+		     (ctx->reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot",
+		     (p.reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot");
 
 	  r = sd_event_source_set_enabled (ctx->timer, SD_EVENT_OFF);
 	  if (r != 0)
