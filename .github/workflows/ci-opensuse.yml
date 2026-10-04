@@ -8,12 +8,12 @@ jobs:
     container: registry.opensuse.org/opensuse/tumbleweed:latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Install devel packages
       run: |
         zypper ref
-        zypper --non-interactive in --no-recommends meson gcc libeconf-devel systemd-devel docbook-xsl-stylesheets
+        zypper --non-interactive in --no-recommends meson gcc libeconf-devel systemd-devel docbook5-xsl-stylesheets
 
     - name: Setup meson
       run: meson setup build -Db_sanitize=address,undefined
