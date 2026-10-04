@@ -30,6 +30,8 @@
 #include "parse-duration.h"
 
 #include "varlink-org.openSUSE.rebootmgr.h"
+#include "varlink-io.systemd.Metrics.h"
+#include "rebootmgrd-varlink-metrics.h"
 
 static int verbose_flag = 0;
 
@@ -903,7 +905,17 @@ run_varlink (RM_CTX *ctx)
       return r;
     }
 
+  r = sd_varlink_server_add_interface (varlink_server, &vl_interface_io_systemd_Metrics);
+  if (r < 0)
+    {
+      log_msg (LOG_ERR, "Failed to add Varlink interface: %s",
+	       strerror (-r));
+      return r;
+    }
+
   r = sd_varlink_server_bind_method_many(varlink_server,
+					 "io.systemd.Metrics.List",               vl_method_metrics_list,
+					 "io.systemd.Metrics.Describe",           vl_method_metrics_describe,
 					 "org.openSUSE.rebootmgr.Cancel",         vl_method_cancel,
 					 "org.openSUSE.rebootmgr.FullStatus",     vl_method_fullstatus,
 					 "org.openSUSE.rebootmgr.GetEnvironment", vl_method_get_environment,

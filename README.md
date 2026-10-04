@@ -27,3 +27,23 @@ strategy=best-effort
 $ sudo rebootmgrctl status
 Status: Reboot not requested
 ```
+
+## Metrics
+
+rebootmgrd implements the `io.systemd.Metrics` varlink interface (as used by
+`systemd-report`), exposing the following metric families:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `org.openSUSE.rebootmgr.RebootStatus` | string | Whether a reboot or soft-reboot is requested, and if so, in which state it is |
+| `org.openSUSE.rebootmgr.RebootMethod` | string | Which kind of reboot was requested (reboot or soft-reboot), if any |
+| `org.openSUSE.rebootmgr.RebootScheduledTime` | gauge | Microseconds at which a pending reboot is scheduled for, if any |
+| `org.openSUSE.rebootmgr.RebootStrategy` | string | Currently configured reboot strategy |
+| `org.openSUSE.rebootmgr.RebootDisabled` | string | Whether reboots are temporarily disabled |
+| `org.openSUSE.rebootmgr.MaintenanceWindowStart` | string | Start of the configured maintenance window as calendar specification |
+| `org.openSUSE.rebootmgr.MaintenanceWindowDuration` | gauge | Duration of the configured maintenance window in seconds |
+| `org.openSUSE.rebootmgr.Version` | string | Version of rebootmgr |
+
+Metrics that depend on optional state (e.g. `RebootScheduledTime` or
+`MaintenanceWindowStart`/`MaintenanceWindowDuration`) are omitted when that
+state is not set.

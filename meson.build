@@ -65,10 +65,11 @@ inc = include_directories(['lib/calendarspec', 'lib/common', 'src', '.'])
 subdir('lib')
 
 libeconf = dependency('libeconf', version : '>=0.7.5')
-libsystemd = dependency('libsystemd', version : '>=257')
+libsystemd = dependency('libsystemd', version : '>=260')
 
 rebootmgrctl_c = ['src/rebootmgrctl.c']
-rebootmgrd_c = ['src/rebootmgrd.c', 'src/varlink-org.openSUSE.rebootmgr.c']
+rebootmgrd_c = ['src/rebootmgrd.c', 'src/varlink-org.openSUSE.rebootmgr.c',
+                'src/varlink-io.systemd.Metrics.c', 'src/rebootmgrd-varlink-metrics.c']
 
 executable('rebootmgrctl',
            rebootmgrctl_c,
