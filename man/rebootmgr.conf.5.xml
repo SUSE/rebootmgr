@@ -1,44 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
-"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
-
-<!--  \-*\- nroff \-*\- -->
-<!--  Copyright 2016, 2017, 2024 Thorsten Kukuk &lt;kukuk@suse.de&gt; -->
-
-<!--  This file is part of rebootmgr. -->
-
-<!--  rebootmgr is free software; you can redistribute it and/or -->
-<!--  modify it under the terms of the GNU General Public License as -->
-<!--  published by the Free Software Foundation in version 2 of the -->
-<!--  License. -->
-
-<!--  rebootmgr is distributed in the hope that it will be useful, -->
-<!--  but WITHOUT ANY WARRANTY; without even the implied warranty of -->
-<!--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU -->
-<!--  General Public License for more details. -->
-
-<!--  You should have received a copy of the GNU General Public License -->
-<!-- along with rebootmgr; If not, see <http://www.gnu.org/licenses/>.  -->
-
-<refentry id="rebootmgr.conf.5">
-  <refentryinfo>
-    <title>rebootmgr.conf</title>
-    <productname>rebootmgr</productname>
-
-    <authorgroup>
-      <author>
-        <contrib></contrib>
-        <firstname>Thorsten</firstname>
-        <surname>Kukuk</surname>
-        <email>kukuk@suse.com</email>
-      </author>
-    </authorgroup>
-  </refentryinfo>
-
+<refentry xmlns="http://docbook.org/ns/docbook" version="5.0" xml:id="rebootmgr.conf.5">
   <refmeta>
     <refentrytitle>rebootmgr.conf</refentrytitle>
     <manvolnum>5</manvolnum>
+    <refmiscinfo class="source">rebootmgr %version%</refmiscinfo>
+    <refmiscinfo class="manual">rebootmgr</refmiscinfo>
   </refmeta>
+
+  <info>
+    <author>
+      <personname>
+        <firstname>Thorsten</firstname>
+        <surname>Kukuk</surname>
+      </personname>
+      <email>kukuk@suse.com</email>
+      <contrib></contrib>
+    </author>
+  </info>
 
   <refnamediv>
     <refname>rebootmgr.conf</refname>
