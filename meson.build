@@ -13,7 +13,7 @@ project(
                   'c_std=gnu17',
 		  'warning_level=2',],
   license : ['GPL-2.0-only', 'LGPL-2.1-or-later'],
-  version : '3.3',
+  version : '4.0',
 )
 
 fs = import('fs')

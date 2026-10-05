@@ -1,20 +1,4 @@
-//SPDX-License-Identifier: GPL-2.0-or-later
-
-/* Copyright (c) 2024, 2025 Thorsten Kukuk
-   Author: Thorsten Kukuk <kukuk@suse.com>
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License along
-   with this program; if not, see <http://www.gnu.org/licenses/>. */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "config.h"
 
@@ -149,9 +133,9 @@ vl_method_get_environment(sd_varlink *link, sd_json_variant *parameters,
 }
 
 static int
-vl_method_status (sd_varlink *link, sd_json_variant *parameters,
-		  sd_varlink_method_flags_t _unused_(flags),
-		  void *userdata)
+vl_method_status(sd_varlink *link, sd_json_variant *parameters,
+		 sd_varlink_method_flags_t _unused_(flags),
+		 void *userdata)
 {
   static const sd_json_dispatch_field dispatch_table[] = {
     {}
@@ -163,7 +147,7 @@ vl_method_status (sd_varlink *link, sd_json_variant *parameters,
   if (verbose_flag)
     log_msg(LOG_INFO, "Varlink method \"Status\" called...");
 
-  r = sd_varlink_dispatch (link, parameters, dispatch_table, /* userdata= */ NULL);
+  r = sd_varlink_dispatch(link, parameters, dispatch_table, /* userdata= */ NULL);
   if (r != 0)
     return r;
 
@@ -180,17 +164,17 @@ vl_method_status (sd_varlink *link, sd_json_variant *parameters,
     }
   if (r < 0)
     {
-      log_msg (LOG_ERR, "Failed to build JSON data: %s", strerror (-r));
+      log_msg(LOG_ERR, "Failed to build JSON data: %s", strerror(-r));
       return r;
     }
 
-  return sd_varlink_reply (link, v);
+  return sd_varlink_reply(link, v);
 }
 
 static int
-vl_method_fullstatus (sd_varlink *link, sd_json_variant *parameters,
-		      sd_varlink_method_flags_t _unused_(flags),
-		      void *userdata)
+vl_method_fullstatus(sd_varlink *link, sd_json_variant *parameters,
+		     sd_varlink_method_flags_t _unused_(flags),
+		     void *userdata)
 {
   static const sd_json_dispatch_field dispatch_table[] = {
     {}
@@ -199,18 +183,18 @@ vl_method_fullstatus (sd_varlink *link, sd_json_variant *parameters,
   int r;
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "Varlink method \"FullStatus\" called...");
+    log_msg(LOG_INFO, "Varlink method \"FullStatus\" called...");
 
-  r = sd_varlink_dispatch (link, parameters, dispatch_table, /* userdata= */ NULL);
+  r = sd_varlink_dispatch(link, parameters, dispatch_table, /* userdata= */ NULL);
   if (r != 0)
     return r;
 
   _cleanup_(sd_json_variant_unrefp) sd_json_variant *v = NULL;
 
-  r = sd_json_buildo (&v,
-		      SD_JSON_BUILD_PAIR("RebootStatus", SD_JSON_BUILD_INTEGER(ctx->reboot_status)),
-		      SD_JSON_BUILD_PAIR("RebootStrategy", SD_JSON_BUILD_INTEGER(ctx->reboot_strategy)),
-		      SD_JSON_BUILD_PAIR("RebootDisabled", SD_JSON_BUILD_BOOLEAN(ctx->temp_off)));
+  r = sd_json_buildo(&v,
+		     SD_JSON_BUILD_PAIR("RebootStatus", SD_JSON_BUILD_INTEGER(ctx->reboot_status)),
+		     SD_JSON_BUILD_PAIR("RebootStrategy", SD_JSON_BUILD_INTEGER(ctx->reboot_strategy)),
+		     SD_JSON_BUILD_PAIR("RebootDisabled", SD_JSON_BUILD_BOOLEAN(ctx->temp_off)));
 
   if (r >= 0 && ctx->reboot_method != RM_REBOOTMETHOD_UNKNOWN)
     r = sd_json_variant_merge_objectbo(&v, SD_JSON_BUILD_PAIR("RequestedMethod", SD_JSON_BUILD_INTEGER(ctx->reboot_method)));
@@ -236,11 +220,11 @@ vl_method_fullstatus (sd_varlink *link, sd_json_variant *parameters,
 
   if (r < 0)
     {
-      log_msg (LOG_ERR, "Failed to build JSON data: %s", strerror (-r));
+      log_msg(LOG_ERR, "Failed to build JSON data: %s", strerror(-r));
       return r;
     }
 
-  return sd_varlink_reply (link, v);
+  return sd_varlink_reply(link, v);
 }
 
 static int
@@ -279,7 +263,7 @@ calc_reboot_time(RM_CTX *ctx, usec_t *ret)
   else
     {
       /* we are not inside a maintenance window, set timer for next one */
-      r = calendar_spec_next_usec (ctx->maint_window_start, curr, &next);
+      r = calendar_spec_next_usec(ctx->maint_window_start, curr, &next);
       if (r < 0)
 	{
 	  log_msg(LOG_ERR, "ERROR: Internal error converting the timer: %s",
@@ -320,11 +304,11 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
   RM_CTX *ctx = userdata;
 
   if (debug_flag)
-    log_msg (LOG_DEBUG, "Time handler for reboot called");
+    log_msg(LOG_DEBUG, "Time handler for reboot called");
 
   if (ctx->temp_off)
     {
-      log_msg (LOG_NOTICE, "Reboot temporary disabled, ignoring timer");
+      log_msg(LOG_NOTICE, "Reboot temporary disabled, ignoring timer");
       return 0;
     }
 
@@ -333,13 +317,13 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
       switch (ctx->reboot_method)
 	{
 	case RM_REBOOTMETHOD_HARD:
-	  log_msg (LOG_INFO, "rebootmgr: reboot triggered now!");
+	  log_msg(LOG_INFO, "rebootmgr: reboot triggered now!");
 	  break;
 	case RM_REBOOTMETHOD_SOFT:
-	  log_msg (LOG_INFO, "rebootmgr: soft-reboot triggered now!");
+	  log_msg(LOG_INFO, "rebootmgr: soft-reboot triggered now!");
 	  break;
 	default:
-	  log_msg (LOG_ERR, "rebootmgr: internal error, reboot method is invalid: %i",
+	  log_msg(LOG_ERR, "rebootmgr: internal error, reboot method is invalid: %i",
 		   ctx->reboot_method);
 	  return -EINVAL;
 	}
@@ -349,10 +333,10 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
 	  switch (ctx->reboot_method)
 	    {
 	    case RM_REBOOTMETHOD_HARD:
-	      log_msg (LOG_DEBUG, "systemctl reboot called!");
+	      log_msg(LOG_DEBUG, "systemctl reboot called!");
 	      break;
 	    case RM_REBOOTMETHOD_SOFT:
-	      log_msg (LOG_DEBUG, "systemctl soft-reboot called!");
+	      log_msg(LOG_DEBUG, "systemctl soft-reboot called!");
 	      break;
 	    default:
 	      /* cannot happen */
@@ -365,7 +349,7 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
 
           if (pid < 0)
             {
-              log_msg (LOG_ERR, "Calling /usr/bin/systemctl failed: %m");
+              log_msg(LOG_ERR, "Calling /usr/bin/systemctl failed: %m");
             }
           else if (pid == 0)
             {
@@ -377,13 +361,13 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
                   char envar1[] = "SYSTEMCTL_SKIP_AUTO_SOFT_REBOOT=1";
                   char *env[] = {envar1, NULL};
 
-                  r = execle ("/usr/bin/systemctl", "systemctl", "reboot",
-			      NULL, env);
+                  r = execle("/usr/bin/systemctl", "systemctl", "reboot",
+			     NULL, env);
 
 		  break;
 		case RM_REBOOTMETHOD_SOFT:
-                  r = execl ("/usr/bin/systemctl", "systemctl", "soft-reboot",
-                             NULL);
+                  r = execl("/usr/bin/systemctl", "systemctl", "soft-reboot",
+                            NULL);
 		  break;
 		default:
 		  /* cannot happen */
@@ -391,11 +375,11 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
 		}
 	      if (r < 0)
 		{
-		  log_msg (LOG_ERR, "Calling /usr/bin/systemctl %s failed: %m",
-			   (ctx->reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot");
-		  exit (1);
+		  log_msg(LOG_ERR, "Calling /usr/bin/systemctl %s failed: %m",
+			  (ctx->reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot");
+		  exit(1);
                 }
-              exit (0);
+              exit(0);
             }
         }
 
@@ -427,12 +411,12 @@ vl_method_reboot(sd_varlink *link, sd_json_variant *parameters,
   int r;
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "Varlink method \"Reboot\" called...");
+    log_msg(LOG_INFO, "Varlink method \"Reboot\" called...");
 
   r = sd_varlink_dispatch(link, parameters, dispatch_table, &p);
   if (r != 0)
     {
-      log_msg(LOG_ERR, "Reboot request: varlik dispatch failed: %s", strerror (-r));
+      log_msg(LOG_ERR, "Reboot request: varlik dispatch failed: %s", strerror(-r));
       return r;
     }
 
@@ -441,7 +425,7 @@ vl_method_reboot(sd_varlink *link, sd_json_variant *parameters,
       const char *str;
 
       rm_method_to_str(p.reboot_method, &str);
-      log_msg(LOG_DEBUG, "Reboot request: %s (%i), force: %s", str, p.reboot_method, bool_to_str (p.force));
+      log_msg(LOG_DEBUG, "Reboot request: %s (%i), force: %s", str, p.reboot_method, bool_to_str(p.force));
     }
 
   uid_t peer_uid;
@@ -477,22 +461,22 @@ vl_method_reboot(sd_varlink *link, sd_json_variant *parameters,
       if (override_pending)
 	{
 	  if (debug_flag || verbose_flag)
-	    log_msg (LOG_NOTICE, "Replacing pending %s with new %s request",
-		     (ctx->reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot",
-		     (p.reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot");
+	    log_msg(LOG_NOTICE, "Replacing pending %s with new %s request",
+		    (ctx->reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot",
+		    (p.reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot");
 
-	  r = sd_event_source_set_enabled (ctx->timer, SD_EVENT_OFF);
+	  r = sd_event_source_set_enabled(ctx->timer, SD_EVENT_OFF);
 	  if (r != 0)
 	    {
-	      log_msg (LOG_ERR, "Reboot request: disabling timer failed: %s", strerror (-r));
+	      log_msg(LOG_ERR, "Reboot request: disabling timer failed: %s", strerror(-r));
 	      return r;
 	    }
-	  reset_timer (ctx);
+	  reset_timer(ctx);
 	}
       else
 	return sd_varlink_errorbo(link, "org.openSUSE.rebootmgr.AlreadyInProgress",
 				  SD_JSON_BUILD_PAIR_INTEGER("Method", ctx->reboot_method),
-				  SD_JSON_BUILD_PAIR_STRING("Scheduled", format_timestamp (time_str, sizeof (time_str), ctx->reboot_time)));
+				  SD_JSON_BUILD_PAIR_STRING("Scheduled", format_timestamp(time_str, sizeof(time_str), ctx->reboot_time)));
     }
 
   ctx->reboot_method = p.reboot_method;
@@ -528,13 +512,13 @@ vl_method_reboot(sd_varlink *link, sd_json_variant *parameters,
 
   return sd_varlink_replybo(link,
 			    SD_JSON_BUILD_PAIR_INTEGER("Method", ctx->reboot_method),
-			    SD_JSON_BUILD_PAIR_STRING("Scheduled", format_timestamp (time_str, sizeof (time_str), ctx->reboot_time)));
+			    SD_JSON_BUILD_PAIR_STRING("Scheduled", format_timestamp(time_str, sizeof(time_str), ctx->reboot_time)));
 }
 
 static int
-vl_method_set_strategy (sd_varlink *link, sd_json_variant *parameters,
-			sd_varlink_method_flags_t _unused_(flags),
-			void *userdata)
+vl_method_set_strategy(sd_varlink *link, sd_json_variant *parameters,
+		       sd_varlink_method_flags_t _unused_(flags),
+		       void *userdata)
 {
   struct p {
     RM_RebootStrategy strategy;
@@ -549,12 +533,12 @@ vl_method_set_strategy (sd_varlink *link, sd_json_variant *parameters,
   int r;
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "Varlink method \"SetStrategy\" called...");
+    log_msg(LOG_INFO, "Varlink method \"SetStrategy\" called...");
 
-  r = sd_varlink_dispatch (link, parameters, dispatch_table, &p);
+  r = sd_varlink_dispatch(link, parameters, dispatch_table, &p);
   if (r != 0)
     {
-      log_msg (LOG_ERR, "Set strategy request: varlik dispatch failed: %s", strerror (-r));
+      log_msg(LOG_ERR, "Set strategy request: varlik dispatch failed: %s", strerror(-r));
       return r;
     }
 
@@ -624,16 +608,16 @@ struct set_window {
 };
 
 static void
-set_window_free (struct set_window *var)
+set_window_free(struct set_window *var)
 {
   var->start = mfree(var->start);
   var->duration = mfree(var->duration);
 }
 
 static int
-vl_method_set_window (sd_varlink *link, sd_json_variant *parameters,
-		      sd_varlink_method_flags_t _unused_(flags),
-		      void *userdata)
+vl_method_set_window(sd_varlink *link, sd_json_variant *parameters,
+		     sd_varlink_method_flags_t _unused_(flags),
+		     void *userdata)
 {
   _cleanup_(set_window_free) struct set_window p = {
     .start = NULL,
@@ -648,12 +632,12 @@ vl_method_set_window (sd_varlink *link, sd_json_variant *parameters,
   int r;
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "Varlink method \"SetWindow\" called...");
+    log_msg(LOG_INFO, "Varlink method \"SetWindow\" called...");
 
-  r = sd_varlink_dispatch (link, parameters, dispatch_table, &p);
+  r = sd_varlink_dispatch(link, parameters, dispatch_table, &p);
   if (r != 0)
     {
-      log_msg (LOG_ERR, "Set strategy request: varlik dispatch failed: %s", strerror (-r));
+      log_msg(LOG_ERR, "Set strategy request: varlik dispatch failed: %s", strerror(-r));
       return r;
     }
 
@@ -671,8 +655,8 @@ vl_method_set_window (sd_varlink *link, sd_json_variant *parameters,
     }
 
   CalendarSpec *new_start = NULL;
-  if (p.start == NULL || strlen (p.start) == 0 ||
-      calendar_spec_from_string (p.start, &new_start) < 0)
+  if (p.start == NULL || strlen(p.start) == 0 ||
+      calendar_spec_from_string(p.start, &new_start) < 0)
     {
       log_msg(LOG_ERR, "Reboot strategy not changed, invalid value for window start (%s)", p.start);
       return sd_varlink_errorbo(link, "org.openSUSE.rebootmgr.InvalidParameter",
@@ -708,19 +692,19 @@ vl_method_set_window (sd_varlink *link, sd_json_variant *parameters,
   /* Informal log message */
   _cleanup_(freep) char *start_str = NULL;
   _cleanup_(freep) const char *duration_str = NULL;
-  calendar_spec_to_string (ctx->maint_window_start, &start_str);
-  r = rm_duration_to_string (ctx->maint_window_duration, &duration_str);
+  calendar_spec_to_string(ctx->maint_window_start, &start_str);
+  r = rm_duration_to_string(ctx->maint_window_duration, &duration_str);
   if (r >= 0)
-    log_msg (LOG_INFO, "Maintenance window changed to '%s', lasting %s",
+    log_msg(LOG_INFO, "Maintenance window changed to '%s', lasting %s",
 	     start_str, duration_str);
 
-  return sd_varlink_replybo (link, SD_JSON_BUILD_PAIR_BOOLEAN("Success", true));
+  return sd_varlink_replybo(link, SD_JSON_BUILD_PAIR_BOOLEAN("Success", true));
 }
 
 static int
-vl_method_cancel (sd_varlink *link, sd_json_variant *parameters,
-		  sd_varlink_method_flags_t _unused_(flags),
-		  void *userdata)
+vl_method_cancel(sd_varlink *link, sd_json_variant *parameters,
+		 sd_varlink_method_flags_t _unused_(flags),
+		 void *userdata)
 {
   static const sd_json_dispatch_field dispatch_table[] = {
     {}
@@ -729,12 +713,12 @@ vl_method_cancel (sd_varlink *link, sd_json_variant *parameters,
   int r;
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "Varlink method \"Cancel\" called...");
+    log_msg(LOG_INFO, "Varlink method \"Cancel\" called...");
 
-  r = sd_varlink_dispatch (link, parameters, dispatch_table, /* userdata= */ NULL);
+  r = sd_varlink_dispatch(link, parameters, dispatch_table, /* userdata= */ NULL);
   if (r != 0)
     {
-      log_msg (LOG_ERR, "Cancel request: varlik dispatch failed: %s", strerror (-r));
+      log_msg(LOG_ERR, "Cancel request: varlik dispatch failed: %s", strerror(-r));
       return r;
     }
 
@@ -752,24 +736,24 @@ vl_method_cancel (sd_varlink *link, sd_json_variant *parameters,
     }
 
   if (ctx->reboot_status == RM_REBOOTSTATUS_NOT_REQUESTED)
-    return sd_varlink_error (link, "org.openSUSE.rebootmgr.NoRebootScheduled", NULL);
+    return sd_varlink_error(link, "org.openSUSE.rebootmgr.NoRebootScheduled", NULL);
 
-  r = sd_event_source_set_enabled (ctx->timer, SD_EVENT_OFF);
+  r = sd_event_source_set_enabled(ctx->timer, SD_EVENT_OFF);
   if (r != 0)
     {
-      log_msg (LOG_ERR, "Cancel request: disabling timer failed: %s", strerror (-r));
+      log_msg(LOG_ERR, "Cancel request: disabling timer failed: %s", strerror(-r));
       return r;
     }
 
   reset_timer(ctx);
 
-  return sd_varlink_replybo (link, SD_JSON_BUILD_PAIR_BOOLEAN("Success", true));
+  return sd_varlink_replybo(link, SD_JSON_BUILD_PAIR_BOOLEAN("Success", true));
 }
 
 static int
-vl_method_quit (sd_varlink *link, sd_json_variant *parameters,
-		  sd_varlink_method_flags_t _unused_(flags),
-		  void *userdata)
+vl_method_quit(sd_varlink *link, sd_json_variant *parameters,
+	       sd_varlink_method_flags_t _unused_(flags),
+	       void *userdata)
 {
   struct p {
     int code;
@@ -784,12 +768,12 @@ vl_method_quit (sd_varlink *link, sd_json_variant *parameters,
   int r;
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "Varlink method \"Quit\" called...");
+    log_msg(LOG_INFO, "Varlink method \"Quit\" called...");
 
-  r = sd_varlink_dispatch (link, parameters, dispatch_table, /* userdata= */ NULL);
+  r = sd_varlink_dispatch(link, parameters, dispatch_table, /* userdata= */ NULL);
   if (r != 0)
     {
-      log_msg (LOG_ERR, "Quit request: varlik dispatch failed: %s", strerror (-r));
+      log_msg(LOG_ERR, "Quit request: varlik dispatch failed: %s", strerror(-r));
       return r;
     }
 
@@ -806,40 +790,40 @@ vl_method_quit (sd_varlink *link, sd_json_variant *parameters,
       return sd_varlink_error(link, SD_VARLINK_ERROR_PERMISSION_DENIED, parameters);
     }
 
-  r = sd_event_exit (ctx->loop, p.code);
+  r = sd_event_exit(ctx->loop, p.code);
   if (r != 0)
     {
-      log_msg (LOG_ERR, "Quit request: disabling event loop failed: %s",
-	       strerror (-r));
+      log_msg(LOG_ERR, "Quit request: disabling event loop failed: %s",
+	      strerror(-r));
       return sd_varlink_errorbo(link, "org.openSUSE.rebootmgr.InternalError",
 				SD_JSON_BUILD_PAIR_BOOLEAN("Success", false));
     }
 
-  ctx->timer = sd_event_source_unref (ctx->timer);
+  ctx->timer = sd_event_source_unref(ctx->timer);
   ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
   ctx->reboot_method = RM_REBOOTMETHOD_UNKNOWN;
 
-  return sd_varlink_replybo (link, SD_JSON_BUILD_PAIR_BOOLEAN("Success", true));
+  return sd_varlink_replybo(link, SD_JSON_BUILD_PAIR_BOOLEAN("Success", true));
 }
 
 /* Send a messages to systemd daemon, that inicialization of daemon
    is finished and daemon is ready to accept connections. */
 static void
-announce_ready (void)
+announce_ready(void)
 {
-  int r = sd_notify (0, "READY=1\n"
-		     "STATUS=Processing requests...");
+  int r = sd_notify(0, "READY=1\n"
+		    "STATUS=Processing requests...");
   if (r < 0)
-    log_msg (LOG_ERR, "sd_notify(READY) failed: %s", strerror(-r));
+    log_msg(LOG_ERR, "sd_notify(READY) failed: %s", strerror(-r));
 }
 
 static void
-announce_stopping (void)
+announce_stopping(void)
 {
-  int r = sd_notify (0, "STOPPING=1\n"
-                     "STATUS=Shutting down...");
+  int r = sd_notify(0, "STOPPING=1\n"
+                    "STATUS=Shutting down...");
   if (r < 0)
-    log_msg (LOG_ERR, "sd_notify(STOPPING) failed: %s", strerror(-r));
+    log_msg(LOG_ERR, "sd_notify(STOPPING) failed: %s", strerror(-r));
 }
 
 static int
@@ -866,23 +850,23 @@ varlink_server_loop(sd_varlink_server *server, RM_CTX *ctx)
     return r;
 
   announce_ready();
-  r = sd_event_loop (ctx->loop);
+  r = sd_event_loop(ctx->loop);
   announce_stopping();
 
   return r;
 }
 
 static int
-run_varlink (RM_CTX *ctx)
+run_varlink(RM_CTX *ctx)
 {
   int r;
   _cleanup_(sd_varlink_server_unrefp) sd_varlink_server *varlink_server = NULL;
 
-  r = sd_varlink_server_new (&varlink_server, SD_VARLINK_SERVER_ACCOUNT_UID|SD_VARLINK_SERVER_INHERIT_USERDATA);
+  r = sd_varlink_server_new(&varlink_server, SD_VARLINK_SERVER_ACCOUNT_UID|SD_VARLINK_SERVER_INHERIT_USERDATA);
   if (r < 0)
     {
-      log_msg (LOG_ERR, "Failed to allocate varlink server: %s",
-	       strerror (-r));
+      log_msg(LOG_ERR, "Failed to allocate varlink server: %s",
+	      strerror(-r));
       return r;
     }
 
@@ -893,29 +877,29 @@ run_varlink (RM_CTX *ctx)
   if (r < 0)
     return r;
 
-  r = sd_varlink_server_set_description (varlink_server, "Rebootmgr");
+  r = sd_varlink_server_set_description(varlink_server, "Rebootmgr");
   if (r < 0)
     {
-      log_msg (LOG_ERR, "Failed to set varlink server description: %s",
-	       strerror (-r));
+      log_msg(LOG_ERR, "Failed to set varlink server description: %s",
+	      strerror(-r));
       return r;
     }
 
-  sd_varlink_server_set_userdata (varlink_server, ctx);
+  sd_varlink_server_set_userdata(varlink_server, ctx);
 
-  r = sd_varlink_server_add_interface (varlink_server, &vl_interface_org_openSUSE_rebootmgr);
+  r = sd_varlink_server_add_interface(varlink_server, &vl_interface_org_openSUSE_rebootmgr);
   if (r < 0)
     {
-      log_msg (LOG_ERR, "Failed to add Varlink interface: %s",
-	       strerror (-r));
+      log_msg(LOG_ERR, "Failed to add Varlink interface: %s",
+	      strerror(-r));
       return r;
     }
 
-  r = sd_varlink_server_add_interface (varlink_server, &vl_interface_io_systemd_Metrics);
+  r = sd_varlink_server_add_interface(varlink_server, &vl_interface_io_systemd_Metrics);
   if (r < 0)
     {
-      log_msg (LOG_ERR, "Failed to add Varlink interface: %s",
-	       strerror (-r));
+      log_msg(LOG_ERR, "Failed to add Varlink interface: %s",
+	       strerror(-r));
       return r;
     }
 
@@ -949,7 +933,7 @@ run_varlink (RM_CTX *ctx)
   r = sd_varlink_server_listen_address(varlink_server, RM_VARLINK_SOCKET, 0666);
   if (r < 0)
     {
-      log_msg(LOG_ERR, "Failed to bind to Varlink socket: %s", strerror (-r));
+      log_msg(LOG_ERR, "Failed to bind to Varlink socket: %s", strerror(-r));
       return r;
     }
 
@@ -965,11 +949,11 @@ run_varlink (RM_CTX *ctx)
 }
 
 static int
-create_context (RM_CTX **ctx)
+create_context(RM_CTX **ctx)
 {
   if ((*ctx = malloc(sizeof(RM_CTX))) == NULL)
     {
-      log_msg (LOG_ERR, "ERROR: Out of memory!");
+      log_msg(LOG_ERR, "ERROR: Out of memory!");
       return -ENOMEM;
     }
 
@@ -993,36 +977,36 @@ create_context (RM_CTX **ctx)
 }
 
 static int
-destroy_context (RM_CTX *ctx)
+destroy_context(RM_CTX *ctx)
 {
   if (ctx == NULL)
     return -EBADF;
 
-  calendar_spec_free (ctx->maint_window_start);
+  calendar_spec_free(ctx->maint_window_start);
   sd_event_unrefp(&(ctx->loop));
-  free (ctx);
+  free(ctx);
 
   return 0;
 }
 
 static void
-print_help (void)
+print_help(void)
 {
-  log_msg (LOG_INFO, "rebootmgrd - reboot following a specified strategy");
+  log_msg(LOG_INFO, "rebootmgrd - reboot following a specified strategy");
 
-  log_msg (LOG_INFO, "  -d,--debug     Debug mode, no reboot done");
-  log_msg (LOG_INFO, "  -v,--verbose   Verbose logging");
-  log_msg (LOG_INFO, "  -?, --help     Give this help list");
-  log_msg (LOG_INFO, "      --version  Print program version");
+  log_msg(LOG_INFO, "  -d,--debug     Debug mode, no reboot done");
+  log_msg(LOG_INFO, "  -v,--verbose   Verbose logging");
+  log_msg(LOG_INFO, "  -?, --help     Give this help list");
+  log_msg(LOG_INFO, "      --version  Print program version");
 }
 
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
   RM_CTX *ctx = NULL;
   int r;
 
-  log_init ();
+  log_init();
 
   while (1)
     {
@@ -1039,7 +1023,7 @@ main (int argc, char **argv)
         };
 
 
-      c = getopt_long (argc, argv, "dvh?", long_options, &option_index);
+      c = getopt_long(argc, argv, "dvh?", long_options, &option_index);
       if (c == (-1))
         break;
       switch (c)
@@ -1050,16 +1034,16 @@ main (int argc, char **argv)
           break;
         case '?':
         case 'h':
-          print_help ();
+          print_help();
           return 0;
         case 'v':
           verbose_flag = 1;
           break;
         case '\255':
-          fprintf (stdout, "rebootmgrd (%s) %s\n", PACKAGE, VERSION);
+          fprintf(stdout, "rebootmgrd (%s) %s\n", PACKAGE, VERSION);
           return 0;
         default:
-          print_help ();
+          print_help();
           return 1;
         }
     }
@@ -1069,36 +1053,36 @@ main (int argc, char **argv)
 
   if (argc > 1)
     {
-      fprintf (stderr, "Try `rebootmgrd --help' for more information.\n");
+      fprintf(stderr, "Try `rebootmgrd --help' for more information.\n");
       return 1;
     }
 
-  r = create_context (&ctx);
+  r = create_context(&ctx);
   if (r < 0)
     {
-      log_msg (LOG_ERR, "ERROR: Could not initialize context: %s",
-	       strerror (-r));
+      log_msg(LOG_ERR, "ERROR: Could not initialize context: %s",
+	      strerror(-r));
       return -r;
     }
 
-  r = load_config (ctx);
+  r = load_config(ctx);
   if (r < 0)
     {
-      log_msg (LOG_ERR, "ERROR: Could not load configuration data: %s",
-	       strerror (-r));
+      log_msg(LOG_ERR, "ERROR: Could not load configuration data: %s",
+	      strerror(-r));
       return -r;
     }
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "Starting rebootmgrd (%s) %s...", PACKAGE, VERSION);
+    log_msg(LOG_INFO, "Starting rebootmgrd (%s) %s...", PACKAGE, VERSION);
 
-  r = run_varlink (ctx);
+  r = run_varlink(ctx);
   if (r < 0)
-    log_msg (LOG_ERR, "ERROR: varlink loop failed: %s", strerror (-r));
+    log_msg(LOG_ERR, "ERROR: varlink loop failed: %s", strerror(-r));
 
-  r = destroy_context (ctx);
+  r = destroy_context(ctx);
   if (r < 0)
-    log_msg (LOG_ERR, "ERROR: Could not destroy context: %i", r);
+    log_msg(LOG_ERR, "ERROR: Could not destroy context: %i", r);
 
   return -r;
 }

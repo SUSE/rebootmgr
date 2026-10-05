@@ -1,6 +1,13 @@
 rebootmgr NEWS -- history of user-visible changes.
 
-Copyright (C) 2016-2025 Thorsten Kukuk
+Copyright (C) 2016-2026 Thorsten Kukuk
+
+Version 4.0
+* Create symlink for varlink registry
+* Add metrics for systemd-report
+* New reboot requests cancel pending ones if high-order
+* Fixes in error handling and reporting
+* Provide time of reboot request
 
 Version 3.3
 * Fix handling of disabled reboots
