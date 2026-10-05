@@ -150,6 +150,16 @@ reboot_scheduled_time_generate(const MetricFamily *mf, sd_varlink *link, RM_CTX 
 }
 
 static int
+reboot_requested_time_generate(const MetricFamily *mf, sd_varlink *link, RM_CTX *ctx)
+{
+  if (ctx->reboot_status == RM_REBOOTSTATUS_NOT_REQUESTED || ctx->reboot_time == 0 ||
+      ctx->reboot_request_time == 0)
+    return 0;
+
+  return metric_build_send_unsigned(mf, link, ctx->reboot_request_time);
+}
+
+static int
 reboot_strategy_generate(const MetricFamily *mf, sd_varlink *link, RM_CTX *ctx)
 {
   const char *str;
@@ -214,6 +224,12 @@ static const MetricFamily rebootmgr_metric_family_table[] = {
     .description = "Microseconds at which a pending reboot is scheduled for, if any",
     .type = METRIC_FAMILY_TYPE_GAUGE,
     .generate = reboot_scheduled_time_generate,
+  },
+  {
+    .name = METRIC_ORG_OPENSUSE_REBOOTMGR_PREFIX "RebootRequestTime",
+    .description = "Microseconds at which a reboot was requested, if any",
+    .type = METRIC_FAMILY_TYPE_GAUGE,
+    .generate = reboot_requested_time_generate,
   },
   {
     .name = METRIC_ORG_OPENSUSE_REBOOTMGR_PREFIX "RebootStrategy",

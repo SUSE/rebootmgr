@@ -53,5 +53,6 @@ typedef struct {
   sd_event *loop;
   sd_event_source *timer;
   usec_t reboot_time;
+  usec_t reboot_request_time;
 } RM_CTX;
 

@@ -43,7 +43,7 @@ vl_method_ping(sd_varlink *link, sd_json_variant *parameters,
   int r;
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "Varlink method \"Ping\" called...");
+    log_msg(LOG_INFO, "Varlink method \"Ping\" called...");
 
   r = sd_varlink_dispatch(link, parameters, NULL, NULL);
   if (r != 0)
@@ -98,7 +98,7 @@ vl_method_set_log_level(sd_varlink *link, sd_json_variant *parameters,
     verbose_flag = 0;
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "New log settings: debug=%i, verbose=%i", debug_flag, verbose_flag);
+    log_msg(LOG_INFO, "New log settings: debug=%i, verbose=%i", debug_flag, verbose_flag);
 
   return sd_varlink_reply(link, NULL);
 }
@@ -111,7 +111,7 @@ vl_method_get_environment(sd_varlink *link, sd_json_variant *parameters,
   int r;
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "Varlink method \"GetEnvironment\" called...");
+    log_msg(LOG_INFO, "Varlink method \"GetEnvironment\" called...");
 
   r = sd_varlink_dispatch(link, parameters, NULL, NULL);
   if (r != 0)
@@ -161,7 +161,7 @@ vl_method_status (sd_varlink *link, sd_json_variant *parameters,
   int r;
 
   if (verbose_flag)
-    log_msg (LOG_INFO, "Varlink method \"Status\" called...");
+    log_msg(LOG_INFO, "Varlink method \"Status\" called...");
 
   r = sd_varlink_dispatch (link, parameters, dispatch_table, /* userdata= */ NULL);
   if (r != 0)
@@ -176,7 +176,7 @@ vl_method_status (sd_varlink *link, sd_json_variant *parameters,
     {
       r = sd_json_variant_merge_objectbo(&v,
 		SD_JSON_BUILD_PAIR("RequestedMethod", SD_JSON_BUILD_INTEGER(ctx->reboot_method)),
-		SD_JSON_BUILD_PAIR("RebootTime", SD_JSON_BUILD_STRING(format_timestamp(buf, sizeof(buf), ctx->reboot_time))));
+		SD_JSON_BUILD_PAIR("RebootScheduledTime", SD_JSON_BUILD_STRING(format_timestamp(buf, sizeof(buf), ctx->reboot_time))));
     }
   if (r < 0)
     {
@@ -226,7 +226,12 @@ vl_method_fullstatus (sd_varlink *link, sd_json_variant *parameters,
   if (r >= 0 && ctx->reboot_time)
     {
       char buf[FORMAT_TIMESTAMP_MAX];
-      r = sd_json_variant_merge_objectbo(&v, SD_JSON_BUILD_PAIR("RebootTime", SD_JSON_BUILD_STRING(format_timestamp(buf, sizeof(buf), ctx->reboot_time))));
+      r = sd_json_variant_merge_objectbo(&v, SD_JSON_BUILD_PAIR("RebootScheduledTime", SD_JSON_BUILD_STRING(format_timestamp(buf, sizeof(buf), ctx->reboot_time))));
+    }
+  if (r >= 0 && ctx->reboot_request_time)
+    {
+      char buf[FORMAT_TIMESTAMP_MAX];
+      r = sd_json_variant_merge_objectbo(&v, SD_JSON_BUILD_PAIR("RebootRequestTime", SD_JSON_BUILD_STRING(format_timestamp(buf, sizeof(buf), ctx->reboot_request_time))));
     }
 
   if (r < 0)
@@ -239,10 +244,10 @@ vl_method_fullstatus (sd_varlink *link, sd_json_variant *parameters,
 }
 
 static int
-calc_reboot_time (RM_CTX *ctx, usec_t *ret)
+calc_reboot_time(RM_CTX *ctx, usec_t *ret)
 {
   usec_t next;
-  usec_t curr = now (CLOCK_REALTIME);
+  usec_t curr = now(CLOCK_REALTIME);
   usec_t duration = ctx->maint_window_duration * USEC_PER_SEC;
 
   if (ctx->maint_window_start == NULL)
@@ -259,11 +264,11 @@ calc_reboot_time (RM_CTX *ctx, usec_t *ret)
     }
 
   /* Check, if we are inside the maintenance window. If yes, reboot now. */
-  int r = calendar_spec_next_usec (ctx->maint_window_start, curr - duration, &next);
+  int r = calendar_spec_next_usec(ctx->maint_window_start, curr - duration, &next);
   if (r < 0)
     {
-      log_msg (LOG_ERR, "ERROR: Internal error converting the timer: %s",
-               strerror (-r));
+      log_msg(LOG_ERR, "ERROR: Internal error converting the timer: %s",
+              strerror(-r));
       return r;
     }
   if (curr > next && curr < next + duration)
@@ -277,8 +282,8 @@ calc_reboot_time (RM_CTX *ctx, usec_t *ret)
       r = calendar_spec_next_usec (ctx->maint_window_start, curr, &next);
       if (r < 0)
 	{
-	  log_msg (LOG_ERR, "ERROR: Internal error converting the timer: %s",
-		   strerror (-r));
+	  log_msg(LOG_ERR, "ERROR: Internal error converting the timer: %s",
+		  strerror(-r));
 	  return r;
 	}
 
@@ -292,8 +297,8 @@ calc_reboot_time (RM_CTX *ctx, usec_t *ret)
       char buf[FORMAT_TIMESTAMP_MAX];
       int64_t in_secs = (next - curr) / USEC_PER_SEC;
 
-      log_msg (LOG_NOTICE, "Reboot in %i seconds at %s", in_secs,
-               format_timestamp(buf, sizeof(buf), next));
+      log_msg(LOG_NOTICE, "Reboot in %i seconds at %s", in_secs,
+              format_timestamp(buf, sizeof(buf), next));
     }
 
   *ret = next;
@@ -306,11 +311,11 @@ reset_timer(RM_CTX *ctx)
 {
   ctx->reboot_status = RM_REBOOTSTATUS_NOT_REQUESTED;
   ctx->reboot_method = RM_REBOOTMETHOD_UNKNOWN;
-  ctx->timer = sd_event_source_unref (ctx->timer);
+  ctx->timer = sd_event_source_unref(ctx->timer);
 }
 
 static int
-time_handler (sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userdata)
+time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userdata)
 {
   RM_CTX *ctx = userdata;
 
@@ -519,6 +524,7 @@ vl_method_reboot(sd_varlink *link, sd_json_variant *parameters,
     }
   ctx->reboot_status = RM_REBOOTSTATUS_WAITING_WINDOW;
   ctx->reboot_time = reboot_time;
+  ctx->reboot_request_time = now(CLOCK_REALTIME);
 
   return sd_varlink_replybo(link,
 			    SD_JSON_BUILD_PAIR_INTEGER("Method", ctx->reboot_method),
@@ -980,7 +986,7 @@ create_context (RM_CTX **ctx)
 		   RM_REBOOTMETHOD_UNKNOWN,
 		   RM_REBOOTSTRATEGY_BEST_EFFORT,
 		   NULL, 3600, 0,
-		   NULL, NULL, 0};
+		   NULL, NULL, 0, 0};
   calendar_spec_from_string("03:30", &(*ctx)->maint_window_start);
 
   return 0;

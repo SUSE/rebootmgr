@@ -1,21 +1,5 @@
 //SPDX-License-Identifier: GPL-2.0-or-later
 
-/* Copyright (c) 2024 Thorsten Kukuk
-   Author: Thorsten Kukuk <kukuk@suse.com>
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License along
-   with this program; if not, see <http://www.gnu.org/licenses/>. */
-
 #include "config.h"
 
 #include <stdio.h>
@@ -397,7 +381,8 @@ struct status {
   RM_RebootStrategy strategy;
   char *maint_window_start;
   time_t maint_window_duration;
-  char *reboot_time;
+  char *reboot_scheduled_time;
+  char *reboot_request_time;
   bool temp_off;
 };
 
@@ -405,7 +390,8 @@ static void
 struct_status_free(struct status *p)
 {
   p->maint_window_start = mfree(p->maint_window_start);
-  p->reboot_time = mfree(p->reboot_time);
+  p->reboot_scheduled_time = mfree(p->reboot_scheduled_time);
+  p->reboot_request_time = mfree(p->reboot_request_time);
 }
 
 static int
@@ -414,7 +400,8 @@ get_full_status(struct status *p)
   static const sd_json_dispatch_field dispatch_table[] = {
     { "RebootStatus",              SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,     offsetof(struct status, status),                SD_JSON_MANDATORY },
     { "RequestedMethod",           SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,     offsetof(struct status, method),                0                 },
-    { "RebootTime",                SD_JSON_VARIANT_STRING,  sd_json_dispatch_string,  offsetof(struct status, reboot_time),           0                 },
+    { "RebootScheduledTime",       SD_JSON_VARIANT_STRING,  sd_json_dispatch_string,  offsetof(struct status, reboot_scheduled_time), 0                 },
+    { "RebootRequestTime",         SD_JSON_VARIANT_STRING,  sd_json_dispatch_string,  offsetof(struct status, reboot_request_time),   0                 },
     { "RebootStrategy",            SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,     offsetof(struct status, strategy),              SD_JSON_MANDATORY },
     { "MaintenanceWindowStart",    SD_JSON_VARIANT_STRING,  sd_json_dispatch_string,  offsetof(struct status, maint_window_start),    0                 },
     { "MaintenanceWindowDuration", SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int64,   offsetof(struct status, maint_window_duration), 0                 },
@@ -461,7 +448,8 @@ print_full_status(void)
     .strategy = RM_REBOOTSTRATEGY_UNKNOWN,
     .maint_window_start = NULL,
     .maint_window_duration = 0,
-    .reboot_time = NULL
+    .reboot_scheduled_time = NULL,
+    .reboot_request_time = NULL
   };
   const char *str = NULL;
   int r;
@@ -484,8 +472,11 @@ print_full_status(void)
 	printf("Status: %s\n", str);
     }
 
-  if (status.reboot_time && strlen(status.reboot_time) > 0)
-    printf("Reboot at: %s\n", status.reboot_time);
+  if (status.reboot_scheduled_time && strlen(status.reboot_scheduled_time) > 0)
+    printf("Reboot scheduled at: %s\n", status.reboot_scheduled_time);
+
+  if (status.reboot_request_time && strlen(status.reboot_request_time) > 0)
+    printf("Reboot requested at: %s\n", status.reboot_request_time);
 
   r = rm_strategy_to_str(status.strategy, &str);
   if (r < 0)
