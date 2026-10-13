@@ -20,6 +20,9 @@
 ***/
 
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 #define assert_se assert
 
 #include "time-util.h"
@@ -47,6 +50,47 @@ usec_t timespec_load(const struct timespec *ts) {
                 (usec_t) ts->tv_nsec / NSEC_PER_USEC;
 }
 
+
+bool timezone_is_valid(const char *name) {
+        bool slash = false;
+        const char *p;
+        char *t;
+        struct stat st;
+        bool ret;
+
+        if (!name || !name[0])
+                return false;
+
+        if (name[0] == '/')
+                return false;
+
+        for (p = name; *p; p++) {
+                if (!(*p >= '0' && *p <= '9') &&
+                    !(*p >= 'a' && *p <= 'z') &&
+                    !(*p >= 'A' && *p <= 'Z') &&
+                    !(*p == '-' || *p == '_' || *p == '+' || *p == '/'))
+                        return false;
+
+                if (*p == '/') {
+                        if (slash)
+                                return false;
+
+                        slash = true;
+                } else
+                        slash = false;
+        }
+
+        if (slash)
+                return false;
+
+        if (asprintf(&t, "/usr/share/zoneinfo/%s", name) < 0)
+                return false;
+
+        ret = stat(t, &st) >= 0 && S_ISREG(st.st_mode);
+        free(t);
+
+        return ret;
+}
 
 time_t mktime_or_timegm(struct tm *tm, bool utc) {
         return utc ? timegm(tm) : mktime(tm);
