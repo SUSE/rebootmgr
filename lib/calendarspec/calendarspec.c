@@ -106,6 +106,8 @@ void calendar_spec_free(CalendarSpec *c) {
         if (!c)
                 return;
 
+        free(c->timezone);
+
         free_chain(c->year);
         free_chain(c->month);
         free_chain(c->day);
@@ -346,6 +348,10 @@ int calendar_spec_to_string(const CalendarSpec *c, char **p) {
 
         if (c->utc)
                 fputs(" UTC", f);
+        else if (c->timezone) {
+                fputc(' ', f);
+                fputs(c->timezone, f);
+        }
 
         r = fflush_and_check(f);
         if (r < 0) {
@@ -730,6 +736,19 @@ int calendar_spec_from_string(const char *p, CalendarSpec **spec) {
         if (utc) {
                 c->utc = true;
                 p = strndupa(p, utc - p);
+        } else {
+                const char *last_space;
+
+                last_space = strrchr(p, ' ');
+                if (last_space && timezone_is_valid(last_space + 1)) {
+                        c->timezone = strdup(last_space + 1);
+                        if (!c->timezone) {
+                                r = -ENOMEM;
+                                goto fail;
+                        }
+
+                        p = strndupa(p, last_space - p);
+                }
         }
 
         if (strcaseeq(p, "minutely")) {
@@ -1061,21 +1080,45 @@ int calendar_spec_next_usec(const CalendarSpec *spec, usec_t usec, usec_t *next)
         struct tm tm;
         time_t t;
         int r;
+        const char *old_tz = NULL;
 
         assert(spec);
         assert(next);
+
+        if (spec->timezone) {
+                old_tz = getenv("TZ");
+                if (old_tz)
+                        old_tz = strdupa(old_tz);
+
+                if (setenv("TZ", spec->timezone, 1) < 0)
+                        return -errno;
+                tzset();
+        }
 
         t = (time_t) (usec / USEC_PER_SEC) + 1;
         assert_se(localtime_or_gmtime_r(&t, &tm, spec->utc));
 
         r = find_next(spec, &tm);
         if (r < 0)
-                return r;
+                goto finish;
 
         t = mktime_or_timegm(&tm, spec->utc);
-        if (t == (time_t) -1)
-                return -EINVAL;
+        if (t == (time_t) -1) {
+                r = -EINVAL;
+                goto finish;
+        }
 
         *next = (usec_t) t * USEC_PER_SEC;
-        return 0;
+        r = 0;
+
+finish:
+        if (spec->timezone) {
+                if (old_tz)
+                        setenv("TZ", old_tz, 1);
+                else
+                        unsetenv("TZ");
+                tzset();
+        }
+
+        return r;
 }
