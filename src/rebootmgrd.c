@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <libintl.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/random.h>
 #include <systemd/sd-daemon.h>
 #include <systemd/sd-varlink.h>
 
@@ -1007,6 +1010,14 @@ main(int argc, char **argv)
   int r;
 
   log_init();
+
+  /* Seed the PRNG used for the random reboot delay with real entropy.
+     Without this, every freshly started daemon uses the same libc
+     default seed and thus picks the exact same "random" delay. */
+  unsigned int seed;
+  if (getrandom(&seed, sizeof(seed), 0) != sizeof(seed))
+    seed = (unsigned int)time(NULL) ^ (unsigned int)getpid();
+  srand(seed);
 
   while (1)
     {
