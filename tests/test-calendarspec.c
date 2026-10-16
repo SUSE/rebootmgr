@@ -137,6 +137,8 @@ int main(void) {
         test_one("annually", "*-01-01 00:00:00");
         test_one("*:2/3", "*-*-* *:02/3:00");
         test_one("2015-10-25 01:00:00 uTc", "2015-10-25 01:00:00 UTC");
+        test_one("2015-10-25 01:00:00 Europe/Berlin", "2015-10-25 01:00:00 Europe/Berlin");
+        test_one("*-*-* 04:04:00 America/New_York", "*-*-* 04:04:00 America/New_York");
 
         test_next("2016-03-27 03:17:00", "", 12345, 1459048620000000);
         test_next("2016-03-27 03:17:00", "CET", 12345, 1459041420000000);
@@ -146,10 +148,15 @@ int main(void) {
         test_next("2016-03-27 03:17:00 UTC", "CET", 12345, 1459048620000000);
         test_next("2016-03-27 03:17:00 UTC", "EET", 12345, 1459048620000000);
 
+        /* Explicit per-spec timezone, independent of the process-wide TZ */
+        test_next("2016-03-27 03:17:00 Europe/Berlin", "EET", 12345, 1459041420000000);
+        test_next("2016-03-27 03:17:00 America/New_York", "UTC", 12345, 1459063020000000);
+
         assert_se(calendar_spec_from_string("test", &c) < 0);
         assert_se(calendar_spec_from_string("", &c) < 0);
         assert_se(calendar_spec_from_string("7", &c) < 0);
         assert_se(calendar_spec_from_string("121212:1:2", &c) < 0);
+        assert_se(calendar_spec_from_string("04:04:00 Bogus/Zone", &c) < 0);
 
         return 0;
 }
