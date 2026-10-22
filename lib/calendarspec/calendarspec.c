@@ -1113,10 +1113,9 @@ int calendar_spec_next_usec(const CalendarSpec *spec, usec_t usec, usec_t *next)
 
 finish:
         if (spec->timezone) {
-                if (old_tz)
-                        setenv("TZ", old_tz, 1);
-                else
-                        unsetenv("TZ");
+                int rr = old_tz ? setenv("TZ", old_tz, 1) : unsetenv("TZ");
+                if (rr < 0 && r == 0)
+                        r = -errno;
                 tzset();
         }
 
