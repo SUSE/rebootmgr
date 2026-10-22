@@ -1,25 +1,32 @@
-//SPDX-License-Identifier: GPL-2.0-or-later
-
-/* Copyright (c) 2024 Thorsten Kukuk
-   Author: Thorsten Kukuk <kukuk@suse.com>
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License along
-   with this program; if not, see <http://www.gnu.org/licenses/>. */
+//SPDX-License-Identifier: LGPL-2.1-or-later
 
 #pragma once
 
-#define _cleanup_(x) __attribute__((__cleanup__(x)))
-#define _unused_(x) x __attribute__((unused))
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdbool.h>
+
+#define _unused_ __attribute__((unused))
+#define _pure_ __attribute__((__pure__))
+#define _const_ __attribute__((__const__))
+#define _sentinel_ __attribute__((__sentinel__))
+
+/* Takes inspiration from Rust's Option::take() method: reads and returns a pointer, but at the same time
+ * resets it to NULL. See: https://doc.rust-lang.org/std/option/enum.Option.html#method.take */
+#define TAKE_GENERIC(var, type, nullvalue)                       \
+        ({                                                       \
+                type *_pvar_ = &(var);                           \
+                type _var_ = *_pvar_;                            \
+                type _nullvalue_ = nullvalue;                    \
+                *_pvar_ = _nullvalue_;                           \
+                _var_;                                           \
+        })
+#define TAKE_PTR_TYPE(ptr, type) TAKE_GENERIC(ptr, type, NULL)
+#define TAKE_PTR(ptr) TAKE_PTR_TYPE(ptr, typeof(ptr))
+#define TAKE_FD(fd) TAKE_GENERIC(fd, int, -EBADF)
 
 #define mfree(memory)                           \
         ({                                      \
@@ -31,3 +38,48 @@ static inline void freep(void *p) {
         *(void**)p = mfree(*(void**) p);
 }
 
+static inline void closep(int *fd) {
+  if (*fd >= 0)
+        close(*fd);
+  *fd = -EBADF;
+}
+
+static inline void fclosep(FILE **f) {
+  if (*f)
+        fclose(*f);
+  *f = NULL;
+}
+
+#define _cleanup_(x) __attribute__((__cleanup__(x)))
+#define _cleanup_close_ _cleanup_(closep)
+#define _cleanup_fclose_ _cleanup_(fclosep)
+#define _cleanup_free_ _cleanup_(freep)
+
+
+/* from string-util-fundamental.h */
+
+#define WHITESPACE          " \t\n\r"
+
+#define streq(a,b) (strcmp((a),(b)) == 0)
+#define strneq(a, b, n) (strncmp((a), (b), (n)) == 0)
+#define strcaseeq(a,b) (strcasecmp((a),(b)) == 0)
+#define strncaseeq(a, b, n) (strncasecmp((a), (b), (n)) == 0)
+
+static inline const char *strempty(const char *s) {
+        return s ?:"";
+}
+
+static inline const char *strna(const char *s) {
+        return s ?: "n/a";
+}
+
+static inline const char *stroom(const char *s) {
+        return s ?: "Out of memory";
+}
+
+extern char *startswith(const char *s, const char *prefix) _pure_;
+extern char *endswith(const char *s, const char *suffix) _pure_;
+
+static inline bool isempty(const char *a) {
+        return !a || a[0] == '\0';
+}

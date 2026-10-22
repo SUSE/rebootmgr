@@ -19,19 +19,6 @@
 #define _(String) gettext(String)
 #endif
 
-/* Takes inspiration from Rust's Option::take() method: reads and returns a pointer, but at the same time
- * resets it to NULL. See: https://doc.rust-lang.org/std/option/enum.Option.html#method.take */
-#define TAKE_GENERIC(var, type, nullvalue)                       \
-        ({                                                       \
-                type *_pvar_ = &(var);                           \
-                type _var_ = *_pvar_;                            \
-                type _nullvalue_ = nullvalue;                    \
-                *_pvar_ = _nullvalue_;                           \
-                _var_;                                           \
-        })
-#define TAKE_PTR_TYPE(ptr, type) TAKE_GENERIC(ptr, type, NULL)
-#define TAKE_PTR(ptr) TAKE_PTR_TYPE(ptr, typeof(ptr))
-
 static int
 connect_to_rebootmgr(sd_varlink **ret)
 {

@@ -24,10 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-// #include "alloc-util.h"
+#include "basics.h"
 #include "calendarspec.h"
-// #include "fileio.h"
-// #include "string-util.h"
 
 #define assert_se assert
 
@@ -42,13 +40,6 @@ static int fflush_and_check(FILE *f) {
                 return errno ? -errno : -EIO;
 
         return 0;
-}
-
-/* from basic/string-util.h */
-#define strcaseeq(a,b) (strcasecmp((a),(b)) == 0)
-
-static inline bool isempty(const char *p) {
-        return !p || !p[0];
 }
 
 /* from basic/string-util.h */

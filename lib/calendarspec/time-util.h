@@ -27,14 +27,14 @@
 #include <time.h>
 #include <sys/time.h>
 
+#include "basics.h"
+
 typedef uint64_t usec_t;
 typedef uint64_t nsec_t;
 
 #define NSEC_FMT "%" PRIu64
 #define USEC_FMT "%" PRIu64
 
-//#include "macro.h"
-#define _pure_ __attribute__ ((pure))
 #define ELEMENTSOF(x)                                                    \
         __extension__ (__builtin_choose_expr(                            \
                 !__builtin_types_compatible_p(typeof(x), typeof(&*(x))), \
