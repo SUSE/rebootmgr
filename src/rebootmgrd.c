@@ -15,10 +15,13 @@
 #include "basics.h"
 #include "common.h"
 #include "parse-duration.h"
+#include "exec_cmd.h"
 
 #include "varlink-org.openSUSE.rebootmgr.h"
 #include "varlink-io.systemd.Metrics.h"
 #include "rebootmgrd-varlink-metrics.h"
+
+#define VARLINK_MANAGER_SOCKET "/run/systemd/io.systemd.Manager"
 
 static int verbose_flag = 0;
 
@@ -302,9 +305,34 @@ reset_timer(RM_CTX *ctx)
 }
 
 static int
+varlink_reboot(const char *method)
+{
+  _cleanup_(sd_varlink_unrefp) sd_varlink *link = NULL;
+  const char *error_id = NULL;
+  int r;
+
+  r = sd_varlink_connect_address(&link, VARLINK_MANAGER_SOCKET);
+  if (r < 0)
+    {
+      log_msg(LOG_DEBUG, "Connecting to %s failed: %s", VARLINK_MANAGER_SOCKET, strerror(-r));
+      return r;
+    }
+
+  r = sd_varlink_call(link, method, NULL, NULL, &error_id);
+  if (r < 0 || !isempty(error_id))
+    {
+      log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s", method, strna(error_id));
+      return r;
+    }
+
+  return 0;
+}
+
+static int
 time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userdata)
 {
   RM_CTX *ctx = userdata;
+  int r;
 
   if (debug_flag)
     log_msg(LOG_DEBUG, "Time handler for reboot called");
@@ -336,10 +364,10 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
 	  switch (ctx->reboot_method)
 	    {
 	    case RM_REBOOTMETHOD_HARD:
-	      log_msg(LOG_DEBUG, "systemctl reboot called!");
+	      log_msg(LOG_DEBUG, "DEBUG: reboot requested!");
 	      break;
 	    case RM_REBOOTMETHOD_SOFT:
-	      log_msg(LOG_DEBUG, "systemctl soft-reboot called!");
+	      log_msg(LOG_DEBUG, "DEBUG: soft-reboot requested!");
 	      break;
 	    default:
 	      /* cannot happen */
@@ -348,45 +376,51 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
 	}
       else
         {
-          pid_t pid = fork();
+	  // Try varlink first without fork.
+	  // Ignore return value, function will only return if it
+	  // fails
+	  switch (ctx->reboot_method)
+	    {
+	    case RM_REBOOTMETHOD_HARD:
+	      r = varlink_reboot("io.systemd.Manager.Reboot");
+	      break;
+	    case RM_REBOOTMETHOD_SOFT:
+	      r = varlink_reboot("io.systemd.Manager.SoftReboot");
+	      break;
+	    default:
+	      /* cannot happen */
+	      r = -EINVAL;
+	      break;
+	    }
+	  if (r < 0)
+	    {
+	      log_msg(LOG_ERR, "varlink_reboot failed, falling back to systemctl");
 
-          if (pid < 0)
-            {
-              log_msg(LOG_ERR, "Calling /usr/bin/systemctl failed: %m");
-            }
-          else if (pid == 0)
-            {
-	      int r;
-
+	      // varlink failed, use systemctl
 	      switch (ctx->reboot_method)
 		{
 		case RM_REBOOTMETHOD_HARD:
-                  char envar1[] = "SYSTEMCTL_SKIP_AUTO_SOFT_REBOOT=1";
-                  char *env[] = {envar1, NULL};
-
-                  r = execle("/usr/bin/systemctl", "systemctl", "reboot",
-			     NULL, env);
-
+		  {
+		    char *env[] = {"SYSTEMCTL_SKIP_AUTO_SOFT_REBOOT=1", NULL};
+		    r = exec_cmd(NULL, env, "/usr/bin/systemctl", "systemctl",
+				 "reboot", NULL);
+		  }
 		  break;
 		case RM_REBOOTMETHOD_SOFT:
-                  r = execl("/usr/bin/systemctl", "systemctl", "soft-reboot",
-                            NULL);
+		  r = exec_cmd(NULL, NULL, "/usr/bin/systemctl", "systemctl",
+			       "soft-reboot", NULL);
 		  break;
 		default:
 		  /* cannot happen */
+		  r = -EINVAL;
 		  break;
 		}
 	      if (r < 0)
-		{
-		  log_msg(LOG_ERR, "Calling /usr/bin/systemctl %s failed: %m",
-			  (ctx->reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot");
-		  exit(1);
-                }
-              exit(0);
-            }
-        }
-
-      reset_timer(ctx);
+		log_msg(LOG_ERR, "Calling /usr/bin/systemctl %s failed: %m",
+			(ctx->reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot");
+	    }
+	  reset_timer(ctx);
+	}
     }
 
   return 0;
