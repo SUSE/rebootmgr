@@ -2,6 +2,11 @@ rebootmgr NEWS -- history of user-visible changes.
 
 Copyright (C) 2016-2026 Thorsten Kukuk
 
+Version 4.1
+* Use varlink for reboot, else fallback to systemctl via posix_spwan
+* Support timezones for maintenance window
+* Bugfix: initialize seed with random value
+
 Version 4.0
 * Create symlink for varlink registry
 * Add metrics for systemd-report
