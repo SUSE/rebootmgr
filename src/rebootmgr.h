@@ -16,8 +16,11 @@
 #pragma once
 
 #include <stdbool.h>
+#include <systemd/sd-bus.h>
 #include <systemd/sd-event.h>
 #include "calendarspec.h"
+
+typedef struct RMPolkitQuery RMPolkitQuery;
 
 #define RM_VARLINK_SOCKET_DIR   "/run/rebootmgr"
 #define RM_VARLINK_SOCKET       RM_VARLINK_SOCKET_DIR"/rebootmgrd.socket"
@@ -54,5 +57,7 @@ typedef struct {
   sd_event_source *timer;
   usec_t reboot_time;
   usec_t reboot_request_time;
+  sd_bus *polkit_bus;             /* lazily opened system bus connection, used only for polkit checks */
+  RMPolkitQuery *polkit_queries;  /* pending polkit checks, keyed by sd_varlink* peer link */
 } RM_CTX;
 

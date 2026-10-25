@@ -101,6 +101,28 @@
 	next reboot. Except for the off strategy.
       </para>
     </refsect2>
+    <refsect2 id='authorization'>
+      <title>Authorization</title>
+      <para>
+	Every varlink method call is authorized via polkit. A caller running
+	as root (UID 0) is always authorized immediately, without involving
+	polkit. Every other caller is checked against one polkit action per
+	method, named <literal>org.openSUSE.rebootmgr.&lt;method&gt;</literal>
+	(e.g. <literal>org.openSUSE.rebootmgr.reboot</literal>). Read-only
+	methods (<literal>Ping</literal>, <literal>Status</literal>,
+	<literal>FullStatus</literal>, and the
+	<literal>io.systemd.Metrics</literal> interface) are authorized for
+	any user by default; all other methods require an administrator
+	(<literal>auth_admin_keep</literal>) by default. These defaults can
+	be overridden with local polkit rules, see
+	<citerefentry project='die-net'><refentrytitle>polkit</refentrytitle><manvolnum>8</manvolnum></citerefentry>.
+      </para>
+      <para>
+	If polkitd cannot be reached, the read-only methods remain available
+	to any user (as if no authorization were configured), while all other
+	methods are denied to anyone but root.
+      </para>
+    </refsect2>
   </refsect1>
 
   <refsect1 id='options'><title>Options</title>

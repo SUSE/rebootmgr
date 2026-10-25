@@ -21,6 +21,34 @@ window-duration=1h30m
 strategy=best-effort
 ```
 
+## Authorization
+
+rebootmgrd authorizes every varlink method call via polkit. The caller's
+root (UID 0) status always grants access immediately, without involving
+polkit at all. For every other user, rebootmgrd asks polkit to check one
+of the following actions:
+
+| Action | Default | Description |
+| --- | --- | --- |
+| `org.openSUSE.rebootmgr.ping` | allow any | Check if rebootmgrd is alive |
+| `org.openSUSE.rebootmgr.status` | allow any | Query the current reboot status |
+| `org.openSUSE.rebootmgr.full-status` | allow any | Query the full status and configuration |
+| `org.openSUSE.rebootmgr.metrics` | allow any | Read rebootmgrd metrics |
+| `org.openSUSE.rebootmgr.reboot` | auth_admin_keep | Request a reboot or soft-reboot |
+| `org.openSUSE.rebootmgr.cancel` | auth_admin_keep | Cancel a pending reboot |
+| `org.openSUSE.rebootmgr.set-strategy` | auth_admin_keep | Change the configured reboot strategy |
+| `org.openSUSE.rebootmgr.set-window` | auth_admin_keep | Change the configured maintenance window |
+| `org.openSUSE.rebootmgr.quit` | auth_admin_keep | Stop the rebootmgrd daemon |
+| `org.openSUSE.rebootmgr.set-log-level` | auth_admin_keep | Change the rebootmgrd log level |
+| `org.openSUSE.rebootmgr.get-environment` | auth_admin_keep | Read the rebootmgrd process environment |
+
+These defaults can be overridden locally with polkit rules (see
+`polkit(8)`), e.g. to grant a specific user or group access without
+requiring root or an admin password. If polkitd is not reachable, the
+"allow any" actions above still succeed (same as before polkit support
+was added), while the `auth_admin_keep` actions are denied for anyone but
+root.
+
 ## Checking if a reboot is requested
 
 ```bash

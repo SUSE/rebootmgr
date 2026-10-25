@@ -92,6 +92,16 @@
   query and configure the
   <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry>
   process.</para>
+  <para>
+    Calls made as a non-root user are subject to polkit authorization; see
+    the "Authorization" section in
+    <citerefentry><refentrytitle>rebootmgrd</refentrytitle><manvolnum>8</manvolnum></citerefentry>
+    for the list of actions and their defaults, and
+    <citerefentry project='die-net'><refentrytitle>pkaction</refentrytitle><manvolnum>1</manvolnum></citerefentry>
+    and
+    <citerefentry project='die-net'><refentrytitle>polkit</refentrytitle><manvolnum>8</manvolnum></citerefentry>
+    for how to grant or inspect access.
+  </para>
   </refsect1>
 
   <refsect1 id='options'><title>Options</title>

@@ -69,7 +69,8 @@ libsystemd = dependency('libsystemd', version : '>=260')
 
 rebootmgrctl_c = ['src/rebootmgrctl.c']
 rebootmgrd_c = ['src/rebootmgrd.c', 'src/varlink-org.openSUSE.rebootmgr.c',
-                'src/varlink-io.systemd.Metrics.c', 'src/rebootmgrd-varlink-metrics.c']
+                'src/varlink-io.systemd.Metrics.c', 'src/rebootmgrd-varlink-metrics.c',
+                'src/rebootmgrd-polkit.c']
 
 executable('rebootmgrctl',
            rebootmgrctl_c,

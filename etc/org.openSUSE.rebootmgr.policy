@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?> <!--*-nxml-*-->
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+        "https://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+
+<!--
+  SPDX-License-Identifier: GPL-2.0-or-later
+
+  This file is part of rebootmgr.
+-->
+
+<policyconfig>
+
+        <vendor>rebootmgr</vendor>
+        <vendor_url>https://github.com/SUSE/rebootmgr</vendor_url>
+
+        <action id="org.openSUSE.rebootmgr.ping">
+                <description gettext-domain="rebootmgr">Check if rebootmgrd is alive</description>
+                <message gettext-domain="rebootmgr">Authentication is required to check if rebootmgrd is alive.</message>
+                <defaults>
+                        <allow_any>yes</allow_any>
+                        <allow_inactive>yes</allow_inactive>
+                        <allow_active>yes</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.openSUSE.rebootmgr.status">
+                <description gettext-domain="rebootmgr">Query the current reboot status</description>
+                <message gettext-domain="rebootmgr">Authentication is required to query the current reboot status.</message>
+                <defaults>
+                        <allow_any>yes</allow_any>
+                        <allow_inactive>yes</allow_inactive>
+                        <allow_active>yes</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.openSUSE.rebootmgr.full-status">
+                <description gettext-domain="rebootmgr">Query the full status and configuration of rebootmgrd</description>
+                <message gettext-domain="rebootmgr">Authentication is required to query the full status and configuration of rebootmgrd.</message>
+                <defaults>
+                        <allow_any>yes</allow_any>
+                        <allow_inactive>yes</allow_inactive>
+                        <allow_active>yes</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.openSUSE.rebootmgr.reboot">
+                <description gettext-domain="rebootmgr">Request a reboot or soft-reboot</description>
+                <message gettext-domain="rebootmgr">Authentication is required to request a reboot or soft-reboot.</message>
+                <defaults>
+                        <allow_any>no</allow_any>
+                        <allow_inactive>auth_admin_keep</allow_inactive>
+                        <allow_active>auth_admin_keep</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.openSUSE.rebootmgr.cancel">
+                <description gettext-domain="rebootmgr">Cancel a pending reboot</description>
+                <message gettext-domain="rebootmgr">Authentication is required to cancel a pending reboot.</message>
+                <defaults>
+                        <allow_any>no</allow_any>
+                        <allow_inactive>auth_admin_keep</allow_inactive>
+                        <allow_active>auth_admin_keep</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.openSUSE.rebootmgr.set-strategy">
+                <description gettext-domain="rebootmgr">Change the configured reboot strategy</description>
+                <message gettext-domain="rebootmgr">Authentication is required to change the configured reboot strategy.</message>
+                <defaults>
+                        <allow_any>no</allow_any>
+                        <allow_inactive>auth_admin_keep</allow_inactive>
+                        <allow_active>auth_admin_keep</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.openSUSE.rebootmgr.set-window">
+                <description gettext-domain="rebootmgr">Change the configured maintenance window</description>
+                <message gettext-domain="rebootmgr">Authentication is required to change the configured maintenance window.</message>
+                <defaults>
+                        <allow_any>no</allow_any>
+                        <allow_inactive>auth_admin_keep</allow_inactive>
+                        <allow_active>auth_admin_keep</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.openSUSE.rebootmgr.quit">
+                <description gettext-domain="rebootmgr">Stop the rebootmgrd daemon</description>
+                <message gettext-domain="rebootmgr">Authentication is required to stop the rebootmgrd daemon.</message>
+                <defaults>
+                        <allow_any>no</allow_any>
+                        <allow_inactive>auth_admin_keep</allow_inactive>
+                        <allow_active>auth_admin_keep</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.openSUSE.rebootmgr.set-log-level">
+                <description gettext-domain="rebootmgr">Change the rebootmgrd log level</description>
+                <message gettext-domain="rebootmgr">Authentication is required to change the rebootmgrd log level.</message>
+                <defaults>
+                        <allow_any>no</allow_any>
+                        <allow_inactive>auth_admin_keep</allow_inactive>
+                        <allow_active>auth_admin_keep</allow_active>
+                </defaults>
+        </action>
+
+        <action id="org.openSUSE.rebootmgr.get-environment">
+                <description gettext-domain="rebootmgr">Read the rebootmgrd process environment</description>
+                <message gettext-domain="rebootmgr">Authentication is required to read the rebootmgrd process environment.</message>
+                <defaults>
+                        <allow_any>no</allow_any>
+                        <allow_inactive>auth_admin_keep</allow_inactive>
+                        <allow_active>auth_admin_keep</allow_active>
+                </defaults>
+        </action>
+
+</policyconfig>
