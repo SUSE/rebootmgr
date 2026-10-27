@@ -306,6 +306,7 @@ reset_timer(RM_CTX *ctx)
 
 struct system_error
 {
+  char *origin;
   char *errno_name;
   int errno_val;
 };
@@ -313,6 +314,7 @@ struct system_error
 static void
 system_error_free(struct system_error *e)
 {
+  e->origin = mfree(e->origin);
   e->errno_name = mfree(e->errno_name);
 }
 
@@ -346,23 +348,30 @@ varlink_reboot(const char *method)
 	{
 	  _cleanup_(system_error_free) struct system_error e = { .errno_val = 0 };
 	  static const sd_json_dispatch_field dispatch_table[] = {
+	    { "origin",    SD_JSON_VARIANT_STRING,  sd_json_dispatch_string, offsetof(struct system_error, origin),     0 },
 	    { "errnoName", SD_JSON_VARIANT_STRING,  sd_json_dispatch_string, offsetof(struct system_error, errno_name), 0 },
 	    { "errno",     SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,    offsetof(struct system_error, errno_val),  0 },
 	    {}
 	  };
 
-	  if (sd_json_dispatch(reply, dispatch_table, 0, &e) >= 0 && e.errno_name)
+	  r = sd_json_dispatch(reply, dispatch_table, SD_JSON_ALLOW_EXTENSIONS, &e);
+	  if (r < 0)
 	    {
-	      log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s", method, e.errno_name);
-	      return -e.errno_val;
+	      log_msg(LOG_ERR, "sd_json_dispatch failed: %s", strerror(-r));
+	      if (debug_flag)
+		sd_json_variant_dump(reply, SD_JSON_FORMAT_NEWLINE, stdout, NULL);
+	      log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s", method, error_id);
 	    }
 	  else
-	    log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s", method, error_id);
+	    {
+	      log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s:%i:%s (%s)", method, strna(e.origin), e.errno_val, strerror(e.errno_val), strna(e.errno_name));
+	      return e.errno_val?-e.errno_val:-EACCES;
+	    }
 	}
       else
 	log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s", method, error_id);
 
-      return -EPERM;
+      return -EACCES;
     }
 
   return 0;
