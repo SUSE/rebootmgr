@@ -304,10 +304,23 @@ reset_timer(RM_CTX *ctx)
   ctx->timer = sd_event_source_unref(ctx->timer);
 }
 
+struct system_error
+{
+  char *errno_name;
+  int errno_val;
+};
+
+static void
+system_error_free(struct system_error *e)
+{
+  e->errno_name = mfree(e->errno_name);
+}
+
 static int
 varlink_reboot(const char *method)
 {
   _cleanup_(sd_varlink_unrefp) sd_varlink *link = NULL;
+  _cleanup_(sd_json_variant_unrefp) sd_json_variant *reply = NULL;
   const char *error_id = NULL;
   int r;
 
@@ -318,11 +331,38 @@ varlink_reboot(const char *method)
       return r;
     }
 
-  r = sd_varlink_call(link, method, NULL, NULL, &error_id);
-  if (r < 0 || !isempty(error_id))
+  r = sd_varlink_call(link, method, NULL, &reply, &error_id);
+  if (r < 0)
     {
-      log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s", method, strna(error_id));
+      log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s", method, strerror(-r));
       return r;
+    }
+  if (!isempty(error_id))
+    {
+      /* The common "io.systemd.System" error wraps a plain Linux
+	 errno; the useful detail is in its parameters, not in the
+	 error ID itself. */
+      if (streq(error_id, "io.systemd.System"))
+	{
+	  _cleanup_(system_error_free) struct system_error e = { .errno_val = 0 };
+	  static const sd_json_dispatch_field dispatch_table[] = {
+	    { "errnoName", SD_JSON_VARIANT_STRING,  sd_json_dispatch_string, offsetof(struct system_error, errno_name), 0 },
+	    { "errno",     SD_JSON_VARIANT_INTEGER, sd_json_dispatch_int,    offsetof(struct system_error, errno_val),  0 },
+	    {}
+	  };
+
+	  if (sd_json_dispatch(reply, dispatch_table, 0, &e) >= 0 && e.errno_name)
+	    {
+	      log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s", method, e.errno_name);
+	      return -e.errno_val;
+	    }
+	  else
+	    log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s", method, error_id);
+	}
+      else
+	log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s", method, error_id);
+
+      return -EPERM;
     }
 
   return 0;
@@ -416,8 +456,12 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
 		  break;
 		}
 	      if (r < 0)
-		log_msg(LOG_ERR, "Calling /usr/bin/systemctl %s failed: %m",
-			(ctx->reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot");
+		log_msg(LOG_ERR, "Calling /usr/bin/systemctl %s failed: %s",
+			(ctx->reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot",
+			strerror(-r));
+	      else if (r > 0)
+		log_msg(LOG_ERR, "Calling /usr/bin/systemctl %s failed with exit code %i",
+			(ctx->reboot_method == RM_REBOOTMETHOD_HARD)?"reboot":"soft-reboot", r);
 	    }
 	  reset_timer(ctx);
 	}
