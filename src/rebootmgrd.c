@@ -21,7 +21,7 @@
 #include "varlink-io.systemd.Metrics.h"
 #include "rebootmgrd-varlink-metrics.h"
 
-#define VARLINK_MANAGER_SOCKET "/run/systemd/io.systemd.Manager"
+#define VARLINK_REBOOT_SOCKET "/run/systemd/io.systemd.Login"
 
 static int verbose_flag = 0;
 
@@ -326,10 +326,10 @@ varlink_reboot(const char *method)
   const char *error_id = NULL;
   int r;
 
-  r = sd_varlink_connect_address(&link, VARLINK_MANAGER_SOCKET);
+  r = sd_varlink_connect_address(&link, VARLINK_REBOOT_SOCKET);
   if (r < 0)
     {
-      log_msg(LOG_DEBUG, "Connecting to %s failed: %s", VARLINK_MANAGER_SOCKET, strerror(-r));
+      log_msg(LOG_DEBUG, "Connecting to %s failed: %s", VARLINK_REBOOT_SOCKET, strerror(-r));
       return r;
     }
 
@@ -341,10 +341,16 @@ varlink_reboot(const char *method)
     }
   if (!isempty(error_id))
     {
-      /* The common "io.systemd.System" error wraps a plain Linux
+      if (streq(error_id, "io.systemd.Shutdown.AlreadyInProgress"))
+	{
+	  log_msg(LOG_NOTICE, "Reboot already in progress (systemd-logind)!");
+	  return 0;
+	}
+
+      /* The common SD_VARLINK_ERROR_SYSTEM error wraps a plain Linux
 	 errno; the useful detail is in its parameters, not in the
 	 error ID itself. */
-      if (streq(error_id, "io.systemd.System"))
+      if (streq(error_id, SD_VARLINK_ERROR_SYSTEM))
 	{
 	  _cleanup_(system_error_free) struct system_error e = { .errno_val = 0 };
 	  static const sd_json_dispatch_field dispatch_table[] = {
@@ -364,7 +370,10 @@ varlink_reboot(const char *method)
 	    }
 	  else
 	    {
-	      log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s:%i:%s (%s)", method, strna(e.origin), e.errno_val, strerror(e.errno_val), strna(e.errno_name));
+	      if (!isempty(e.origin) && streq(e.origin, "linux"))
+		log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s:%s", method, strna(e.errno_name), strerror(e.errno_val));
+	      else
+		log_msg(LOG_ERR, "varlink_reboot(%s) failed: %s:%s", method, strna(e.origin), strna(e.errno_name));
 	      return e.errno_val?-e.errno_val:-EACCES;
 	    }
 	}
@@ -408,6 +417,7 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
 	  return -EINVAL;
 	}
 
+      // Don't do a real reboot in debug mode
       if (debug_flag)
 	{
 	  switch (ctx->reboot_method)
@@ -431,10 +441,10 @@ time_handler(sd_event_source _unused_(*s), uint64_t _unused_(usec), void *userda
 	  switch (ctx->reboot_method)
 	    {
 	    case RM_REBOOTMETHOD_HARD:
-	      r = varlink_reboot("io.systemd.Manager.Reboot");
+	      r = varlink_reboot("io.systemd.Shutdown.Reboot");
 	      break;
 	    case RM_REBOOTMETHOD_SOFT:
-	      r = varlink_reboot("io.systemd.Manager.SoftReboot");
+	      r = varlink_reboot("io.systemd.Shutdown.SoftReboot");
 	      break;
 	    default:
 	      /* cannot happen */
