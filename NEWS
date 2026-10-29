@@ -2,6 +2,9 @@ rebootmgr NEWS -- history of user-visible changes.
 
 Copyright (C) 2016-2026 Thorsten Kukuk
 
+Version 4.3
+* Use logind varlink interface for reboot
+
 Version 4.2
 * Fix error handling if SELinux denies reboot
 
